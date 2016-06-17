@@ -1,6 +1,6 @@
 AGNfitter
 ========
-**A Bayesian MCMC approach to fitting Spectral Energy Distributions for AGN and galaxies**
+**A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
 
 Welcome to AGNfitter! 
 
