@@ -18,7 +18,7 @@ Install just downloading the Github tar.
 
 After installation, let's do a quick test:
 
-**1)** go to def CATALOG_settings() and 
+**1)** Open **RUN_AGNfitter_multi.py**, go to def CATALOG_settings() and 
     change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
     
     
