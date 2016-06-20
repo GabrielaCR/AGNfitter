@@ -22,7 +22,7 @@ After installation, let's do a quick test:
     change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
     
     
-**2)** Do what is told in  **TASK3**,  of **Quick start**
+**2)** Do what is told in  **TASK4**,  of **Quick start**
 
 You should have a nice example in your OUTPUT folder.
 
