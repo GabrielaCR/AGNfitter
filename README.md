@@ -22,8 +22,10 @@ After installation, let's do a quick test:
     change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
     
     
-**2)** Do what is told in  **TASK4**,  of **Quick start**
+**2)** In terminal go to the AGNfitter folder and start
 
+    ipython RUN_AGNfitter_multi.py
+    
 You should have a nice example in your OUTPUT folder.
 
 Quick start
