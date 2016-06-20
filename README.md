@@ -73,7 +73,7 @@ A careful documentation will be soon available at my webpage.
 Citation and License
 ----------------
 Please cite `Calistro Rivera et al. (2016)`_ if this code has achieved its purpose and contributed to your
-research. I would be also very thankful if you could enter your name and paper to our ` testimonials list`_.
+research. 
 The BibTeX entry for the paper is:
 
 AGNfitter is an open-source software made available under the MIT License. See
