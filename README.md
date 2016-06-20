@@ -11,6 +11,14 @@ You only need a catalog of photometric data (wavelengths, fluxes and errors), ta
 
 AGNfitter makes use of a large library of theoretical, empirical, and semi-empirical models to characterize both the nuclear and host galaxy emission simultaneously. The model consists of four physical emission components: an accretion disk, a torus of AGN heated dust, stellar populations, and cold dust in star forming regions.  A detailed presentation, test and discussion of AGNfitter can be found in `arxivlink`
 
+Requirements
+-------------
+* Numpy version 1.6
+* scipy
+* Astropy version 1.0.1 or later (pip install --no-deps astropy)
+* acor (pip install acor)
+
+
 Installation
 ----------------
 
@@ -71,13 +79,6 @@ Done!
 Documentation
 ----------------
 A careful documentation will be soon available at my webpage.
-
-Requirements
--------------
-* Numpy version 1.6
-* scipy
-* Astropy version 1.0.1 or later (pip install --no-deps astropy)
-* acor (pip install acor)
 
 Citation and License
 ----------------
