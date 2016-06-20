@@ -72,6 +72,13 @@ Documentation
 ----------------
 A careful documentation will be soon available at my webpage.
 
+Requirements
+-------------
+* Numpy version 1.6
+* scipy
+* Astropy version 1.0.1 or later (pip install --no-deps astropy)
+* acor (pip install acor)
+
 Citation and License
 ----------------
 Please cite `Calistro Rivera et al. (2016)`_ if this code has achieved its purpose and contributed to your
