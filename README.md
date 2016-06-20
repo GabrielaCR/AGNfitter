@@ -41,8 +41,16 @@ You need just one thing to start: the catalog of sources.
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
                                         ## If FITS: not yet
         cat...
+**TASK2:** Go to the file DICTIONARY and to the CLASS MODELSDICT. Please change the line in the __Init__ function with
+
+    self.z_array =np.arange(zmin, zmax, zinterval)
+
+and specify the redshift ranges you need for you catalog. 
+The DICT_default only includes z=[0.14,0.28] for the test. 
+Please, consider this process takes around 1 minute per redshift element.
+This processs might be lengthy but you only have to do it once.
     
-**TASK2:** Decide if you want to fit only one source
+**TASK3:** Decide if you want to fit only one source
 
     RUN_AGNfitter_onesource(sourceline)
     #RUN_AGNfitter_multiprocessing(nr. of processors)
@@ -52,7 +60,7 @@ or a total catalog, using many processors:
     #RUN_AGNfitter_onesource(sourceline)
     RUN_AGNfitter_multiprocessing(nr. of processors)
     
-**TASK3:** In terminal go to the AGNfitter folder and start
+**TASK4:** In terminal go to the AGNfitter folder and start
 
     ipython RUN_AGNfitter_multi.py
 
