@@ -14,8 +14,17 @@ AGNfitter makes use of a large library of theoretical, empirical, and semi-empir
 Installation
 ----------------
 
-After installation, for a quick test, go to **TASK3** of **Quick start**
+Install just downloading the Github tar.
 
+After installation, let's do a quick test:
+
+**1)** go to def CATALOG_settings() and 
+    change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
+    
+    
+**2)** Do what is told in  **TASK3**,  of **Quick start**
+
+You should have a nice example in your OUTPUT folder.
 
 Quick start
 ------------
@@ -25,7 +34,7 @@ You need just one thing to start: the catalog of sources.
 
 **TASK1:** Specify your catalog's format in:
 
-    def_ CATALOG_settings()
+    def CATALOG_settings()
         cat['path'] ='/Users/USER/Codes/AGNfitter/'
         cat['filename'] = 'data/catalog_example.txt
         cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
@@ -35,12 +44,12 @@ You need just one thing to start: the catalog of sources.
     
 **TASK2:** Decide if you want to fit only one source
 
-    AGNfitter_main(sourceline)
+    RUN_AGNfitter_onesource(sourceline)
     #RUN_AGNfitter_multiprocessing(nr. of processors)
 
 or a total catalog, using many processors:
 
-    #AGNfitter_main(sourceline)
+    #RUN_AGNfitter_onesource(sourceline)
     RUN_AGNfitter_multiprocessing(nr. of processors)
     
 **TASK3:** In terminal go to the AGNfitter folder and start
@@ -58,7 +67,6 @@ Citation and License
 Please cite `Calistro Rivera et al. (2016)`_ if this code has achieved its purpose and contributed to your
 research. I would be also very thankful if you could enter your name and paper to our ` testimonials list`_.
 The BibTeX entry for the paper is:
-
 
 AGNfitter is an open-source software made available under the MIT License. See
 the LICENSE file for details.
