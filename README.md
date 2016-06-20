@@ -17,7 +17,7 @@ Requirements
 * scipy
 * Astropy version 1.0.1 or later (pip install --no-deps astropy)
 * acor (pip install acor)
-
+* smpy (dunkenj/smpy) (pip install smpy)
 
 Installation
 ----------------
