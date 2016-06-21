@@ -13,6 +13,8 @@ AGNfitter makes use of a large library of theoretical, empirical, and semi-empir
 
 Requirements
 -------------
+(A version with less dependencies will be published July 2016)
+
 * Numpy version 1.6
 * scipy
 * Astropy version 1.0.1 or later (pip install --no-deps astropy)
