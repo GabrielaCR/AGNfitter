@@ -1,7 +1,7 @@
-AGNfitter (beta_version : To all new users, please wait till Friday evening for a new update. Small bug found. Thanks!!)
+AGNfitter (beta_version)
 ========
 **A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
-
+**To all new users: please wait before download till Friday 24 June for a new update. Thanks!!**
 Welcome to AGNfitter! 
 
 AGNfitter is a Python algorithm implementing a fully Bayesian MCMC method to fit the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies from the sub-mm to the UV.
