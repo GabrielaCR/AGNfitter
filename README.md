@@ -1,4 +1,4 @@
-AGNfitter (beta_version)
+AGNfitter (beta_version : To all new users, please wait till Friday evening for a new update. Small bug found. Thanks!!)
 ========
 **A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
 
