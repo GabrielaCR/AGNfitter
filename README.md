@@ -9,7 +9,7 @@ Through this method, you will be able to robustly disentangle the physical proce
 
 You only need a catalog of photometric data (wavelengths, fluxes and errors), take a few decisions (if you wish), and you are ready to go (see Example).
 
-AGNfitter makes use of a large library of theoretical, empirical, and semi-empirical models to characterize both the nuclear and host galaxy emission simultaneously. The model consists of four physical emission components: an accretion disk, a torus of AGN heated dust, stellar populations, and cold dust in star forming regions.  A detailed presentation, test and discussion of AGNfitter can be found in `arxivlink`
+AGNfitter makes use of a large library of theoretical, empirical, and semi-empirical models to characterize both the nuclear and host galaxy emission simultaneously. The model consists of four physical emission components: an accretion disk, a torus of AGN heated dust, stellar populations, and cold dust in star forming regions.  A detailed presentation, test and discussion of AGNfitter can be found in `https://arxiv.org/abs/1606.05648#`
 
 Requirements
 -------------
@@ -40,7 +40,7 @@ You should have a nice example in your OUTPUT folder.
 Quick start
 ------------
 
-To get AGNfitter running the only file you need to open and modify is **RUN_AGNfitter_multi.py**.
+To get AGNfitter running you need to open and modify the file **RUN_AGNfitter_multi.py**.
 You need just one thing to start: the catalog of sources.
 
 **TASK1:** Specify your catalog's format in:
@@ -52,7 +52,7 @@ You need just one thing to start: the catalog of sources.
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
                                         ## If FITS: not yet
         cat...
-**TASK2:** Go to the file DICTIONARY and to the CLASS MODELSDICT. Please change the line in the __Init__ function with
+**TASK2:** To construct the dictionary, for the redshift ranges you need for you data, please go to the file DICTIONARY_AGNfitter.py and to the CLASS MODELSDICT. Please change the line in the __Init__ function with
 
     self.z_array =np.arange(zmin, zmax, zinterval)
 
@@ -86,6 +86,21 @@ Citation and License
 Please cite `Calistro Rivera et al. (2016)`_ if this code has achieved its purpose and contributed to your
 research. 
 The BibTeX entry for the paper is:
+
+    @ARTICLE{2016arXiv160605648C,
+    author = {{Calistro Rivera}, G. and {Lusso}, E. and {Hennawi}, J.~F. and {Hogg}, D.~W.},
+    title = "{AGNfitter: A Bayesian MCMC approach to fitting spectral energy distributions of AGN}",
+    journal = {ArXiv e-prints},
+    archivePrefix = "arXiv",
+    eprint = {1606.05648},
+    keywords = {Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
+    year = 2016,
+    month = jun,
+    adsurl = {http://adsabs.harvard.edu/abs/2016arXiv160605648C},
+    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+    }
+
+
 
 AGNfitter is an open-source software made available under the MIT License. See
 the LICENSE file for details.
