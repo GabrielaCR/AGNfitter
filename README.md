@@ -15,9 +15,10 @@ Requirements
 -------------
 (A version with less dependencies will be published July 2016)
 
-* Numpy version 1.6
+* Numpy version 1.6 or later
+* Matplotlib version 1.4.0 or later
 * scipy
-* Astropy version 1.0.1 or later (pip install --no-deps astropy)
+* Astropy version 1.2 or later (pip install --no-deps astropy)
 * acor (pip install acor)
 
 Installation
