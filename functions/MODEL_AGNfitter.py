@@ -61,6 +61,7 @@ def pick_GALAXY_template( tau, age, ebvg, tau_dict, age_dict, ebvg_dict):
 	tauidx = (np.abs(tau_dict.astype(float)-tau)).argmin()	
 	ageidx = (np.abs(age_dict.astype(float)-age)).argmin()
 	ebvidx = (np.abs(ebvg_dict.astype(float)-ebvg)).argmin()
+
 	return tau_dict[tauidx], age_dict[ageidx], ebvg_dict[ebvidx]
 
 def pick_TORUS_template(nh, nh_dict):
@@ -74,6 +75,8 @@ def pick_EBV_grid (EBV_array, EBV):
 	EBV_fromgrid  = EBV_array[idx]
 
 	return EBV_fromgrid
+
+
 
 #==============================
 # MAXIMAL POSSIBLE AGE FOR GALAXY MODEL
@@ -119,7 +122,7 @@ Reddening functions
 ==================================================="""
 
 
-def BBB_nf2(bbb_x, bbb_y, BBebv, z ):
+def BBBred_Prevot(bbb_x, bbb_y, BBebv, z ):
 
 	"""
 	
@@ -147,8 +150,9 @@ def BBB_nf2(bbb_x, bbb_y, BBebv, z ):
 	bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
 
 	return bbb_x, bbb_Lnu_red
-	
-def GALAXY_nf2( gal_nu, gal_Fnu,GAebv):
+
+
+def GALAXYred_Calzetti(gal_nu, gal_Fnu,GAebv):
 
 	"""
 	This function computes the effect of reddening in the galaxy template (Calzetti law)
@@ -160,41 +164,29 @@ def GALAXY_nf2( gal_nu, gal_Fnu,GAebv):
 	## output:
 
 	"""
-
 	RV = 4.05		
-	wl = np.arange(0.122, 2.18, 0.04)
-	redd_k=[]
-	for i in range(len(wl)):
-		if (wl[i]>0.12 and wl[i]<0.63):
-			k =   2.659*(-2.156+(1.509/wl[i])-(0.198/(wl[i]**2))+(0.011/(wl[i]**3)) )+RV
-		elif (wl[i]>0.63 and wl[i]<2.2):
-			k =  2.659*(-1.857+(1.040/wl[i]))+RV
-		redd_k.append(k)
-	
-	micron2cm = 1e-4
-	redd_wl_rest = wl*micron2cm	
-	redd_wl = redd_wl_rest 
 
-	redd_f_r= 2.998 * 1e10 / (redd_wl)
-	redd_f_r= 2.998 * 1e10 / (redd_wl)
-	redd_f = np.log10(redd_f_r)[::-1]
-	redd_k= np.array(redd_k)[::-1]
+	c =2.998 * 1e8 
+	gal_lambda_m = c / gal_nu * 1e6#in um 
+	wl = gal_lambda_m[::-1]  #invert for lambda
+	k = np.zeros(len(wl))
+
+	w0 = [wl <= 0.12]
+	w1 = [wl < 0.63]
+	w2 = [wl >= 0.63]
+
+	x1 = np.argmin(np.abs(wl - 0.12))
+	x2 = np.argmin(np.abs(wl - 0.125))
+
+	k[w2] = 2.659 * (-1.857 + 1.040 /wl[w2])+RV
+	k[w1] = 2.659 * (-2.156 + (1.509/wl[w1]) - (0.198/wl[w1]**2) + (0.011/wl[w1]**3))+RV
+	k[w0] = k[x1] + ((wl[w0] - 0.12) * (k[x1] - k[x2]) / (wl[x1] - wl[x2])) +RV
 
 
-	reddening = interp1d(redd_f, redd_k, kind='linear', bounds_error=True)
-	reddening2 = extrap1d(reddening)
-	
-	if (np.amax(gal_nu) - np.amax(redd_f)) <= 1e7:
-		redd_x = gal_nu			
-	else: 	
-		redd_x = np.log10(gal_nu)	
-	gal_k = reddening2(redd_x)
-
+	gal_k= k[::-1] #invert for nus
 	gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
-	
 
 	return gal_nu, gal_Fnu_red
-
 
 
 
@@ -412,30 +404,6 @@ def nu2lambda_angstrom(nus):
 
 	lambdas = c / (10**nus) * Angstrom
 	return lambdas
-
-def extrap1d(interpolator):
-    xs = interpolator.x
-    ys = interpolator.y
-
-    def pointwise(x):
-        if x < xs[0]:   
-	    if ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])>0:
-	        return ys[0]+(x-xs[0])*(ys[1]-ys[0])/(xs[1]-xs[0])
-            else:
-		return 0	
-	elif x > xs[-1]:
-	    if ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])>0:
-                return ys[-1]+(x-xs[-1])*(ys[-1]-ys[-2])/(xs[-1]-xs[-2])
-            else:
-		return 0	
-	else:
-	    if interpolator(x)>0:
-            	return interpolator(x)
-	    else: return 0
-    def ufunclike(xs):
-        return np.array(map(pointwise, np.array(xs)))
-
-    return ufunclike
 
 
 

@@ -34,7 +34,7 @@ def Pdict (data):
   
   P.names ='tau' ,   'age',  'Nh', 'irlum' ,  'SB',   'BB',   'GA',   'TO',  'EBVbbb',  'EBVgal'
   P.min =   0 ,    5.,   21.,    7.,      0.,      0.,        0.,     0.,      -0.1,       -0.1
-  P.max = 15,   np.log10(model.maximal_age(data.z)),   25,   15,     10,     1,    10,     10,     0.1,   1.5
+  P.max = 15,   np.log10(model.maximal_age(data.z)),   25,   15,     10.,     10.,    10.,     10.,     1.0,   1.0
 
   Npar = len(P.names)
 

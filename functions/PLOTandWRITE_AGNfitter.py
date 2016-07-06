@@ -546,7 +546,7 @@ def SED_plotting_settings(x, ydata):
 	ax2 = ax1.twiny()
 
 	#-- Latex -------------------------------------------------
-	rc('text', usetex=True, fontsize = 13.)
+	rc('text', usetex=True)
 	rc('font', family='serif')
 	rc('axes', linewidth=1.5)
 	#-------------------------------------------------------------

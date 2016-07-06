@@ -99,6 +99,74 @@ def CATALOG_settings():
     return cat
 
 
+def FILTERS_settings():
+
+    """==================================
+    Set the photometric bands included in your catalog,
+    in order to integrate the models over their response curves.
+    =================================="""
+
+    filters = dict()
+
+    filters['dict_zarray'] =np.array([0.283, 1.58])  # The grid of redshifts needed to fit your catalog
+    filters['Bandset'] = 'BANDSET_default' # OPTIONS: 
+                                           # 'BANDSET_default' (for testing)
+                                           # 'BANDSET_settings' (choosing relevant filters below, as given by your catalog)
+                                           # if your filter is not included, go to DICTIONARIES_AGNfitter to add.
+
+    filters['SPIRE500']= True
+    filters['SPIRE350']= True
+    filters['SPIRE250']= True
+    filters['PACS160']=False
+    filters['PACS100']=False
+
+    filters['MIPS160']=False      
+    filters['MIPS70']=False    
+    filters['MIPS24']=True
+
+    filters['IRAC4']=True       
+    filters['IRAC3']=True
+    filters['IRAC2']=True
+    filters['IRAC1']=True
+
+    filters['WISE4']=False
+    filters['WISE3']=False
+    filters['WISE2']=False
+    filters['WISE1']=False
+
+    filters['Ks_2mass']=True
+    filters['H_2mass']=True
+    filters['J_2mass']=True
+
+    filters['H_VISTA']=False
+    filters['J_VISTA']=False
+    filters['K_VISTA']=False
+    filters['Y_VISTA']=True
+
+    filters['u_SDSS']=False  
+    filters['g_SDSS']=False
+    filters['r_SDSS']=False
+    filters['i_SDSS']=False  
+    filters['z_SDSS']=False
+
+    filters['g_SUBARU']=False
+    filters['r_SUBARU']=True
+    filters['i_SUBARU']=True  
+    filters['z_SUBARU']=True
+    filters['B_SUBARU']=True
+    filters['V_SUBARU']=False
+
+    filters['u_CHFT']=True  
+    filters['g_CHFT']=False
+    filters['r_CHFT']=False
+    filters['i_CHFT']=False  
+    filters['z_CHFT']=False
+
+    filters['GALEX_2500']=True
+    filters['GALEX_1500']=False
+
+    return filters
+
 def MCMC_settings():
 
     """==================================
@@ -107,10 +175,9 @@ def MCMC_settings():
 
     mc = dict()
 
-    mc['Bandset'] = 'BANDSET_default' 
     mc['Nwalkers'] = 100  ## number of walkers 
     mc['Nburnsets']= 2   ## number of burn-in sets
-    mc['Nburn'] = 3000 ## length of each burn-in sets
+    mc['Nburn'] = 4000 ## length of each burn-in sets
     mc['Nmcmc'] = 10000  ## length of each burn-in sets
     mc['iprint'] = 1000 ## show progress in terminal in steps of this many samples
 
@@ -127,7 +194,7 @@ def OUTPUT_settings():
     out['plot_format'] = 'pdf'
 
     #CHAIN TRACES
-    out['plot_tracesburn-in'] = True    
+    out['plot_tracesburn-in'] = False    
     out['plot_tracesmcmc'] = True
 
     #BASIC OUTPUT
@@ -184,6 +251,7 @@ print ''
 """--------------------------------------------"""
 
 cat = CATALOG_settings()
+filters= FILTERS_settings()
 data_ALL = DATA_all(cat)
 data_ALL.PROPS()
 
@@ -194,7 +262,7 @@ if not os.path.lexists(cat['dict_path']):
 
     MODELFILES.construct(cat['path'])
 
-    mydict = MODELSDICT(cat['dict_path'], cat['path'])
+    mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
     mydict.build()
 
 Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
@@ -209,7 +277,7 @@ def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
         out = OUTPUT_settings()
 
         data = DATA(data_obj,line)
-        data.DICTS(mc, Modelsdict)
+        data.DICTS(filters, Modelsdict)
 
         P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
                                    # From PARAMETERSPACE_AGNfitter.py

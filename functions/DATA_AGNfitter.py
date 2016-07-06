@@ -156,7 +156,7 @@ class DATA():
 		self.output_folder = catalog.cat['output_folder']
 
 
-	def DICTS(self, mc, Modelsdict):
+	def DICTS(self, filters, Modelsdict):
 		"""
 		Helps transporting the dictionary content
 		corresponding to the redshift of the source
@@ -166,7 +166,7 @@ class DATA():
 		idx = (np.abs(z_array.astype(float)-self.z)).argmin()
 		z_key = z_array[idx] 
 
-		self.filterdict = dicts.filter_dictionaries(mc['Bandset'], self.path)   
+		self.filterdict = dicts.filter_dictionaries(filters['Bandset'], self.path, filters)   
 		self.dict_modelfluxes = Modelsdict[z_key]
 		self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
 		
