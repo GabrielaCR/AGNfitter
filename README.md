@@ -13,9 +13,11 @@ AGNfitter makes use of a large library of theoretical, empirical, and semi-empir
 
 Requirements
 -------------
+
 * Numpy version 1.6 or later
 * Matplotlib version 1.4.0 or later
-* Scipy
+* scipy
+
 * Astropy version 1.2 or later (pip install --no-deps astropy)
 * acor (pip install acor)
 
@@ -41,6 +43,7 @@ You should have a nice example in your OUTPUT folder.
 Quick start
 ------------
 
+
 To get AGNfitter running the ONLY file you need to open and modify is  **RUN_AGNfitter_multi.py**.
 You need just one thing to start: the catalog of sources.
 
@@ -53,6 +56,7 @@ You need just one thing to start: the catalog of sources.
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
                                         ## If FITS: not yet
         cat...
+
 **TASK2:** To construct the dictionary  please go to
 
     def FILTERS_settings():
