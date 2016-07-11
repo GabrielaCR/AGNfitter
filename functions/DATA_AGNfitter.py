@@ -119,7 +119,73 @@ class DATA_all:
 
 		elif self.cat['filetype'] == 'FITS': 
 
-			print 'Not ready to read fits yet'
+			#read all columns
+			fitstable = Table.read(self.catalog)
+
+			#properties
+			self.name = fitstable[self.cat['name']].astype(int)
+			self.z = fitstable[self.cat['redshift']].astype(float)
+			self.dlum = np.array([model.z2Dlum(z) for z in self.z])
+
+			#read all wavelengths, fluxes, fluerrors, flags
+			colnames = fitstable.dtype.names
+			wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
+			flux_cols = [ c for c in colnames if self.cat['freq/flux_suffix'] in c]
+			flux_err_cols = [ c for c in colnames if self.cat['freq/fluxerr_suffix'] in c]
+
+
+			freq_wl_cat_ALL = \
+				np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
+			flux_cat_ALL =\
+				np.array([fitstable[c] for ca in  flux_cols ])*self.cat['flux_unit']
+			fluxerr_cat_ALL = \
+				np.array([fitstable[c] for ce in flux_err_cols ])*self.cat['flux_unit']
+			if self.cat['ndflag_bool'] == True: 
+				ndflag_cat_ALL = np.array(fitstable[self.cat['ndflag_list']])
+
+			nus_l=[]
+			fluxes_l=[]
+			fluxerrs_l=[]
+			ndflag_l=[]
+
+			nrBANDS, nrSOURCES= np.shape(flux_cat_ALL)
+
+			##Convert to right units but give back just values
+			for j in range(nrSOURCES):
+			
+				freq_wl_cat= freq_wl_cat_ALL[:,j]
+				flux_cat= flux_cat_ALL[:,j]
+				fluxerr_cat= fluxerr_cat_ALL[:,j]
+
+				if self.cat['freq/wl_format']== 'frequency' :
+					nus0 = np.log10(freq_wl_cat.to(u.Hz).value)
+				if self.cat['freq/wl_format']== 'wavelength' :
+					nus0 = np.log10(freq_wl_cat.to(u.Hz, equivalencies=u.spectral()).value)
+
+				fluxes0 = np.array(flux_cat.to(u.erg/ u.s/ (u.cm)**2 / u.Hz).value)
+				fluxerrs0 = np.array(fluxerr_cat.to(u.erg/ u.s/(u.cm)**2/u.Hz).value)
+
+				## If columns with flags exist
+				if self.cat['ndflag_bool'] == True: 
+					ndflag_cat0 = ndflag_cat_ALL[:,j]
+
+				## If NO columns with flags exist
+				elif self.cat['ndflag_bool'] == False:
+
+					ndflag_cat0 = np.ones(np.shape(fluxes0))
+					ndflag_cat0[fluxes0< 0]= 0.
+
+				## Sort in order of frequency
+				nus_l.append(nus0[nus0.argsort()])
+				fluxes_l.append(fluxes0[nus0.argsort()])
+				fluxerrs_l.append(fluxerrs0[nus0.argsort()])
+				ndflag_l.append(ndflag_cat0[nus0.argsort()])
+
+
+			self.nus = np.array(nus_l)
+			self.fluxes = np.array(fluxes_l)
+			self.fluxerrs = np.array(fluxerrs_l)
+			self.ndflag = np.array(ndflag_l)
 
 class DATA():
 
