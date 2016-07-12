@@ -130,16 +130,16 @@ class DATA_all:
 			#read all wavelengths, fluxes, fluerrors, flags
 			colnames = fitstable.dtype.names
 			wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
-			flux_cols = [ c for c in colnames if self.cat['freq/flux_suffix'] in c]
-			flux_err_cols = [ c for c in colnames if self.cat['freq/fluxerr_suffix'] in c]
+			flux_cols = [ c for c in colnames if self.cat['flux_suffix'] in c]
+			flux_err_cols = [ c for c in colnames if self.cat['fluxerr_suffix'] in c]
 
 
 			freq_wl_cat_ALL = \
 				np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
 			flux_cat_ALL =\
-				np.array([fitstable[c] for ca in  flux_cols ])*self.cat['flux_unit']
+				np.array([fitstable[ca] for ca in  flux_cols ])*self.cat['flux_unit']
 			fluxerr_cat_ALL = \
-				np.array([fitstable[c] for ce in flux_err_cols ])*self.cat['flux_unit']
+				np.array([fitstable[ce] for ce in flux_err_cols ])*self.cat['flux_unit']
 			if self.cat['ndflag_bool'] == True: 
 				ndflag_cat_ALL = np.array(fitstable[self.cat['ndflag_list']])
 
