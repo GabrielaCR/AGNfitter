@@ -79,6 +79,8 @@ class DATA_all:
 			ndflag_l=[]
 
 			nrBANDS, nrSOURCES= np.shape(flux_cat_ALL)
+			
+			self.cat['nsources'] = nrSOURCES
 
 			##Convert to right units but give back just values
 			for j in range(nrSOURCES):
@@ -150,6 +152,8 @@ class DATA_all:
 
 			nrBANDS, nrSOURCES= np.shape(flux_cat_ALL)
 
+                        self.cat['nsources'] = nrSOURCES
+                        
 			##Convert to right units but give back just values
 			for j in range(nrSOURCES):
 			
