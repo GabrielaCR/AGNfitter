@@ -387,9 +387,15 @@ if __name__ == "__main__":
     parser.add_argument("-c","--ncpu", type=int, default=1, help="number of cpus to use for multiprocessing")
     parser.add_argument("-n", "--sourcenumber", type=int, default=-1, help="specify a single source number to run (this is the line number in hte catalogue not the source id/name)")
     parser.add_argument("-i","--independent", action="store_true", help="run independently per source, i.e. do not create a global model dictionary")
+    arser.add_argument("-o","--overwrite", action="store_true", help="overwrite model files")
+    
     
     args = parser.parse_args()
     
+    if args.overwrite:
+      clobbermodel = True
+    else:
+      clobbermodel = False
     
     cat = CATALOG_settings()
     filters= FILTERS_settings()
@@ -406,12 +412,12 @@ if __name__ == "__main__":
 
     # run for once source only and construct dictionary only for this source
     if args.independent:
-        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL)
+        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, clobbermodel=clobbermodel)
         
         
     else:
         # make/read the model dictionary
-        Modelsdict = MAKE_model_dictionary(cat, filters)
+        Modelsdict = MAKE_model_dictionary(cat, filters, clobbermodel=clobbermodel)
 
         # a single source is specified
         if args.sourcenumber >= 0:
