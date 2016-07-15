@@ -229,34 +229,57 @@ def OUTPUT_settings():
     return out
 
 
+def header():
+    print '              '
+    print '             XXXX'
+    print '___________ XXX _________________________________________________'
+    print '            XX      '
+    print '            X     '
+    print '            X                       AGNfitter                     '
+    print '         __ X __                    ---------                ' 
+    print '     /**\   |   /**\                                          '
+    print '... (*** =  o  = ***) ...........................................'                                
+    print '     \**/__ | __\**/                                     '
+    print '            X              Fitting SEDs of AGN and Galaxies  '
+    print '            X             in a MCMC Approach '
+    print '           xx              (Calistro Rivera et al. 2016)    '   
+    print '          xx               '            
+    print '_______ xxx______________________________________________________'
+    print '     xxxx'
+    print ''
+    return
+
+
+
 def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
-        """
-        Main function for fitting a single source in line 'line'.
-        """
-        
-        mc = MCMC_settings()
-        out = OUTPUT_settings()
+    """
+    Main function for fitting a single source in line 'line'.
+    """
+    
+    mc = MCMC_settings()
+    out = OUTPUT_settings()
 
-        data = DATA(data_obj,line)
-        data.DICTS(filters, Modelsdict)
+    data = DATA(data_obj,line)
+    data.DICTS(filters, Modelsdict)
 
-        P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
-                                   # From PARAMETERSPACE_AGNfitter.py
+    P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
+				# From PARAMETERSPACE_AGNfitter.py
 
-        print ''
-        print 'Fitting sources from catalog: ', data.catalog 
-        print '- Sourceline: ', line
-        print '- Sourcename: ', data.name
-
-
-        t1= time.time()
-
-        MCMC_AGNfitter.main(data, P, mc)        
-        PLOTandWRITE_AGNfitter.main(data,  P,  out)
+    print ''
+    print 'Fitting sources from catalog: ', data.catalog 
+    print '- Sourceline: ', line
+    print '- Sourcename: ', data.name
 
 
-        print '_____________________________________________________'
-        print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
+    t1= time.time()
+
+    MCMC_AGNfitter.main(data, P, mc)        
+    PLOTandWRITE_AGNfitter.main(data,  P,  out)
+
+
+    print '_____________________________________________________'
+    print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
+    return
 
 
 def RUN_AGNfitter_multiprocessing(processors,data_obj=data_ALL):
@@ -266,21 +289,21 @@ def RUN_AGNfitter_multiprocessing(processors,data_obj=data_ALL):
     into a chosen number of processors.
     """
     cat = CATALOG_settings()
-     
-    with open(cat['filename'], 'r') as f:
-        lines = f.readlines()
-        catalog_lines = len([l for l in lines if l.strip(' \n') != '']) 
-
+    
+    nsources = data_ALL.cat['nsources']
+    
     pool = mp.Pool(processes = processors)
-    catalog_fitting = pool.map(RUN_AGNfitter_onesource,range(catalog_lines))
+    catalog_fitting = pool.map(RUN_AGNfitter_onesource,range(nsources))
     pool.close()
     pool.join()
     ##WRITE ALL RESULST IN ONE TABLE
+    return
 
 
 
 
 def RUN():
+    header()
 
     """==========================================
 
@@ -301,49 +324,30 @@ def RUN():
     print '======= : ======='
     print 'Process finished.'
 
-
-def header():
-    print '              '
-    print '             XXXX'
-    print '___________ XXX _________________________________________________'
-    print '            XX      '
-    print '            X     '
-    print '            X                       AGNfitter                     '
-    print '         __ X __                    ---------                ' 
-    print '     /**\   |   /**\                                          '
-    print '... (*** =  o  = ***) ...........................................'                                
-    print '     \**/__ | __\**/                                     '
-    print '            X              Fitting SEDs of AGN and Galaxies  '
-    print '            X             in a MCMC Approach '
-    print '           xx              (Calistro Rivera et al. 2016)    '   
-    print '          xx               '            
-    print '_______ xxx______________________________________________________'
-    print '     xxxx'
-    print ''
+    """--------------------------------------------"""
+    return
 
 
-
-
-"""--------------------------------------------"""
-
-cat = CATALOG_settings()
-filters= FILTERS_settings()
-data_ALL = DATA_all(cat)
-data_ALL.PROPS()
-
-
-## 0. CONSTRUCT DICTIONARY (not needed if default is used)
-
-if not os.path.lexists(cat['dict_path']):
-
-    MODELFILES.construct(cat['path'])
-
-    mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
-    mydict.build()
-
-Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
 
 
 if __name__ == "__main__":
-    header()
+    
+    cat = CATALOG_settings()
+    filters= FILTERS_settings()
+    data_ALL = DATA_all(cat)
+    data_ALL.PROPS()
+
+
+    ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
+
+    if not os.path.lexists(cat['dict_path']):
+
+	MODELFILES.construct(cat['path'])
+
+	mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
+	mydict.build()
+
+    Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
+
+    
     RUN()
