@@ -219,11 +219,12 @@ if __name__ == "__main__":
     data_ALL.PROPS()
 
     ## make sure the output paths exist
-    if not os.path.isdir(os.path.abspath(cat['output_folder'])):
+    if not os.path.isdir(cat['output_folder']):
         os.system('mkdir -p '+os.path.abspath(cat['output_folder']))
     # abspath is needed because 'dict_path' is a file
-    if not os.path.isdir(os.path.abspath(cat['dict_path'])):
-        os.system('mkdir -p '+os.path.abspath(cat['dict_path']))
+    mpath = cat['dict_path'].replace(os.path.basename(t),'')
+    if not os.path.isdir(mpath):
+        os.system('mkdir -p '+os.path.abspath(mpath))
     
 
     # run for once source only and construct dictionary only for this source
