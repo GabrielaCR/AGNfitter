@@ -352,7 +352,7 @@ def filters1( model_nus, model_fluxes, filterdict, z ):
 
     # For filter curve at each band. 
     # (Vectorised integration was not possible -> different filter-curve-arrays' sizes)
-     for iband in bands:
+    for iband in bands:
 
         # Read filter curves info for each data point 
         # (wavelengths [angstrom] and factors [non])
