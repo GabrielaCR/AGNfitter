@@ -29,6 +29,7 @@ import time
 import shelve
 import multiprocessing as mp 
 import cPickle
+import argparse
 
 #AGNfitter IMPORTS
 from functions import  MCMC_AGNfitter, PLOTandWRITE_AGNfitter
@@ -250,6 +251,83 @@ def header():
     return
 
 
+def MAKE_model_dictionary(cat, clobbermodel=False):
+    ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
+    t0= time.time()
+
+    if clobbermodel and os.path.lexists(cat['dict_path']):
+        print "removing model dictionary "+cat['dict_path']
+        os.system('rm -rf '+ cat['dict_path'])
+        
+    if not os.path.lexists(cat['dict_path']):
+
+        MODELFILES.construct(cat['path'])
+
+        mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
+        mydict.build()
+        
+	print '_____________________________________________________'
+	print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+
+    Modelsdict = cPickle.load(file(cat['dict_path'], 'rb'))
+    
+    return Modelsdict
+
+
+def RUN_AGNfitter_onesource_independent( line, data_obj, modelsdict, clobbermodel=False):
+    """
+    Main function for fitting a single source in line 'line' and create it's modelsdict independently.
+    """
+    
+    mc = MCMC_settings()
+    out = OUTPUT_settings()
+
+    data = DATA(data_obj,line)
+    data.DICTS(filters, Modelsdict)
+
+
+
+
+    print ''
+    print 'Fitting sources from catalog: ', data.catalog 
+    print '- Sourceline: ', line
+    print '- Sourcename: ', data.name
+
+
+    ## 0. CONSTRUCT DICTIONARY for this redshift
+    t0= time.time()
+
+    filtersz = FILTERS_settings([data.z])
+
+    # add a suffix for this source dictionary
+    dictz = cat['dict_path'] + '_' + str(data.name) 
+    if clobbermodel and os.path.lexists(dictz):
+        os.system('rm -rf '+dictz)
+        print "removing source model dictionary "+dictz
+      
+    if not os.path.lexists(dictz):
+        mydict = MODELSDICT(dictz, cat['path'], filtersz)
+        mydict.build()
+	print '_____________________________________________________'
+	print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+
+    Modelsdictz = cPickle.load(file(dictz, 'rb')) 
+
+    data.DICTS(filtersz, Modelsdictz)
+
+
+    P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
+                                # From PARAMETERSPACE_AGNfitter.py
+
+    t1= time.time()
+
+    MCMC_AGNfitter.main(data, P, mc)        
+    PLOTandWRITE_AGNfitter.main(data,  P,  out)
+
+
+    print '_____________________________________________________'
+    print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
+    return
 
 def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
     """
@@ -300,37 +378,16 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     return
 
 
-
-
-def RUN(data_obj, modelsdict):
-    header()
-
-    """==========================================
-
-    ***USER INPUT NEEDED***
-
-    CHOOSE between one of the two versions:
-
-    1. fit single or few sources (input: [int] sourceline)
-    or 
-    2. fit total catalog (input: [int] nr. of processors )
-
-    (Comment the option you are not using.)
-    ==========================================="""
-
-    RUN_AGNfitter_onesource(0, data_obj, modelsdict)
-    #RUN_AGNfitter_multiprocessing(1,data_obj, modelsdict)
-
-    print '======= : ======='
-    print 'Process finished.'
-
-    """--------------------------------------------"""
-    return
-
-
-
-
 if __name__ == "__main__":
+  
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument("-c","--ncpu", type=int, default=1, help="number of cpus to use for multiprocessing")
+    parser.add_argument("-n", "--sourcenumber", type=int, default=-1, help="specify a single source number to run (this is the line number in hte catalogue not the source id/name)")
+    parser.add_argument("-i","--independent", action="store_true", help="run independently per source, i.e. do not create a global model dictionary")
+    
+    args = parser.parse_args()
+    
     
     cat = CATALOG_settings()
     filters= FILTERS_settings()
@@ -338,16 +395,24 @@ if __name__ == "__main__":
     data_ALL.PROPS()
 
 
-    ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
-
-    if not os.path.lexists(cat['dict_path']):
-
-        MODELFILES.construct(cat['path'])
-
-        mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
-        mydict.build()
-
-    Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
-
+    if not os.path.isdir(os.path.abspath(cat['dict_path'])):
+	os.system('mkdir -p '+os.path.abspath(cat['dict_path']))
     
-    RUN(Modelsdict, data_ALL, Modelsdict)
+
+    # run for once source only and construct dictionary only for this source
+    if args.independent:
+        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL)
+        
+        
+    else:
+        Modelsdict = MAKE_model_dictionary(cat)
+
+    # a single source is specified
+    if args.sourcenumber >= 0:
+        RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, Modelsdict)
+    else:
+        RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, Modelsdict)
+        
+        
+    print '======= : ======='
+    print 'Process finished.'
