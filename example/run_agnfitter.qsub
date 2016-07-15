@@ -21,4 +21,4 @@ cd /car-data/wwilliams/bootes/multi_bootes/agnfitter
 
 export PYTHONPATH=/car-data/wwilliams/bootes/multi_bootes/agnfitter/git/AGNfitter/:$PYTHONPATH
 
-python RUN_AGNfitter_multi_ww.py --independent --sourcenumber $PBS_ARRAYID 
+python RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAYID SETTINGS_AGNfitter_ww.py
