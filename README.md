@@ -134,7 +134,7 @@ To run AGNfitter in *batch mode* using python's multiprocessing capability and i
 
     RUN_AGNfitter_multi.py --ncpu 8 my_SETTINGS_AGNfitter.py
     
-To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines and a queue system, e.g using a PBS array job to specify the calalog line numbers
+To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines, a shared filesystem and a queue system, e.g using a PBS array job to specify the calalog line numbers
 
     RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
     
