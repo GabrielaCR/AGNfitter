@@ -68,22 +68,25 @@ def CATALOG_settings():
                                         ## If FITS: not yet
  
     ##FREQUENCIES/WAVELENGTHS 
+    ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
     cat['freq/wl_list'] = np.arange(2,56,3).tolist()                                  
                                         ## If ASCII: List of column indexes (int), 
-                                        ##           corresponding to freq/wl.
-                                        ## If FITS: not yet
+                                        ##           corresponding to freq/wl.                                  
+    #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
     cat['freq/wl_format'] = 'wavelength' ## Gives your catalog *observed*
                                          ## 'frequency' or 'wavelength'?
     cat['freq/wl_unit'] = u.Angstrom       ## Astropy unit of freq or wavelength
 
     ##FLUXES 
-    cat['fluxerr_list'] = np.arange(4,58,3).tolist() 
-                                        ## If ASCII: List of column indexes (int)
-                                        ## If FITS: List of column names (str)
+    ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
     cat['flux_unit'] = u.Jy             ## Astropy unit of *flux* (astropy-units)
     cat['flux_list'] = np.arange(3,57,3).tolist()        
                                         ## If ASCII: List of column indexes (int)
-                                        ## If FITS: Common ending of all fluxes-columns' names .
+    #cat['flux_suffix'] = '_f'          ## If FITS: Common ending of all flux column names (str)
+    
+    cat['fluxerr_list'] = np.arange(4,58,3).tolist() 
+                                        ## If ASCII: List of column indexes (int)
+    #cat['fluxerr_suffix'] = '_e'       ## If FITS: common ending to fluxerr column names (str)
 
     ##NON-DETECTIONS                                        
     cat['ndflag_bool'] = False          ## Does you catalog has columns with flags 1(0) for 
