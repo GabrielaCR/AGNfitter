@@ -252,7 +252,7 @@ def header():
     return
 
 
-def MAKE_model_dictionary(cat, clobbermodel=False):
+def MAKE_model_dictionary(cat, filters, clobbermodel=False):
     ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
     t0= time.time()
 
@@ -411,7 +411,7 @@ if __name__ == "__main__":
         
     else:
         # make/read the model dictionary
-        Modelsdict = MAKE_model_dictionary(cat)
+        Modelsdict = MAKE_model_dictionary(cat, filters)
 
         # a single source is specified
         if args.sourcenumber >= 0:
