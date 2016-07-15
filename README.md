@@ -17,20 +17,17 @@ Requirements
 * Numpy version 1.6 or later
 * Matplotlib version 1.4.0 or later
 * scipy
-
 * Astropy version 1.2 or later (pip install --no-deps astropy)
 * acor (pip install acor)
 
 Installation
 ----------------
 
-Installation can be done through Github
-* Clone (recommended) 
-* Downloading the Github tar (please, stay updated about changes and corrections, since this is still a beta version)
+Installation can by cloning this Github repository
 
 After installation, let's do a quick test:
 
-**1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to def CATALOG_settings() and change 
+**1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
     cat['path'] ='/Users/USER/Codes/AGNfitter/'
     cat['outpath'] = '/Users/USER/AGNfitter/' 
 to your AGNfitter and chosen output paths respectively.
@@ -38,15 +35,14 @@ to your AGNfitter and chosen output paths respectively.
     
 **2)** In terminal go to the AGNfitter folder and start
 
-    python RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
     
-You should have a nice example in your OUTPUT folder.
+You should have a nice example in your `cat['outpath']/OUTPUT` folder. Either make sure that the root AGNfitter directory is on your `PATH` or specify the full path to `RUN_AGNfitter_multi.py`.
 
 Quick start
 ------------
 
-
-To get AGNfitter running the ONLY file you need to open and modify is  **RUN_AGNfitter_multi.py**.
+To get AGNfitter running the ONLY file you need to open and modify is **example/SETTINGS_AGNfitter.py**.
 You need just one thing to start: the catalog of sources.
 
 **TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
@@ -86,7 +82,9 @@ Otherwise, if you like, you can specify the photometric bands included in your c
 and assigning 'True' to the keys corresponding to the photometric bands in your catalog.
     
     
-**TASK 2:** Run AGNfitter with `python RUN_AGNfitter_multi.py -h`. The options are:
+**TASK 2:** Run AGNfitter with
+    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+this will run AGNfitter in series for the two sources in the example catalog. In general there are a few more runtime options. You can see them with `python RUN_AGNfitter_multi.py -h`:
 
               
                     XXXX
@@ -123,15 +121,17 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
 
 
 
-You can run AGNfitter for a single source in the catalogue by specifying the line number as the sourcenumber argument: e.g.
-    python RUN_AGNfitter_multi.py --sourcenumber 0 example/SETTINGS_AGNfitter.py
+To run AGNfitter for a *single source* in the catalog, specify the line number as the sourcenumber argument: e.g.
+    RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
 
-Or you can run AGNfitter is batch mode using python's multiprocessing capability to improve the efficiency: e.g on a machine with 8 cpu cores
-    python RUN_AGNfitter_multi.py --ncpu 8 example/SETTINGS_AGNfitter.py
+To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 8 cpu cores
+    RUN_AGNfitter_multi.py --ncpu 8 my_SETTINGS_AGNfitter.py
     
-Or you can run AGNfitter on a compute cluster with multiple machines and a queue system. e.g 
-    python RUN_AGNfitter_multi.py --overwrite --independent --sourcenumber $PBS_ARRAY_ID example/SETTINGS_AGNfitter.py
-see the qsub example in `example/run_agnfitter.qsub`. Here the `--independent` flag is required so that each job produces it's own model dictionary at it's own redshift. This can be more efficient for large catalogues where the model dictionary creation (which is not paralellized) can take a long time.
+To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines and a queue system, e.g using a PBS array job to specify the calalog line numbers
+    RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
+See the qsub example in `example/run_agnfitter.qsub`. Here the `--independent` flag is required so that each job produces it's own model dictionary at it's own redshift (i.e. each source does not recreated the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
+
+Additionally, you can specify `--overwrite` if you wish to recreate any existing models dictionaries (in case you change the z arrays).
 
 Done!
 
