@@ -30,13 +30,15 @@ Installation can be done through Github
 
 After installation, let's do a quick test:
 
-**1)** Open **example/SETTINGS_AGNfitter.py**, go to def CATALOG_settings() and 
-    change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
+**1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to def CATALOG_settings() and change 
+    cat['path'] ='/Users/USER/Codes/AGNfitter/'
+    cat['outpath'] = '/Users/USER/AGNfitter/' 
+to your AGNfitter and chosen output paths respectively.
     
     
 **2)** In terminal go to the AGNfitter folder and start
 
-    python RUN_AGNfitter_multi.py example/SETTINGS_AGNfitter.py
+    python RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
     
 You should have a nice example in your OUTPUT folder.
 
@@ -47,9 +49,9 @@ Quick start
 To get AGNfitter running the ONLY file you need to open and modify is  **RUN_AGNfitter_multi.py**.
 You need just one thing to start: the catalog of sources.
 
-**TASK1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
+**TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
 
-*TASK1a:* Specify your catalog's format in:
+*TASK 1a:* Specify your catalog's format in:
 
     def CATALOG_settings()
         cat['path'] ='/Users/USER/Codes/AGNfitter/'
@@ -58,7 +60,7 @@ You need just one thing to start: the catalog of sources.
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
         cat...
 
-*TASK1b:* To construct the dictionary  please go to
+*TASK 1b:* To construct the dictionary  please go to
 
     def FILTERS_settings():
         filters['dict_zarray'] = np.arange(zmin, zmax, zinterval)
@@ -84,7 +86,7 @@ Otherwise, if you like, you can specify the photometric bands included in your c
 and assigning 'True' to the keys corresponding to the photometric bands in your catalog.
     
     
-**TASK2:** Run AGNfitter with `python RUN_AGNfitter_multi.py -h`. The options are:
+**TASK 2:** Run AGNfitter with `python RUN_AGNfitter_multi.py -h`. The options are:
 
               
                     XXXX
