@@ -229,48 +229,6 @@ def OUTPUT_settings():
     return out
 
 
-
-print '              '
-print '             XXXX'
-print '___________ XXX _________________________________________________'
-print '            XX      '
-print '            X     '
-print '            X                       AGNfitter                     '
-print '         __ X __                    ---------                ' 
-print '     /**\   |   /**\                                          '
-print '... (*** =  o  = ***) ...........................................'                                
-print '     \**/__ | __\**/                                     '
-print '            X              Fitting SEDs of AGN and Galaxies  '
-print '            X             in a MCMC Approach '
-print '           xx              (Calistro Rivera et al. 2016)    '   
-print '          xx               '            
-print '_______ xxx______________________________________________________'
-print '     xxxx'
-print ''
-
-
-
-
-"""--------------------------------------------"""
-
-cat = CATALOG_settings()
-filters= FILTERS_settings()
-data_ALL = DATA_all(cat)
-data_ALL.PROPS()
-
-
-## 0. CONSTRUCT DICTIONARY (not needed if default is used)
-
-if not os.path.lexists(cat['dict_path']):
-
-    MODELFILES.construct(cat['path'])
-
-    mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
-    mydict.build()
-
-Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
-
-
 def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
         """
         Main function for fitting a single source in line 'line'.
@@ -344,4 +302,48 @@ def RUN():
     print 'Process finished.'
 
 
-RUN()
+def header():
+    print '              '
+    print '             XXXX'
+    print '___________ XXX _________________________________________________'
+    print '            XX      '
+    print '            X     '
+    print '            X                       AGNfitter                     '
+    print '         __ X __                    ---------                ' 
+    print '     /**\   |   /**\                                          '
+    print '... (*** =  o  = ***) ...........................................'                                
+    print '     \**/__ | __\**/                                     '
+    print '            X              Fitting SEDs of AGN and Galaxies  '
+    print '            X             in a MCMC Approach '
+    print '           xx              (Calistro Rivera et al. 2016)    '   
+    print '          xx               '            
+    print '_______ xxx______________________________________________________'
+    print '     xxxx'
+    print ''
+
+
+
+
+"""--------------------------------------------"""
+
+cat = CATALOG_settings()
+filters= FILTERS_settings()
+data_ALL = DATA_all(cat)
+data_ALL.PROPS()
+
+
+## 0. CONSTRUCT DICTIONARY (not needed if default is used)
+
+if not os.path.lexists(cat['dict_path']):
+
+    MODELFILES.construct(cat['path'])
+
+    mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
+    mydict.build()
+
+Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
+
+
+if __name__ == "__main__":
+    header()
+    RUN()
