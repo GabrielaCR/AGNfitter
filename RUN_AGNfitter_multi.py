@@ -96,7 +96,7 @@ def CATALOG_settings():
                                         ## If FITS: List of column names (str)    
 
     ##OTHERS (user input ***not*** needed)
-    cat['outpath'] ='/car-data/wwilliams/bootes/multi_bootes/agnfitter/'   # allow for an output path outside of the AGNfitter code path
+    cat['outpath'] = cat['path']   # allow for an output path outside of the AGNfitter code path
     cat['output_folder'] =  cat['outpath'] +'OUTPUT/'#if no special OUTPUT folder, leave default
     cat['dict_path'] = cat['outpath'] + 'models/MODELSDICT_default' 
 
@@ -387,7 +387,7 @@ if __name__ == "__main__":
     parser.add_argument("-c","--ncpu", type=int, default=1, help="number of cpus to use for multiprocessing")
     parser.add_argument("-n", "--sourcenumber", type=int, default=-1, help="specify a single source number to run (this is the line number in hte catalogue not the source id/name)")
     parser.add_argument("-i","--independent", action="store_true", help="run independently per source, i.e. do not create a global model dictionary")
-    arser.add_argument("-o","--overwrite", action="store_true", help="overwrite model files")
+    parser.add_argument("-o","--overwrite", action="store_true", help="overwrite model files")
     
     
     args = parser.parse_args()
