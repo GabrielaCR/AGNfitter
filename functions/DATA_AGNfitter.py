@@ -46,7 +46,7 @@ class DATA_all:
                 #self.sourceline = sourceline
                 self.catalog = cat['filename']
                 if not os.path.lexists(cat['filename']):
-                        print 'ERROR: Catalog does not exist under this name.'
+                        print 'ERROR: Catalog does not exist under this name '+cat['filename']
                         sys.exit(1)
                 self.path = cat['path']
                 self.dict_path = cat['dict_path']
