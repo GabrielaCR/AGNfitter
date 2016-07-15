@@ -165,6 +165,11 @@ def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
     return
 
     
+def multi_run_wrapper(args):
+    """
+    wrapper to allow calling RUN_AGNfitter_onesource in pool.map
+    """
+    return RUN_AGNfitter_onesource(*args)
 
 def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     """
@@ -173,8 +178,6 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     into a chosen number of processors.
     """
     
-    def multi_run_wrapper(args):
-        return RUN_AGNfitter_onesource(*args)
     
     
     nsources = data_obj.cat['nsources']
