@@ -381,6 +381,7 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
 
 
 if __name__ == "__main__":
+    header()
   
     parser = argparse.ArgumentParser()
     
