@@ -13,9 +13,6 @@ G.Calistro Rivera, E.Lusso, J.Hennawi, D. Hogg
     
 This is the main script.
 
-For default use 
-change only the functions which state 
-***USER INPUT NEEDED***.
 
 """
 
@@ -84,7 +81,7 @@ def MAKE_model_dictionary(cat, filters, clobbermodel=False):
     return Modelsdict
 
 
-def RUN_AGNfitter_onesource_independent( line, data_obj, clobbermodel=False):
+def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=False):
     """
     Main function for fitting a single source in line 'line' and create it's modelsdict independently.
     """
@@ -108,7 +105,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, clobbermodel=False):
     t0= time.time()
 
     # needs a list/array of z
-    filtersz = FILTERS_settings([data.z])
+    filtersz['dict_zarray'] = [data.z]
 
     # add a suffix for this source dictionary
     dictz = cat['dict_path'] + '_' + str(data.name) 
@@ -194,20 +191,29 @@ if __name__ == "__main__":
   
     parser = argparse.ArgumentParser()
     
+    parser.add_argument("AGNfitterSettings", type=str, help="AGNfitter settings file")
     parser.add_argument("-c","--ncpu", type=int, default=1, help="number of cpus to use for multiprocessing")
     parser.add_argument("-n", "--sourcenumber", type=int, default=-1, help="specify a single source number to run (this is the line number in hte catalogue not the source id/name)")
     parser.add_argument("-i","--independent", action="store_true", help="run independently per source, i.e. do not create a global model dictionary")
     parser.add_argument("-o","--overwrite", action="store_true", help="overwrite model files")
     
     
+    
     args = parser.parse_args()
+    
+    execfile(args.AGNfitterSettings)
     
     if args.overwrite:
       clobbermodel = True
     else:
       clobbermodel = False
     
-    cat = CATALOG_settings()
+    try:
+	cat = CATALOG_settings()
+    except NameError:
+        print "Something is wrong with your setting file"
+        sys.exit(1)
+        
     filters= FILTERS_settings()
     data_ALL = DATA_all(cat)
     data_ALL.PROPS()
@@ -222,7 +228,7 @@ if __name__ == "__main__":
 
     # run for once source only and construct dictionary only for this source
     if args.independent:
-        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, clobbermodel=clobbermodel)
+        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, clobbermodel=clobbermodel)
         
         
     else:
