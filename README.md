@@ -32,20 +32,21 @@ After installation, let's do a quick test:
     cat['path'] ='/Users/USER/Codes/AGNfitter/'
     cat['outpath'] = '/Users/USER/my_AGNfitter/' 
     
-to your AGNfitter and chosen output paths respectively.
+to your AGNfitter and chosen output paths respectively. This points to  the example catalog contained in  `data/catalog_example.txt`.
     
     
-**2)** In terminal go to the AGNfitter folder and start
+**2)** In terminal go to your output path and start
 
     RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
     
 You should have a nice example in your `cat['outpath']/OUTPUT` folder. Either make sure that the root AGNfitter directory is on your `PATH` or specify the full path to `RUN_AGNfitter_multi.py`.
 
+
 Quick start
 ------------
 
 To get AGNfitter running the ONLY file you need to open and modify is **example/SETTINGS_AGNfitter.py**.
-You need just one thing to start: the catalog of sources. An example is contained in  `data/catalog_example.txt`.
+You need just one other thing to start: the catalog of sources.
 
 **TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
 
