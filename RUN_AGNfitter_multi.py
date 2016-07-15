@@ -24,6 +24,7 @@ import pylab as pl
 import time
 import shelve
 import multiprocessing as mp 
+import itertools
 import cPickle
 import argparse
 
@@ -90,10 +91,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     out = OUTPUT_settings()
 
     data = DATA(data_obj,line)
-    data.DICTS(filters, Modelsdict)
-
-
-
 
     print ''
     print 'Fitting sources from catalog: ', data.catalog 
@@ -167,6 +164,7 @@ def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
     print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
     return
 
+    
 
 def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     """
@@ -174,12 +172,17 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     Splits the job of running the large number of sources
     into a chosen number of processors.
     """
-    cat = CATALOG_settings()
     
-    nsources = data_ALL.cat['nsources']
+    def multi_run_wrapper(args):
+        return RUN_AGNfitter_onesource(*args)
+    
+    
+    nsources = data_obj.cat['nsources']
+    
+    print "processing all {0:d} sources with {1:d} cpus".format(nsources, processors)
     
     pool = mp.Pool(processes = processors)
-    catalog_fitting = pool.map(RUN_AGNfitter_onesource,range(nsources),data_obj, modelsdict)
+    catalog_fitting = pool.map(multi_run_wrapper, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(modelsdict)))
     pool.close()
     pool.join()
     ##WRITE ALL RESULST IN ONE TABLE
