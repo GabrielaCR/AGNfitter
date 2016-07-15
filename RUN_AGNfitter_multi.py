@@ -56,7 +56,7 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] ='/Users/USER/AGNfitter/'  #YOUR OWN PATH
+    cat['path'] ='/Users/USER/AGNfitter/'  #path to the AGNfitter code
 
 
     cat['filename'] = 'data/catalog_example.txt'
@@ -96,8 +96,9 @@ def CATALOG_settings():
                                         ## If FITS: List of column names (str)    
 
     ##OTHERS (user input ***not*** needed)
-    cat['output_folder'] =  cat['path'] +'OUTPUT/'#if no special OUTPUT folder, leave default
-    cat['dict_path'] = cat['path'] + 'models/MODELSDICT_default' 
+    cat['outpath'] ='/car-data/wwilliams/bootes/multi_bootes/agnfitter/'   # allow for an output path outside of the AGNfitter code path
+    cat['output_folder'] =  cat['outpath'] +'OUTPUT/'#if no special OUTPUT folder, leave default
+    cat['dict_path'] = cat['outpath'] + 'models/MODELSDICT_default' 
 
 
     return cat
@@ -266,15 +267,15 @@ def MAKE_model_dictionary(cat, clobbermodel=False):
         mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
         mydict.build()
         
-	print '_____________________________________________________'
-	print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+        print '_____________________________________________________'
+        print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
 
     Modelsdict = cPickle.load(file(cat['dict_path'], 'rb'))
     
     return Modelsdict
 
 
-def RUN_AGNfitter_onesource_independent( line, data_obj, modelsdict, clobbermodel=False):
+def RUN_AGNfitter_onesource_independent( line, data_obj, clobbermodel=False):
     """
     Main function for fitting a single source in line 'line' and create it's modelsdict independently.
     """
@@ -297,6 +298,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, modelsdict, clobbermode
     ## 0. CONSTRUCT DICTIONARY for this redshift
     t0= time.time()
 
+    # needs a list/array of z
     filtersz = FILTERS_settings([data.z])
 
     # add a suffix for this source dictionary
@@ -306,17 +308,17 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, modelsdict, clobbermode
         print "removing source model dictionary "+dictz
       
     if not os.path.lexists(dictz):
-        mydict = MODELSDICT(dictz, cat['path'], filtersz)
-        mydict.build()
-	print '_____________________________________________________'
-	print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+        zdict = MODELSDICT(dictz, cat['path'], filtersz)
+        zdict.build()
+        print '_____________________________________________________'
+        print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
 
     Modelsdictz = cPickle.load(file(dictz, 'rb')) 
 
     data.DICTS(filtersz, Modelsdictz)
 
 
-    P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
+    P = parspace.Pdict (data)   # Dictionary with all parameter space especifications.
                                 # From PARAMETERSPACE_AGNfitter.py
 
     t1= time.time()
@@ -394,9 +396,12 @@ if __name__ == "__main__":
     data_ALL = DATA_all(cat)
     data_ALL.PROPS()
 
-
+    ## make sure the output paths exist
+    if not os.path.isdir(os.path.abspath(cat['output_folder'])):
+        os.system('mkdir -p '+os.path.abspath(cat['output_folder']))
+    # abspath is needed because 'dict_path' is a file
     if not os.path.isdir(os.path.abspath(cat['dict_path'])):
-	os.system('mkdir -p '+os.path.abspath(cat['dict_path']))
+        os.system('mkdir -p '+os.path.abspath(cat['dict_path']))
     
 
     # run for once source only and construct dictionary only for this source
@@ -405,13 +410,14 @@ if __name__ == "__main__":
         
         
     else:
+        # make/read the model dictionary
         Modelsdict = MAKE_model_dictionary(cat)
 
-    # a single source is specified
-    if args.sourcenumber >= 0:
-        RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, Modelsdict)
-    else:
-        RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, Modelsdict)
+        # a single source is specified
+        if args.sourcenumber >= 0:
+            RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, Modelsdict)
+        else:
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, Modelsdict)
         
         
     print '======= : ======='
