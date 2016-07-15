@@ -28,7 +28,7 @@ def CATALOG_settings():
     cat['path'] ='/Users/USER/AGNfitter/'  #path to the AGNfitter code
 
 
-    cat['filename'] = 'data/catalog_example.txt'
+    cat['filename'] = cat['path']+'data/catalog_example.txt'
     cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
                               ## FITS option not available yet. 
 
