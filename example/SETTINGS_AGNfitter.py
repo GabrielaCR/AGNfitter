@@ -25,7 +25,7 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] ='/Users/USER/AGNfitter/'  #path to the AGNfitter code
+    cat['path'] ='/Users/USER/Codes/AGNfitter/'  #path to the AGNfitter code
 
 
     cat['filename'] = cat['path']+'data/catalog_example.txt'
@@ -65,7 +65,7 @@ def CATALOG_settings():
                                         ## If FITS: List of column names (str)    
 
     ##OTHERS (user input ***not*** needed)
-    cat['outpath'] = '/Users/USER/AGNfitter/'  # allow for an output path outside of the AGNfitter code path
+    cat['outpath'] = '/Users/USER/my_AGNfitter/'  # allow for an output path outside of the AGNfitter code path
     cat['output_folder'] =  cat['outpath'] +'OUTPUT/'#if no special OUTPUT folder, leave default
     cat['dict_path'] = cat['outpath'] + 'models/MODELSDICT_default' 
 

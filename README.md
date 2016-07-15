@@ -28,8 +28,10 @@ Installation can by cloning this Github repository
 After installation, let's do a quick test:
 
 **1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
+
     cat['path'] ='/Users/USER/Codes/AGNfitter/'
-    cat['outpath'] = '/Users/USER/AGNfitter/' 
+    cat['outpath'] = '/Users/USER/my_AGNfitter/' 
+    
 to your AGNfitter and chosen output paths respectively.
     
     
@@ -43,7 +45,7 @@ Quick start
 ------------
 
 To get AGNfitter running the ONLY file you need to open and modify is **example/SETTINGS_AGNfitter.py**.
-You need just one thing to start: the catalog of sources.
+You need just one thing to start: the catalog of sources. An example is contained in  `data/catalog_example.txt`.
 
 **TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
 
@@ -68,7 +70,7 @@ This process might be lengthy but you only have to do it once.
 
 You can use the default combination of photometric bands by leaving
 
-	filters['Bandset'] = 'BANDSET_default'.
+        filters['Bandset'] = 'BANDSET_default'.
 
 Otherwise, if you like, you can specify the photometric bands included in your catalog by setting 
 
@@ -83,7 +85,9 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
     
     
 **TASK 2:** Run AGNfitter with
+
     RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    
 this will run AGNfitter in series for the two sources in the example catalog. In general there are a few more runtime options. You can see them with `python RUN_AGNfitter_multi.py -h`:
 
               
@@ -122,13 +126,17 @@ this will run AGNfitter in series for the two sources in the example catalog. In
 
 
 To run AGNfitter for a *single source* in the catalog, specify the line number as the sourcenumber argument: e.g.
+
     RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
 
 To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 8 cpu cores
+
     RUN_AGNfitter_multi.py --ncpu 8 my_SETTINGS_AGNfitter.py
     
 To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines and a queue system, e.g using a PBS array job to specify the calalog line numbers
+
     RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
+    
 See the qsub example in `example/run_agnfitter.qsub`. Here the `--independent` flag is required so that each job produces it's own model dictionary at it's own redshift (i.e. each source does not recreated the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
 
 Additionally, you can specify `--overwrite` if you wish to recreate any existing models dictionaries (in case you change the z arrays).
