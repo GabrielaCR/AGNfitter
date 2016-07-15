@@ -222,7 +222,7 @@ if __name__ == "__main__":
     if not os.path.isdir(cat['output_folder']):
         os.system('mkdir -p '+os.path.abspath(cat['output_folder']))
     # abspath is needed because 'dict_path' is a file
-    mpath = cat['dict_path'].replace(os.path.basename(t),'')
+    mpath = cat['dict_path'].replace(os.path.basename(cat['dict_path']),'')
     if not os.path.isdir(mpath):
         os.system('mkdir -p '+os.path.abspath(mpath))
     
