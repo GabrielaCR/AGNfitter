@@ -251,7 +251,7 @@ def header():
 
 
 
-def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
+def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
     """
     Main function for fitting a single source in line 'line'.
     """
@@ -263,7 +263,7 @@ def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
     data.DICTS(filters, Modelsdict)
 
     P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
-				# From PARAMETERSPACE_AGNfitter.py
+                                # From PARAMETERSPACE_AGNfitter.py
 
     print ''
     print 'Fitting sources from catalog: ', data.catalog 
@@ -282,7 +282,7 @@ def RUN_AGNfitter_onesource( line, data_obj=data_ALL, modelsdict= Modelsdict):
     return
 
 
-def RUN_AGNfitter_multiprocessing(processors,data_obj=data_ALL):
+def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
     """
     Main function for fitting all sources in a large catalog.
     Splits the job of running the large number of sources
@@ -293,7 +293,7 @@ def RUN_AGNfitter_multiprocessing(processors,data_obj=data_ALL):
     nsources = data_ALL.cat['nsources']
     
     pool = mp.Pool(processes = processors)
-    catalog_fitting = pool.map(RUN_AGNfitter_onesource,range(nsources))
+    catalog_fitting = pool.map(RUN_AGNfitter_onesource,range(nsources),data_obj, modelsdict)
     pool.close()
     pool.join()
     ##WRITE ALL RESULST IN ONE TABLE
@@ -302,7 +302,7 @@ def RUN_AGNfitter_multiprocessing(processors,data_obj=data_ALL):
 
 
 
-def RUN():
+def RUN(data_obj, modelsdict):
     header()
 
     """==========================================
@@ -318,8 +318,8 @@ def RUN():
     (Comment the option you are not using.)
     ==========================================="""
 
-    RUN_AGNfitter_onesource(0)
-    #RUN_AGNfitter_multiprocessing(1)
+    RUN_AGNfitter_onesource(0, data_obj, modelsdict)
+    #RUN_AGNfitter_multiprocessing(1,data_obj, modelsdict)
 
     print '======= : ======='
     print 'Process finished.'
@@ -342,12 +342,12 @@ if __name__ == "__main__":
 
     if not os.path.lexists(cat['dict_path']):
 
-	MODELFILES.construct(cat['path'])
+        MODELFILES.construct(cat['path'])
 
-	mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
-	mydict.build()
+        mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
+        mydict.build()
 
     Modelsdict = cPickle.load(file(cat['dict_path'], 'rb')) 
 
     
-    RUN()
+    RUN(Modelsdict, data_ALL, Modelsdict)
