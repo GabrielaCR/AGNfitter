@@ -30,13 +30,13 @@ Installation can be done through Github
 
 After installation, let's do a quick test:
 
-**1)** Open **RUN_AGNfitter_multi.py**, go to def CATALOG_settings() and 
+**1)** Open **example/SETTINGS_AGNfitter.py**, go to def CATALOG_settings() and 
     change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
     
     
 **2)** In terminal go to the AGNfitter folder and start
 
-    ipython RUN_AGNfitter_multi.py
+    python RUN_AGNfitter_multi.py example/SETTINGS_AGNfitter.py
     
 You should have a nice example in your OUTPUT folder.
 
@@ -48,7 +48,8 @@ To get AGNfitter running the ONLY file you need to open and modify is  **RUN_AGN
 You need just one thing to start: the catalog of sources.
 
 **TASK1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
-**TASK1a:** Specify your catalog's format in:
+
+*TASK1a:* Specify your catalog's format in:
 
     def CATALOG_settings()
         cat['path'] ='/Users/USER/Codes/AGNfitter/'
@@ -57,7 +58,7 @@ You need just one thing to start: the catalog of sources.
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
         cat...
 
-**TASK1b:** To construct the dictionary  please go to
+*TASK1b:* To construct the dictionary  please go to
 
     def FILTERS_settings():
         filters['dict_zarray'] = np.arange(zmin, zmax, zinterval)
