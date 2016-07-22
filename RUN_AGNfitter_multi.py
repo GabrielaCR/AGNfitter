@@ -113,8 +113,12 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     # needs a list/array of z
     filtersz['dict_zarray'] = [data.z]
 
-    # add a suffix for this source dictionary
-    dictz = cat['dict_path'] + '_' + str(data.name) 
+    # save the dictionary for this source in the OUTPUT folder for this source
+    # create this source output folder if it doesn't exist
+    if not os.path.lexists(cat['output_folder'] +'/'+str(data.name)):
+        os.system('mkdir -p ' + cat['output_folder'] +'/'+str(data.name))
+    dictz = cat['output_folder'] +'/'+str(data.name) +'/MODELSDICT_' + str(data.name) 
+    # remove this source modelsdict if it already exists and we want to remove it
     if clobbermodel and os.path.lexists(dictz):
         os.system('rm -rf '+dictz)
         print "removing source model dictionary "+dictz
