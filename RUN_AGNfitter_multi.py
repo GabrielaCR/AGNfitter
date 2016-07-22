@@ -60,7 +60,10 @@ def header():
 
 
 def MAKE_model_dictionary(cat, filters, clobbermodel=False):
-    ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
+    """
+    Create model dictionary for all redshifts in z-array
+    """
+    
     t0= time.time()
 
     if clobbermodel and os.path.lexists(cat['dict_path']):
