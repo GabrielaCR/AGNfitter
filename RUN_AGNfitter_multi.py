@@ -60,7 +60,16 @@ def header():
 
 
 def MAKE_model_dictionary(cat, filters, clobbermodel=False):
-    ## 0. CONSTRUCT DICTIONARY (not needed if default is used)
+    """
+    Create model dictionary for all redshifts in z-array and filters
+    input 
+        cat - catalog settings
+        filters - filter settings
+        clobbermodel - remove any existing dictionary (default - False)
+    ouput
+        modelsdict
+    """
+    
     t0= time.time()
 
     if clobbermodel and os.path.lexists(cat['dict_path']):
@@ -104,8 +113,12 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     # needs a list/array of z
     filtersz['dict_zarray'] = [data.z]
 
-    # add a suffix for this source dictionary
-    dictz = cat['dict_path'] + '_' + str(data.name) 
+    # save the dictionary for this source in the OUTPUT folder for this source
+    # create this source output folder if it doesn't exist
+    if not os.path.lexists(cat['output_folder'] +'/'+str(data.name)):
+        os.system('mkdir -p ' + cat['output_folder'] +'/'+str(data.name))
+    dictz = cat['output_folder'] +'/'+str(data.name) +'/MODELSDICT_' + str(data.name) 
+    # remove this source modelsdict if it already exists and we want to remove it
     if clobbermodel and os.path.lexists(dictz):
         os.system('rm -rf '+dictz)
         print "removing source model dictionary "+dictz
