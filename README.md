@@ -46,7 +46,7 @@ Either make sure that the root AGNfitter directory is on your `PATH` or specify 
 Quick start
 ------------
 
-**TASK 0 (optional):** If you wish to have a working path other than the AGNfitter code path change 
+**TASK 0 (optional):** If you wish to have a working path other than the AGNfitter code path, please change 
 
     cat['workingpath'] = cat['path']
     
@@ -97,6 +97,7 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
     RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
    
 This will run AGNfitter in series. In general there are a few more runtime options (see below).
+
 Done!  
 
 
@@ -168,7 +169,9 @@ Since the dictionary construction may be a lengthy process for large catalogs (0
 To summarise, there are basically three ways this dictionary can be constructed:
 
 **Dict with grid of redshifts**: In `filters['dict_zarray']` you can specify a grid of redshifts which roughly covers the redshift range of your catalog. This is recommended for very large catalogs or not accurate redshifts. Ideally, the grid cells should not be larger than the redshift uncertainty.
+
 **Dict with array of redshifts**: In `filters['dict_zarray']` you can specify the exact array of the redshifts in your catalog. This is recommended for small catalogs or very accurate redshifts. 
+
 **Dict independent** By choosing the option -i (--independent) single model dictionaries will be produced for each source independently at its own redshift.  These dictionaries will be stored in each source's folder. This is recommended for compute clusters with multiple machines. 
 
 Documentation
