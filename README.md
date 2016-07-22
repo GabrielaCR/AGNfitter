@@ -1,4 +1,4 @@
-AGNfitter (beta_version - July 6)
+AGNfitter (beta_version - July 22)
 ========
 **A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
 
@@ -16,44 +16,51 @@ Requirements
 
 * Numpy version 1.6 or later
 * Matplotlib version 1.4.0 or later
-* scipy
+* Scipy
 * Astropy version 1.2 or later (pip install --no-deps astropy)
 * acor (pip install acor)
 
 Installation
 ----------------
 
-Installation can by cloning this Github repository
+Installation can be done by cloning this Github repository.
 
 After installation, let's do a quick test:
 
-**1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
+**1)** In `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
 
-    cat['path'] ='/Users/USER/Codes/AGNfitter/'
-    cat['outpath'] = '/Users/USER/my_AGNfitter/' 
+    cat['path'] ='/Users/USER/AGNfitter/'
     
-to your AGNfitter and chosen output paths respectively. This points to  the example catalog contained in  `data/catalog_example.txt`.
+to your AGNfitter path. These test settings point to the example catalog contained in  `data/catalog_example.txt`.
     
-    
-**2)** In terminal go to your output path and start
+**2)** In the terminal, go to your AGNfitter path  and start
 
-    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
     
-You should have a nice example in your `cat['outpath']/OUTPUT` folder. Either make sure that the root AGNfitter directory is on your `PATH` or specify the full path to `RUN_AGNfitter_multi.py`.
+You should have a nice example in your `cat['path']/OUTPUT` folder. 
 
+###
+Either make sure that the root AGNfitter directory is on your `PATH` or specify the full path to `RUN_AGNfitter_multi.py`.
+###
 
 Quick start
 ------------
 
-To get AGNfitter running the ONLY file you need to open and modify is **example/SETTINGS_AGNfitter.py**.
-You need just one other thing to start: the catalog of sources.
+**TASK 0 (optional):** If you wish to have a working path other than the AGNfitter code path change 
 
-**TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
+    cat['workingpath'] = cat['path']
+    
+to your costumized working path.
+
+
+**TASK 1:** In your working path, configure your settings creating a file `my_SETTINGS_AGNfitter.py`.
+This file should be created based on the example in `example/SETTINGS_AGNfitter.py` (copy+paste).
+To get AGNfitter running this is the ONLY file you need to modify.
 
 *TASK 1a:* Specify your catalog's format in:
 
     def CATALOG_settings()
-        cat['path'] ='/Users/USER/Codes/AGNfitter/'
+        cat['path'] ='/Users/USER/AGNfitter/'
         cat['filename'] = 'data/catalog_example.txt
         cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
@@ -88,8 +95,15 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
 **TASK 2:** Run AGNfitter with
 
     RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
-    
-this will run AGNfitter in series for the two sources in the example catalog. In general there are a few more runtime options. You can see them with `python RUN_AGNfitter_multi.py -h`:
+   
+This will run AGNfitter in series. In general there are a few more runtime options (see below).
+Done!  
+
+
+Runtime options
+------------
+
+You can see them with `python RUN_AGNfitter_multi.py -h`:
 
               
                     XXXX
@@ -124,25 +138,38 @@ this will run AGNfitter in series for the two sources in the example catalog. In
                                 global model dictionary
         -o, --overwrite       overwrite model files
 
-
+**Single source**
 
 To run AGNfitter for a *single source* in the catalog, specify the line number as the sourcenumber argument: e.g.
 
     RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
 
-To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 8 cpu cores
+**Working on a computer with multiple cores**
 
-    RUN_AGNfitter_multi.py --ncpu 8 my_SETTINGS_AGNfitter.py
+To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 10 cpu cores
+
+    RUN_AGNfitter_multi.py --ncpu 10 my_SETTINGS_AGNfitter.py
     
+**Working on a computer cluster with multiple different machines**
+
 To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines, a shared filesystem and a queue system, e.g using a PBS array job to specify the calalog line numbers
 
     RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
     
-See the qsub example in `example/run_agnfitter.qsub`. Here the `--independent` flag is required so that each job produces it's own model dictionary at it's own redshift (i.e. each source does not recreated the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
+The `--independent` flag is required so that each job produces its own model dictionary at its own redshift (i.e. each machine does not recreate the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
 
 Additionally, you can specify `--overwrite` if you wish to recreate any existing models dictionaries (in case you change the z arrays).
 
-Done!
+Model Construction options
+------------
+
+As seen above, one main difference among the runtime options is the construction of the dictionary of models at the different redshifts of the sources.
+Since the dictionary construction may be a lengthy process for large catalogs (0.1 min per redshift), you can choose among some options.
+To summarise, there are basically three ways this dictionary can be constructed:
+
+**Dict with grid of redshifts**: In `filters['dict_zarray']` you can specify a grid of redshifts which roughly covers the redshift range of your catalog. This is recommended for very large catalogs or not accurate redshifts. Ideally, the grid cells should not be larger than the redshift uncertainty.
+**Dict with array of redshifts**: In `filters['dict_zarray']` you can specify the exact array of the redshifts in your catalog. This is recommended for small catalogs or very accurate redshifts. 
+**Dict independent** By choosing the option -i (--independent) single model dictionaries will be produced for each source independently at its own redshift.  These dictionaries will be stored in each source's folder. This is recommended for compute clusters with multiple machines. 
 
 Documentation
 ----------------

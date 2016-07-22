@@ -1,5 +1,6 @@
 '''
 AGNfitter setting file:
+
 required:
   CATALOG_settings
   FILTERS_settings
@@ -7,7 +8,8 @@ required:
   OUTPUT_settings
 
 For default use (test example with 2 redshifts and default filter set)
-change only the functions which state 
+
+Change only the functions which state 
 ***USER INPUT NEEDED***.
 '''
 
@@ -25,7 +27,7 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] ='/Users/USER/Codes/AGNfitter/'  #path to the AGNfitter code
+    cat['path'] ='/Users/USER/AGNfitter/'  #path to the AGNfitter code
 
 
     cat['filename'] = cat['path']+'data/catalog_example.txt'
@@ -64,10 +66,18 @@ def CATALOG_settings():
     cat['ndflag_list'] = 'list'         ## If ASCII: List of column indexes (int)
                                         ## If FITS: List of column names (str)    
 
-    ##OTHERS (user input ***not*** needed)
-    cat['outpath'] = '/Users/USER/my_AGNfitter/'  # allow for an output path outside of the AGNfitter code path
-    cat['output_folder'] =  cat['outpath'] +'OUTPUT/'#if no special OUTPUT folder, leave default
-    cat['dict_path'] = cat['outpath'] + 'models/MODELSDICT_default' 
+    ## COSTUMIZED WORKING PATHS
+    cat['workingpath'] = cat['path']  # Allows for a working path other than the AGNfitter code path.
+                                      # Will include:
+                                            # dictionary of models 
+                                            # SETTINGS_AGNFitter.py file  
+                                            # OUTPUT
+                                      # Specially needed in order not to alter git original repository
+                                      # and when using an external processor.
+                                      # Default: cat['path'] (same as AGNfitter code path) 
+
+    cat['output_folder'] =  cat['workingpath'] +'OUTPUT/' #if no special OUTPUT folder, leave default
+    cat['dict_path'] = cat['workingpath'] + 'models/MODELSDICT_default' 
 
 
     return cat

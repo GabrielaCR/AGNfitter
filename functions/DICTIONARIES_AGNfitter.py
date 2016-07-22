@@ -625,7 +625,7 @@ def filter_dictionaries(filterset, path, filters):
             c=    2.997e8
             Angstrom = 1e10
 
-            central_lamb = lambdas[i][np.where(factors[i]==np.max(factors[i]))]
+            central_lamb = np.sum(lambdas[i]*factors[i])/np.sum(factors[i])
             central_nu = float(np.log10((Angstrom*c)/central_lamb))
 
             files_dict[central_nu].append(files[i])
