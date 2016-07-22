@@ -61,7 +61,13 @@ def header():
 
 def MAKE_model_dictionary(cat, filters, clobbermodel=False):
     """
-    Create model dictionary for all redshifts in z-array
+    Create model dictionary for all redshifts in z-array and filters
+    input 
+        cat - catalog settings
+        filters - filter settings
+        clobbermodel - remove any existing dictionary (default - False)
+    ouput
+        modelsdict
     """
     
     t0= time.time()
