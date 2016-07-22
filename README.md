@@ -17,47 +17,49 @@ Requirements
 * Numpy version 1.6 or later
 * Matplotlib version 1.4.0 or later
 * scipy
-
 * Astropy version 1.2 or later (pip install --no-deps astropy)
 * acor (pip install acor)
 
 Installation
 ----------------
 
-Installation can be done through Github
-* Clone (recommended) 
-* Downloading the Github tar (please, stay updated about changes and corrections, since this is still a beta version)
+Installation can by cloning this Github repository
 
 After installation, let's do a quick test:
 
-**1)** Open **RUN_AGNfitter_multi.py**, go to def CATALOG_settings() and 
-    change cat['path'] ='/Users/USER/Codes/AGNfitter/' to your path.
-    
-    
-**2)** In terminal go to the AGNfitter folder and start
+**1)** Make a copy of `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
 
-    ipython RUN_AGNfitter_multi.py
+    cat['path'] ='/Users/USER/Codes/AGNfitter/'
+    cat['outpath'] = '/Users/USER/my_AGNfitter/' 
     
-You should have a nice example in your OUTPUT folder.
+to your AGNfitter and chosen output paths respectively. This points to  the example catalog contained in  `data/catalog_example.txt`.
+    
+    
+**2)** In terminal go to your output path and start
+
+    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    
+You should have a nice example in your `cat['outpath']/OUTPUT` folder. Either make sure that the root AGNfitter directory is on your `PATH` or specify the full path to `RUN_AGNfitter_multi.py`.
+
 
 Quick start
 ------------
 
+To get AGNfitter running the ONLY file you need to open and modify is **example/SETTINGS_AGNfitter.py**.
+You need just one other thing to start: the catalog of sources.
 
-To get AGNfitter running the ONLY file you need to open and modify is  **RUN_AGNfitter_multi.py**.
-You need just one thing to start: the catalog of sources.
+**TASK 1:** Configure your settings based on the example in `example/SETTINGS_AGNfitter.py`
 
-**TASK1:** Specify your catalog's format in:
+*TASK 1a:* Specify your catalog's format in:
 
     def CATALOG_settings()
         cat['path'] ='/Users/USER/Codes/AGNfitter/'
         cat['filename'] = 'data/catalog_example.txt
         cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
         cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
-                                        ## If FITS: not yet
         cat...
 
-**TASK2:** To construct the dictionary  please go to
+*TASK 1b:* To construct the dictionary  please go to
 
     def FILTERS_settings():
         filters['dict_zarray'] = np.arange(zmin, zmax, zinterval)
@@ -69,7 +71,7 @@ This process might be lengthy but you only have to do it once.
 
 You can use the default combination of photometric bands by leaving
 
-	filters['Bandset'] = 'BANDSET_default'.
+        filters['Bandset'] = 'BANDSET_default'.
 
 Otherwise, if you like, you can specify the photometric bands included in your catalog by setting 
 
@@ -82,19 +84,63 @@ Otherwise, if you like, you can specify the photometric bands included in your c
 
 and assigning 'True' to the keys corresponding to the photometric bands in your catalog.
     
-**TASK3:** Decide if you want to fit only one source
-
-    RUN_AGNfitter_onesource(sourceline)
-    #RUN_AGNfitter_multiprocessing(nr. of processors)
-
-or a total catalog, using many processors in a multi-core computer:
-
-    #RUN_AGNfitter_onesource(sourceline)
-    RUN_AGNfitter_multiprocessing(nr. of processors)
     
-**TASK4:** In terminal go to the AGNfitter folder and start
+**TASK 2:** Run AGNfitter with
 
-    ipython RUN_AGNfitter_multi.py
+    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    
+this will run AGNfitter in series for the two sources in the example catalog. In general there are a few more runtime options. You can see them with `python RUN_AGNfitter_multi.py -h`:
+
+              
+                    XXXX
+        ___________ XXX _________________________________________________
+                    XX      
+                    X     
+                    X                       AGNfitter                     
+                __ X __                    ---------                
+            /**\   |   /**\                                          
+        ... (*** =  o  = ***) ...........................................
+            \**/__ | __\**/                                     
+                    X              Fitting SEDs of AGN and Galaxies  
+                    X             in a MCMC Approach 
+                xx              (Calistro Rivera et al. 2016)    
+                xx               
+        _______ xxx______________________________________________________
+            xxxx
+
+        usage: RUN_AGNfitter_multi.py [-h] [-c NCPU] [-n SOURCENUMBER] [-i] [-o]
+                                    AGNfitterSettings
+
+        positional arguments:
+        AGNfitterSettings     AGNfitter settings file
+
+        optional arguments:
+        -h, --help            show this help message and exit
+        -c NCPU, --ncpu NCPU  number of cpus to use for multiprocessing
+        -n SOURCENUMBER, --sourcenumber SOURCENUMBER
+                                specify a single source number to run (this is the
+                                line number in hte catalogue not the source id/name)
+        -i, --independent     run independently per source, i.e. do not create a
+                                global model dictionary
+        -o, --overwrite       overwrite model files
+
+
+
+To run AGNfitter for a *single source* in the catalog, specify the line number as the sourcenumber argument: e.g.
+
+    RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
+
+To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 8 cpu cores
+
+    RUN_AGNfitter_multi.py --ncpu 8 my_SETTINGS_AGNfitter.py
+    
+To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines, a shared filesystem and a queue system, e.g using a PBS array job to specify the calalog line numbers
+
+    RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
+    
+See the qsub example in `example/run_agnfitter.qsub`. Here the `--independent` flag is required so that each job produces it's own model dictionary at it's own redshift (i.e. each source does not recreated the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
+
+Additionally, you can specify `--overwrite` if you wish to recreate any existing models dictionaries (in case you change the z arrays).
 
 Done!
 
