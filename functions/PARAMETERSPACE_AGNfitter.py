@@ -245,7 +245,8 @@ def get_initial_positions(nwalkers, P):
     for i in range(Npar):
 
         p0[:, i] = 0.5*(P.max[i] + P.min[i]) + (2* p0[:, i] - 1) * (1)
-
+        
+    p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.001)
     
     return p0
 
