@@ -35,7 +35,7 @@ to your AGNfitter path. These test settings point to the example catalog contain
     
 **2)** In the terminal, go to your AGNfitter path  and start
 
-    RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
+    ./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
     
 You should have a nice example in your `cat['path']/OUTPUT` folder. 
 
@@ -94,7 +94,7 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
     
 **TASK 2:** Run AGNfitter with
 
-    RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+    ./RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
    
 This will run AGNfitter in series. In general there are a few more runtime options (see below).
 
@@ -143,19 +143,19 @@ You can see them with `python RUN_AGNfitter_multi.py -h`:
 
 To run AGNfitter for a *single source* in the catalog, specify the line number as the sourcenumber argument: e.g.
 
-    RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
+    ./RUN_AGNfitter_multi.py --sourcenumber 0 my_SETTINGS_AGNfitter.py
 
 **Working on a computer with multiple cores**
 
 To run AGNfitter in *batch mode* using python's multiprocessing capability and improve the efficiency, run e.g on a machine with 10 cpu cores
 
-    RUN_AGNfitter_multi.py --ncpu 10 my_SETTINGS_AGNfitter.py
+    ./RUN_AGNfitter_multi.py --ncpu 10 my_SETTINGS_AGNfitter.py
     
 **Working on a computer cluster with multiple different machines**
 
 To run AGNfitter in a *distributed mode* on a compute cluster with multiple machines, a shared filesystem and a queue system, e.g using a PBS array job to specify the calalog line numbers
 
-    RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
+    ./RUN_AGNfitter_multi.py --independent --sourcenumber $PBS_ARRAY_ID my_SETTINGS_AGNfitter.py
     
 The `--independent` flag is required so that each job produces its own model dictionary at its own redshift (i.e. each machine does not recreate the model dictionaries for the entire catalog). This can be more efficient for large catalogs where the model dictionary creation (which is not paralellized) can take a long time.
 
