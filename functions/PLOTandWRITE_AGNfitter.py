@@ -178,6 +178,7 @@ class OUTPUT:
         #reading from valid data from object data
         ydata = self.data.fluxes[self.data.fluxes>0.]
         yerror = self.data.fluxerrs[self.data.fluxes>0.]
+        yndflags = self.data.ndflag[self.data.fluxes>0.]
         Nrealizations = self.out['realizations2plot']
 
         #Data frequencies (obs and rest), and model frequencies
@@ -212,11 +213,10 @@ class OUTPUT:
 
             p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =0.7)
 
-            det= [data_errors_rest<0.98* data_nuLnu_rest]
-            upp = [data_errors_rest >= 0.98* data_nuLnu_rest]
-            upperlimits = np.ones(len(data_nus[upp]) )
+            det = [yndflags==1]
+            upp = [yndflags==0]
 
-            upplimits = ax1.errorbar(data_nus[upp], data_nuLnu_rest[upp]+data_errors_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=5, color="black")
+            upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=5, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
 
 

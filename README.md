@@ -161,7 +161,7 @@ The `--independent` flag is required so that each job produces its own model dic
 
 Additionally, you can specify `--overwrite` if you wish to recreate any existing models dictionaries (in case you change the z arrays).
 
-Model Construction options
+Notes on Model Construction 
 ------------
 
 As seen above, one main difference among the runtime options is the construction of the dictionary of models at the different redshifts of the sources.
@@ -173,6 +173,25 @@ To summarise, there are basically three ways this dictionary can be constructed:
 **Dict with array of redshifts**: In `filters['dict_zarray']` you can specify the exact array of the redshifts in your catalog. This is recommended for small catalogs or very accurate redshifts. 
 
 **Dict independent** By choosing the option -i (--independent) single model dictionaries will be produced for each source independently at its own redshift.  These dictionaries will be stored in each source's folder. This is recommended for compute clusters with multiple machines. 
+
+Notes on Catalog Format
+------------
+All you need to fit your data with AGNfitter is your catalog and specify your catalog format and the filters you need in the SETTING_AGNfitter.py file.  AGNfitter is able to read catalogs in ASCII and FITS format in any kind of units (it uses Astropy for conversion). 
+
+For ASCII files, the header information is not relevant. You need to specify the column indexes of  frequencies ( or wavelengths), fluxes, and flux errors as integer arrays as asked in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
+
+For ASCII files, the header information is relevant, since the columns of frequencies ( or wavelengths), fluxes, and flux errors are recognised by the desired ending, which you need to specify in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
+
+It is important that the number of filters you choose to construct your dictionary (SETTINGS file) corresponds to the number of flux columns in your catalog. 
+Sources with different multiwavelength coverages can be fit in one single routine, as long as they are all part of one single catalog. 
+
+If a source has no data available for some bands in your catalog, please give  -99 values to the respective  flux and flux-error columns. 
+
+**Non-detections**
+
+If a source has non-detections in some bands, but you have *upper limits* to its flux, please add the upper limit flux to the flux column, and write -99 to the respective flux error column.  The upper limit flux flux_upp is then represented for the fitting with a data point at (flux_upp*0.5), and an error of (+- flux_upp*0.5) so that the data point has an uncertainty that ranges from [0, flux_upp] .
+
+If a source is non-detected in some bands and you have **forced photometry** for those, please add columns with non-detection flags  to your catalog for every band (see SETTINGS file, line 64, for detail). In this way, forced photometry and its error is considered as normal photometry for the fitting, but the data points are marked differently in the plotting.
 
 Documentation
 ----------------

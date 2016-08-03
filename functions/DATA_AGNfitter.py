@@ -99,13 +99,31 @@ class DATA_all:
 
                 ## If columns with flags exist
                 if self.cat['ndflag_bool'] == True: 
-                    ndflag_cat0 = ndflag_cat_ALL[:,j]
+                    ndflag_cat0 = ndflag_cat_ALL[:,j]     
+                    # If fluxerrs0 are not given (-99), we assume flux is an upper limit for a non detection.
+                    # Upper limit flux is then represented for the fitting
+                    # with a data point at uppflux/2, and an error of +- uppflux/2
+                    # implying an uncertanty that ranges from [0,uppflux]  
+                    ndflag_cat0[fluxerr_cat.value<=-99]= 0.                                 
+                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
+                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
+                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
 
                 ## If NO columns with flags exist
                 elif self.cat['ndflag_bool'] == False:
-
                     ndflag_cat0 = np.ones(np.shape(fluxes0))
-                    ndflag_cat0[fluxes0< 0]= 0.
+                    # If fluxerrs0 are not given (-99), we assume flux is an upper limit for a non detection.
+                    # Upper limit flux is then represented for the fitting
+                    # with a data point at uppflux/2, and an error of +- uppflux/2
+                    # implying an uncertanty that ranges from [0,uppflux]
+                    ndflag_cat0[fluxerr_cat.value<=-99]= 0.
+                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
+                                                             fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
+                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    # If neither fluxes and fluxerrs are given (both -99), 
+                    # these are considered as a non existant data point.
 
                 ## Sort in order of frequency
                 nus_l.append(nus0[nus0.argsort()])
@@ -171,13 +189,32 @@ class DATA_all:
 
                 ## If columns with flags exist
                 if self.cat['ndflag_bool'] == True: 
-                    ndflag_cat0 = ndflag_cat_ALL[:,j]
+                    ndflag_cat0 = ndflag_cat_ALL[:,j]     
+                    # If fluxerrs0 are not given (-99), we assume flux is an upper limit for a non detection.
+                    # Upper limit flux is then represented for the fitting
+                    # with a data point at uppflux/2, and an error of +- uppflux/2
+                    # implying an uncertanty that ranges from [0,uppflux]  
+                    ndflag_cat0[flux_cat.value<=-99]= 0.                                 
+                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
+                                                     fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
+                                                     fluxes0 [(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
 
                 ## If NO columns with flags exist
                 elif self.cat['ndflag_bool'] == False:
 
                     ndflag_cat0 = np.ones(np.shape(fluxes0))
-                    ndflag_cat0[fluxes0< 0]= 0.
+                    # If fluxerrs0 are not given (-99), we assume flux is an upper limit for a non detection.
+                    # Upper limit flux is then represented for the fitting
+                    # with a data point at uppflux/2, and an error of +- uppflux/2
+                    # implying an uncertanty that ranges from [0,uppflux]  
+                    ndflag_cat0[flux_cat.value<=-99]= 0.
+                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
+                                                     fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
+                                                     fluxes0 [(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    # If neither fluxes and fluxerrs are given (both -99), 
+                    # these are considered as a non existant data point.
 
                 ## Sort in order of frequency
                 nus_l.append(nus0[nus0.argsort()])

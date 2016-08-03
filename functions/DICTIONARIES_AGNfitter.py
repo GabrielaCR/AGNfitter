@@ -569,7 +569,7 @@ def filter_dictionaries(filterset, path, filters):
         if filters['g_CHFT']:
             files.append(gband_file_CHFT)
             lambdas.append(g_lambda_CHFT)
-            factors.append(g_factorv)    
+            factors.append(g_factor_CHFT)    
         if filters['r_CHFT']:
             files.append(rband_file_CHFT)
             lambdas.append(r_lambda_CHFT)
@@ -590,7 +590,7 @@ def filter_dictionaries(filterset, path, filters):
         if filters['g_SDSS']:
             files.append(gband_file_SDSS)
             lambdas.append(g_lambda_SDSS)
-            factors.append(g_factorv)    
+            factors.append(g_factor_SDSS)    
         if filters['r_SDSS']:
             files.append(rband_file_SDSS)
             lambdas.append(r_lambda_SDSS)
