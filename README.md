@@ -102,7 +102,7 @@ Done!
 
 Documentation
 ----------------
-A careful documentation will be soon available. In the meantime, some notes are available in the Wiki as response to questions asked by users.
+A careful documentation will be soon available. In the meantime, some notes are available in the [Wiki](https://github.com/GabrielaCR/AGNfitter/wiki) as response to questions asked by users.
 
 Citation and License
 ----------------
