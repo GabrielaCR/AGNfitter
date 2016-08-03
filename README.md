@@ -176,11 +176,11 @@ To summarise, there are basically three ways this dictionary can be constructed:
 
 Notes on Catalog Format
 ------------
-All you need to fit your data with AGNfitter is your catalog and specify your catalog format and the filters you need in the SETTING_AGNfitter.py file.  AGNfitter is able to read catalogs in ASCII and FITS format in any kind of units (it uses Astropy for conversion). 
+All you need to fit your data with AGNfitter is your catalog and to specify your catalog format and the filters you need in the SETTING_AGNfitter.py file.  AGNfitter is able to read catalogs in ASCII and FITS format in any kind of units (it uses Astropy for conversion). 
 
-For ASCII files, the header information is not relevant. You need to specify the column indexes of  frequencies ( or wavelengths), fluxes, and flux errors as integer arrays as asked in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
+For ASCII files, the header information is not relevant. You need to specify the column indexes of frequencies ( or wavelengths), fluxes, and flux errors as integer arrays as asked in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
 
-For ASCII files, the header information is relevant, since the columns of frequencies ( or wavelengths), fluxes, and flux errors are recognised by the desired ending, which you need to specify in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
+For FITS files, the header information is relevant, since the columns of frequencies ( or wavelengths), fluxes, and flux errors are recognised by the desired ending, which you need to specify in the SETTINGS file. It is very important that there is an element by element correspondence in these three arrays. The order of the bands is not relevant, since it will be sorted by frequency automatically.
 
 It is important that the number of filters you choose to construct your dictionary (SETTINGS file) corresponds to the number of flux columns in your catalog. 
 Sources with different multiwavelength coverages can be fit in one single routine, as long as they are all part of one single catalog. 
@@ -189,7 +189,7 @@ If a source has no data available for some bands in your catalog, please give  -
 
 **Non-detections**
 
-If a source has non-detections in some bands, but you have *upper limits* to its flux, please add the upper limit flux to the flux column, and write -99 to the respective flux error column.  The upper limit flux flux_upp is then represented for the fitting with a data point at (flux_upp*0.5), and an error of (+- flux_upp*0.5) so that the data point has an uncertainty that ranges from [0, flux_upp] .
+If a source has non-detections in some bands, but you have **upper limits** to its flux, please add the upper limit flux to the flux column, and write -99 to the respective flux error column.  The upper limit flux *flux_upp* is then represented for the fitting with a data point at (0.5 x *flux_upp*), and an error of (+- 0.5 x *flux_upp*) so that the data point has an uncertainty that ranges from [0, *flux_upp*] .
 
 If a source is non-detected in some bands and you have **forced photometry** for those, please add columns with non-detection flags  to your catalog for every band (see SETTINGS file, line 64, for detail). In this way, forced photometry and its error is considered as normal photometry for the fitting, but the data points are marked differently in the plotting.
 
