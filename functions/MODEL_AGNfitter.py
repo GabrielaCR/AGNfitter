@@ -338,7 +338,7 @@ def filters1( model_nus, model_fluxes, filterdict, z ):
     - Filtered fluxes at these bands [F_nu]
     """
 
-    bands, files_dict, lambdas_dict, factors_dict = filterdict
+    bands, lambdas_dict, factors_dict = filterdict
     filtered_model_Fnus = []
 
 
