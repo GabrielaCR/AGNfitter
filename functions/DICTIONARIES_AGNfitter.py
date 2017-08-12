@@ -14,11 +14,14 @@ This script contains all functions which are needed to construct the total model
     
 
 """
+import sys,os
 import numpy as np
 import sys
 from collections import defaultdict
 
 import MODEL_AGNfitter as model
+import FILTERS_AGNfitter as filterpy
+
 from scipy.integrate  import trapz
 import time
 import cPickle
@@ -36,10 +39,11 @@ class MODELSDICT:
 
     ##input: 
     - filename of the dictionary you want to create
-    - the path whre it will be located
+    - the AGNfitter path is in your computer 
+    - the filters settings (dictionary from the settings file)
 
     - Also variables self.ebvgal_array,self.ebvbbb_array, self.z_array
-      can be change by the user, for a finer grid in this parameters.
+      can be changed by the user, for a finer grid in this parameters.
     ##bugs: 
 
     """     
@@ -49,43 +53,37 @@ class MODELSDICT:
         self.path=path
         self.ebvgal_array = np.array(np.arange(0.,100.,5.)/100)
         self.ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+
+        ## To be called form filters
         self.z_array = filters['dict_zarray']
-        self.filterset = filters['Bandset']
-        self.filters = filters
+        self.filters_list = filters
+        if os.path.lexists(filename):
+            self.fo = cPickle.load(file(filename, 'rb'))
+            self.filters = self.fo.filternames
+            self.filterset_name = self.fo.name
+        else:
+            self.fo = filterpy.create_filtersets(filters, path)
+            self.filters = self.fo.filternames
+            self.filterset_name = self.fo.name
 
     def build(self):
 
-        f = open(self.filename, 'wb')
-
-        COSMOS_modelsdict = dict()
-
-        print 'MODELSDICT.build'
-        print 'Constructing Dictionary of models.' 
-        print '--------------------------------------'
-        print 'Make sure the filterset contains all the photometric bands'
-        print 'needed by your catalog.'
-        print 'This process might take a while, but you have to do it only once.'
-        print 'If you interrupt it, please trash the empty file created.'
-        print ''
+        Modelsdict = dict()
 
         i=0
         dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
     
         for z in self.z_array:                
             i += 1
-            filterdict = filter_dictionaries(self.filterset, self.path, self.filters)
+            #filterdict = filter_dictionaries(self.filterset, self.path, self.filters_list)
+            filterdict = [self.fo.central_nu_array, self.fo.lambdas_dict, self.fo.factors_dict]
             dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict, self.path)
-            COSMOS_modelsdict[str(z)] = dict_modelsfiltered
-
+            Modelsdict[str(z)] = dict_modelsfiltered
             time.sleep(0.01)
             dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
 
+        self.MD = Modelsdict
 
-
-        print 'Dictionary has been created in :', self.filename
-
-        cPickle.dump(COSMOS_modelsdict, f, protocol=2)
-        f.close()
 
 
 
@@ -106,10 +104,6 @@ class MODELSDICT:
         STARBURSTFdict_4plot = dict()        
         BBBFdict_4plot = dict()
         TORUSFdict_4plot = dict()
-
-
-
-        #OPENING TEMPLATES AND BUILDING DICTIONARIES
 
 
         #Call object containing all galaxy models     
@@ -190,9 +184,7 @@ class MODELSDICT:
 def dictkey_arrays(MODELSdict):
 
     """
-    Construct the dictionaries of fluxes at bands (to campare to data), 
-    and dictionaries of fluxes over the whole spectrum, for plotting.
-
+    Summarizes the model dictionary keys.
     ##input:
 
     ##output:
@@ -230,413 +222,6 @@ def dictkey_arrays(MODELSdict):
     gal_obj = gal_class(tau_dict, age_dict, ebvg_dict)
 
     return gal_obj, irlum_dict, nh_dict, ebvb_dict, GALAXY_SFRdict
-
-
-
-
-
-def filter_dictionaries(filterset, path, filters):
-
-    """
-    Constructs the dictionaries of fluxes 
-    1) specifically for your photometric bands (to campare to data), and
-    2) dictionaries of fluxes for the whole spectrum, for plotting.
-
-    input
-    -------
-    - filterset: Here we have two types of filterset: 
-    'BANDSET_default' or 'BANDSET_settings'.
-    This was specified from the RUN_AGNfitter_multi.py script.
-
-    'BANDSET_default' includes bands needed for the example.
-    'BANDSET_settings' includes all bands you specify in RUN_AGNfitter_multi.py. 
-
-    dependency
-    ----------
-    This function is called in the CLASS MODELSDICT
-
-    """
-    H500band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_500mu.txt'
-    H500_lambda, H500_factor =  np.loadtxt(H500band_file, usecols=(0,1),unpack= True)
-
-    H350band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_350mu.txt'
-    H350_lambda, H350_factor =  np.loadtxt(H350band_file, usecols=(0,1),unpack= True)
-
-    H250band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_250mu.txt'
-    H250_lambda, H250_factor =  np.loadtxt(H250band_file, usecols=(0,1),unpack= True)
-
-    H160band_file = path + 'models/FILTERS/HERSCHEL/PACS_160mu.txt'
-    H160_lambda, H160_factor =  np.loadtxt(H160band_file, usecols=(0,1),unpack= True)
-
-    H100band_file =path + 'models/FILTERS/HERSCHEL/PACS_100mu.txt'
-    H100_lambda, H100_factor =  np.loadtxt(H100band_file, usecols=(0,1),unpack= True)
-
-    #SPITZER
-    M160band_file = path + 'models/FILTERS/SPITZER/mips160.res'
-    M160_lambda, M160_factor =  np.loadtxt(M160band_file, usecols=(0,1),unpack= True)
-
-    M70band_file = path + 'models/FILTERS/SPITZER/mips70.res'
-    M70_lambda, M70_factor =  np.loadtxt(M70band_file, usecols=(0,1),unpack= True)
-
-    M24band_file =  path + 'models/FILTERS/SPITZER/mips24.res'
-    M24_lambda, M24_factor =  np.loadtxt(M24band_file, usecols=(0,1),unpack= True)
-
-    #IRAC
-    I4band_file = path + 'models/FILTERS/SPITZER/irac_ch4.res'
-    I4_lambda, I4_factor =  np.loadtxt(I4band_file, usecols=(0,1),unpack= True)
-
-    I3band_file =  path + 'models/FILTERS/SPITZER/irac_ch3.res'
-    I3_lambda, I3_factor =  np.loadtxt(I3band_file, usecols=(0,1),unpack= True)
-
-    I2band_file = path + 'models/FILTERS/SPITZER/irac_ch2.res'
-    I2_lambda, I2_factor =  np.loadtxt(I2band_file, usecols=(0,1),unpack= True)
-
-    I1band_file = path + 'models/FILTERS/SPITZER/irac_ch1.res'
-    I1_lambda, I1_factor =  np.loadtxt(I1band_file, usecols=(0,1),unpack= True)
-
-    #WISE
-    W4band_file = path + 'models/FILTERS/WISE/NRSR-W4.txt'
-    W4_lambda, W4_factor =  np.loadtxt(W4band_file, usecols=(0,1),unpack= True)
-
-    W3band_file =  path + 'models/FILTERS/WISE/NRSR-W3.txt'
-    W3_lambda, W3_factor =  np.loadtxt(W3band_file, usecols=(0,1),unpack= True)
-
-    W2band_file = path + 'models/FILTERS/WISE/NRSR-W2.txt'
-    W2_lambda, W2_factor =  np.loadtxt(W2band_file, usecols=(0,1),unpack= True)
-
-    W1band_file = path + 'models/FILTERS/WISE/NRSR-W1.txt'
-    W1_lambda, W1_factor =  np.loadtxt(W1band_file, usecols=(0,1),unpack= True)
-
-    #2mass
-    Kband_file = path + 'models/FILTERS/2MASS/Ks_2mass.res'
-    K_lambda, K_factor =  np.loadtxt(Kband_file, usecols=(0,1),unpack= True)
-
-    Hband_file = path + 'models/FILTERS/2MASS/H_2mass.res'
-    H_lambda, H_factor =  np.loadtxt(Hband_file, usecols=(0,1),unpack= True)
-
-    Jband_file = path + 'models/FILTERS/2MASS/J_2mass.res'
-    J_lambda, J_factor =  np.loadtxt(Jband_file, usecols=(0,1),unpack= True)
-
-    #VISTA
-
-    Huvband_file = path + 'models/FILTERS/VISTA/H_uv.res'
-    Huv_lambda, Huv_factor =  np.loadtxt(Huvband_file, usecols=(0,1),unpack= True)
-
-    Juvband_file = path + 'models/FILTERS/VISTA/J_uv.res'
-    Juv_lambda, Juv_factor =  np.loadtxt(Juvband_file, usecols=(0,1),unpack= True)
-
-    Kuvband_file = path + 'models/FILTERS/VISTA/K_uv.res'
-    Kuv_lambda, Kuv_factor =  np.loadtxt(Kuvband_file, usecols=(0,1),unpack= True)
-
-    Yuvband_file = path + 'models/FILTERS/VISTA/Y_uv.res'
-    Yuv_lambda, Yuv_factor =  np.loadtxt(Yuvband_file, usecols=(0,1),unpack= True)
-
-    #CHFT ugriz
-    uband_file_CHFT = path + 'models/FILTERS/CHFT/u_megaprime_sagem.res'
-    u_lambda_CHFT, u_factor_CHFT =  np.loadtxt(uband_file_CHFT, usecols=(0,1),unpack= True)
-
-    gband_file_CHFT = path + 'models/FILTERS/CHFT/g_megaprime_sagem.res'
-    g_lambda_CHFT, g_factor_CHFT =  np.loadtxt(gband_file_CHFT, usecols=(0,1),unpack= True)
-
-    rband_file_CHFT = path + 'models/FILTERS/CHFT/r_megaprime_sagem.res'
-    r_lambda_CHFT, r_factor_CHFT =  np.loadtxt(rband_file_CHFT, usecols=(0,1),unpack= True)
-
-    iband_file_CHFT = path + 'models/FILTERS/CHFT/i_megaprime_sagem.res'
-    i_lambda_CHFT, i_factor_CHFT =  np.loadtxt(iband_file_CHFT, usecols=(0,1),unpack= True)
-
-    zband_file_CHFT = path + 'models/FILTERS/CHFT/z_megaprime_sagem.res'
-    z_lambda_CHFT, z_factor_CHFT =  np.loadtxt(zband_file_CHFT, usecols=(0,1),unpack= True)
-
-    #SDSS ugriz
-    uband_file_SDSS = path + 'models/FILTERS/SDSS/u_SDSS.res'
-    u_lambda_SDSS, u_factor_SDSS =  np.loadtxt(uband_file_SDSS, usecols=(0,1),unpack= True)
-
-    gband_file_SDSS = path + 'models/FILTERS/SDSS/g_SDSS.res'
-    g_lambda_SDSS, g_factor_SDSS =  np.loadtxt(gband_file_SDSS, usecols=(0,1),unpack= True)
-
-    rband_file_SDSS = path + 'models/FILTERS/SDSS/r_SDSS.res'
-    r_lambda_SDSS, r_factor_SDSS =  np.loadtxt(rband_file_SDSS, usecols=(0,1),unpack= True)
-
-    iband_file_SDSS = path + 'models/FILTERS/SDSS/i_SDSS.res'
-    i_lambda_SDSS, i_factor_SDSS =  np.loadtxt(iband_file_SDSS, usecols=(0,1),unpack= True)
-
-    zband_file_SDSS = path + 'models/FILTERS/SDSS/z_SDSS.res'
-    z_lambda_SDSS, z_factor_SDSS =  np.loadtxt(zband_file_SDSS, usecols=(0,1),unpack= True)
-
-    #SUBARU
-
-    gband_file =path + 'models/FILTERS/SUBARU/g_subaru.res'
-    g_lambda,g_factor =  np.loadtxt(gband_file, usecols=(0,1),unpack= True)
-
-    rband_file = path + 'models/FILTERS/SUBARU/r_subaru.res'
-    r_lambda,r_factor =  np.loadtxt(rband_file, usecols=(0,1),unpack= True)
-
-    iband_file = path + 'models/FILTERS/SUBARU/i_subaru.res'
-    i_lambda,i_factor =  np.loadtxt(iband_file, usecols=(0,1),unpack= True)
-
-    zband_file =path + 'models/FILTERS/SUBARU/z_subaru.res'
-    z_lambda, z_factor =  np.loadtxt(zband_file, usecols=(0,1),unpack= True)
-
-    Bband_file = path + 'models/FILTERS/SUBARU/B_subaru.res'
-    B_lambda, B_factor =  np.loadtxt(Bband_file, usecols=(0,1),unpack= True)
-
-    Vband_file = path + 'models/FILTERS/SUBARU/V_subaru.res'
-    V_lambda, V_factor =  np.loadtxt(Vband_file, usecols=(0,1),unpack= True)
-
-    #GALEX
-    NUVband_file = path + 'models/FILTERS/GALEX/galex2500.res'
-    NUV_lambda, NUV_factor =  np.loadtxt(NUVband_file, usecols=(0,1),unpack= True)
-
-    FUVband_file = path + 'models/FILTERS/GALEX/galex1500.res'
-    FUV_lambda, FUV_factor =  np.loadtxt(FUVband_file, usecols=(0,1),unpack= True)
-
-
-                
-    if filterset == 'BANDSET_default':
-
-
-        #List of file names
-        files = [ H500band_file, H350band_file, H250band_file, M24band_file, I4band_file ,\
-         I3band_file, I2band_file, I1band_file, Kband_file, Hband_file, Jband_file,\
-          Yuvband_file, zband_file , iband_file, rband_file,  Bband_file,  uband_file_CHFT, \
-          NUVband_file]
-
-        #List of all lambdas
-        lambdas = [H500_lambda, H350_lambda, H250_lambda, M24_lambda, I4_lambda , I3_lambda, \
-        I2_lambda, I1_lambda,  K_lambda, H_lambda, J_lambda, Yuv_lambda,  z_lambda, i_lambda, \
-        r_lambda, B_lambda,  u_lambda_CHFT, NUV_lambda]
-
-        #list of all factors corresponding to the lambdas
-        factors = [ H500_factor, H350_factor, H250_factor, M24_factor, I4_factor , I3_factor, \
-        I2_factor, I1_factor, K_factor, H_factor, J_factor, Yuv_factor, z_factor, i_factor, \
-        r_factor,  B_factor,  u_factor_CHFT, NUV_factor]
-
-
-        #dictionaries lambdas_dict, factors_dict
-        files_dict = defaultdict(list)
-        lambdas_dict = defaultdict(list)
-        factors_dict = defaultdict(list)
-        central_nu_list=[]
-
-        for i in range(len(files)):
-
-            c=    2.997e8
-            Angstrom = 1e10
-
-            central_lamb = np.sum(lambdas[i]*factors[i])/np.sum(factors[i])
-            central_nu = float(np.log10((Angstrom*c)/central_lamb))
-
-            files_dict[central_nu].append(files[i])
-            lambdas_dict[central_nu].append(lambdas[i])
-            factors_dict[central_nu].append(factors[i])
-
-            central_nu_list.append(central_nu)
-
-
-    if filterset == 'BANDSET_settings':
-
-        files =[]
-        lambdas = []
-        factors = []
-
-        if filters['SPIRE500']:
-            files.append(H500band_file)
-            lambdas.append(H500_lambda)
-            factors.append(H500_factor)
-        if filters['SPIRE350']:
-            files.append(H350band_file)
-            lambdas.append(H350_lambda)
-            factors.append(H350_factor)
-        if filters['SPIRE250']:
-            files.append(H250band_file)
-            lambdas.append(H250_lambda)
-            factors.append(H250_factor)
-        if filters['PACS160']:
-            files.append(H160band_file)
-            lambdas.append(H160_lambda)
-            factors.append(H160_factor)
-        if filters['PACS100']:
-            files.append(H100band_file)
-            lambdas.append(H100_lambda)
-            factors.append(H100_factor)
-
-        if filters['MIPS160']:      
-            files.append(M160band_file)
-            lambdas.append(M160_lambda)
-            factors.append(M160_factor)
-        if filters['MIPS70']:    
-            files.append(M70band_file)
-            lambdas.append(M70_lambda)
-            factors.append(M70_factor)
-        if filters['MIPS24']:
-            files.append(M24band_file)
-            lambdas.append(M24_lambda)
-            factors.append(M24_factor)
-
-        if filters['IRAC4']:   
-            files.append(I4band_file)
-            lambdas.append(I4_lambda)
-            factors.append(I4_factor)         
-        if filters['IRAC3']:
-            files.append(I3band_file)
-            lambdas.append(I3_lambda)
-            factors.append(I3_factor)    
-        if filters['IRAC2']:
-            files.append(I2band_file)
-            lambdas.append(I2_lambda)
-            factors.append(I2_factor)                
-        if filters['IRAC1']:
-            files.append(I1band_file)
-            lambdas.append(I1_lambda)
-            factors.append(I1_factor)    
-
-        if filters['WISE4']:
-            files.append(W4band_file)
-            lambdas.append(W4_lambda)
-            factors.append(W4_factor)    
-        if filters['WISE3']:
-            files.append(W3band_file)
-            lambdas.append(W3_lambda)
-            factors.append(W3_factor)    
-        if filters['WISE2']:
-            files.append(W2band_file)
-            lambdas.append(W2_lambda)
-            factors.append(W2_factor)    
-        if filters['WISE1']:
-            files.append(W1band_file)
-            lambdas.append(W1_lambda)
-            factors.append(W1_factor)    
-
-        if filters['Ks_2mass']:
-            files.append(Kband_file)
-            lambdas.append(K_lambda)
-            factors.append(K_factor)    
-        if filters['H_2mass']:
-            files.append(Hband_file)
-            lambdas.append(H_lambda)
-            factors.append(H_factor)    
-        if filters['J_2mass']:
-            files.append(Jband_file)
-            lambdas.append(J_lambda)
-            factors.append(J_factor)    
-
-        if filters['H_VISTA']:
-            files.append(Huvband_file)
-            lambdas.append(Huv_lambda)
-            factors.append(Huv_factor)    
-        if filters['J_VISTA']:
-            files.append(Juvband_file)
-            lambdas.append(Juv_lambda)
-            factors.append(Juv_factor)    
-        if filters['K_VISTA']:
-            files.append(Kuvband_file)
-            lambdas.append(Kuv_lambda)
-            factors.append(Kuv_factor)        
-        if filters['Y_VISTA']:
-            files.append(Yuvband_file)
-            lambdas.append(Yuv_lambda)
-            factors.append(Yuv_factor)    
-
-        if filters['g_SUBARU']:
-            files.append(gband_file)
-            lambdas.append(g_lambda)
-            factors.append(g_factor)    
-        if filters['r_SUBARU']:
-            files.append(rband_file)
-            lambdas.append(r_lambda)
-            factors.append(r_factor)    
-        if filters['i_SUBARU']:  
-            files.append(iband_file)
-            lambdas.append(i_lambda)
-            factors.append(i_factor)    
-        if filters['z_SUBARU']:
-            files.append(zband_file)
-            lambdas.append(z_lambda)
-            factors.append(z_factor)    
-        if filters['B_SUBARU']:
-            files.append(Bband_file)
-            lambdas.append(B_lambda)
-            factors.append(B_factor)    
-        if filters['V_SUBARU']:  
-            files.append(Vband_file)
-            lambdas.append(V_lambda)
-            factors.append(V_factor)    
-
-        if filters['u_CHFT']:  
-            files.append(uband_file_CHFT)
-            lambdas.append(u_lambda_CHFT)
-            factors.append(u_factor_CHFT)    
-        if filters['g_CHFT']:
-            files.append(gband_file_CHFT)
-            lambdas.append(g_lambda_CHFT)
-            factors.append(g_factor_CHFT)    
-        if filters['r_CHFT']:
-            files.append(rband_file_CHFT)
-            lambdas.append(r_lambda_CHFT)
-            factors.append(r_factor_CHFT)    
-        if filters['i_CHFT']:  
-            files.append(iband_file_CHFT)
-            lambdas.append(i_lambda_CHFT)
-            factors.append(i_factor_CHFT)    
-        if filters['z_CHFT']:
-            files.append(zband_file_CHFT)
-            lambdas.append(z_lambda_CHFT)
-            factors.append(z_factor_CHFT)    
-
-        if filters['u_SDSS']:  
-            files.append(uband_file_SDSS)
-            lambdas.append(u_lambda_SDSS)
-            factors.append(u_factor_SDSS)    
-        if filters['g_SDSS']:
-            files.append(gband_file_SDSS)
-            lambdas.append(g_lambda_SDSS)
-            factors.append(g_factor_SDSS)    
-        if filters['r_SDSS']:
-            files.append(rband_file_SDSS)
-            lambdas.append(r_lambda_SDSS)
-            factors.append(r_factor_SDSS)    
-        if filters['i_SDSS']:  
-            files.append(iband_file_SDSS)
-            lambdas.append(i_lambda_SDSS)
-            factors.append(i_factor_SDSS)    
-        if filters['z_SDSS']:
-            files.append(zband_file_SDSS)
-            lambdas.append(z_lambda_SDSS)
-            factors.append(z_factor_SDSS)    
-
-        if filters['GALEX_2500']:
-            files.append(NUVband_file)
-            lambdas.append(NUV_lambda)
-            factors.append(NUV_factor)    
-        if filters['GALEX_1500']:
-            files.append(FUVband_file)
-            lambdas.append(FUV_lambda)
-            factors.append(FUV_factor)    
-
-
-        # make dictionaries lambdas_dict, factors_dict
-        files_dict = defaultdict(list)
-        lambdas_dict = defaultdict(list)
-        factors_dict = defaultdict(list)
-        central_nu_list=[]        
-
-        for i in range(len(files)):
-
-            c=    2.997e8
-            Angstrom = 1e10
-
-            central_lamb = np.sum(lambdas[i]*factors[i])/np.sum(factors[i])
-            central_nu = float(np.log10((Angstrom*c)/central_lamb))
-
-            files_dict[central_nu].append(files[i])
-            lambdas_dict[central_nu].append(lambdas[i])
-            factors_dict[central_nu].append(factors[i])
-
-            central_nu_list.append(central_nu)
-
-        central_nu_list = sorted(central_nu_list)
-            
-    return np.array(central_nu_list), files_dict, lambdas_dict, factors_dict
 
 
 
