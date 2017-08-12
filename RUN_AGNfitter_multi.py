@@ -61,7 +61,7 @@ def header():
     return
 
 
-def MAKE_model_dictionary(cat, filters, clobbermodel=False):
+def MAKE_model_dictionary(cat, filters, models, clobbermodel=False):
     """
     Create model dictionary for all redshifts in z-array and filters
     input 
@@ -73,29 +73,84 @@ def MAKE_model_dictionary(cat, filters, clobbermodel=False):
     """
     
     t0= time.time()
+    modelsdict_name = cat['path']+models['path']+ filters['filterset']+models['modelset']
 
-    if clobbermodel and os.path.lexists(cat['dict_path']):
-        print "removing model dictionary "+cat['dict_path']
-        os.system('rm -rf '+ cat['dict_path'])
-        
-    if not os.path.lexists(cat['dict_path']):
+    if clobbermodel and os.path.lexists(modelsdict_name) : ## If overwriting of model dictionary mode is on
+        print "> Overwriting model dictionary (-o) "+modelsdict_name
+        print '_______________________'
+        os.system('rm -rf '+ modelsdict_name)
+  
+    if not os.path.lexists(modelsdict_name): ## If model dictionary does not exist yet
 
-        MODELFILES.construct(cat['path'])
+        print '> Constructing new MODELS DICTIONARY:'
+        print 'SAVED AS : ', modelsdict_name
+        print 'FILTERSET USED : ', filters['filterset']
+        print '________________________'
+        print 'This process might take some time but you have to do it only once.'
+        print 'If you interrupt it, please trash the empty file created.'
+        print ''
 
-        mydict = MODELSDICT(cat['dict_path'], cat['path'], filters)
+        mydict = MODELSDICT( modelsdict_name, cat['path'], filters)
         mydict.build()
-        
-        print '_____________________________________________________'
-        print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+        f = open(mydict.filename, 'wb')
+        cPickle.dump(mydict, f, protocol=2)
+        f.close()
 
-    Modelsdict = cPickle.load(file(cat['dict_path'], 'rb'))
-    
+        print '________________________'
+        print 'The models dictionary ' + modelsdict_name +' has been created.'\
+              '(%.2g min elapsed)'% ((time.time() - t0)/60.)
+
+    else: ## If model dictionary exists and you want to reuseit
+
+        mydict = cPickle.load(file(modelsdict_name, 'rb'))
+
+        print '________________________'
+        print 'MODELS DICTIONARY currently in use:'
+        print 'SAVED AS : ', mydict.filename
+        print 'FILTERSET USED : ', mydict.filterset_name
+        
+        if (filters.keys()!=mydict.filters_list.keys()) and (filters.values()!=mydict.filters_list.values()): ##  compare nr of data bands with n of model filters
+            print '________________________'
+            print '*** WARNING ***'  
+            print 'You have changed entries in your FILTER_settings without updating the filterset name.'
+            print 'The MODEL DICTIONARY will NOT be updated correctly.'
+            print ''
+            py3 = sys.version_info[0] > 2 #creates boolean value for test that Python major version > 2
+            if py3:
+              response = input(">> You want to continue with the old model dictionary nevertheless? (yes/no)")
+            else:
+              response = raw_input(">> You want to continue with the old model dictionary nevertheless? (yes/no)")
+            while True:
+                if response== 'no':
+                    sys.exit('\nTo update the MODEL DICTIONARY , you have these options: \n\
+                        * change the filterset name (filters["filterset"]), or \n\
+                        * run the code in model-overwriting mode (-o)')
+                elif response== 'yes':
+                    print '________________________'
+                    print 'MODELS DICTIONARY currently in use:'
+                    print 'SAVED AS : ', mydict.filename
+                    print 'FILTERSET USED : ', mydict.filterset_name
+                    break
+            print "Please answer (yes/no)"
+
+    Modelsdict = mydict.MD ## MD is the model dictionary saved as a class of the method MODELSDICT
+
+    bands_in_cat =len(cat['freq/wl_list'])
+    bands_in_dict = len(Modelsdict[Modelsdict.keys()[0]][1][Modelsdict[Modelsdict.keys()[0]][1].keys()[0]][0])
+
+    if bands_in_cat!= bands_in_dict :
+
+        sys.exit('________________________\n*** ERROR ***\n'+ \
+                'Number of bands in catalog ('+str(bands_in_cat)+'), does not match the numbers of filters in models (' + str(bands_in_dict)+')\n'+\
+                'This will produce a mismatched fitting. Make sure the filterset contains only/all the photometric bands corresponding your catalog.\n'+ \
+                'They do NOT need to be sorted in the same order.')
+        
     return Modelsdict
 
 
 def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=False):
     """
-    Main function for fitting a single source in line 'line' and create it's modelsdict independently.
+    Main function for fitting a single source in line and create it's modelsdict independently.
     """
     
     mc = MCMC_settings()
@@ -104,6 +159,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     data = DATA(data_obj,line)
 
     print ''
+    print '________________________'    
     print 'Fitting sources from catalog: ', data.catalog 
     print '- Sourceline: ', line
     print '- Sourcename: ', data.name
@@ -112,15 +168,15 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     ## 0. CONSTRUCT DICTIONARY for this redshift
     t0= time.time()
 
-    # needs a list/array of z
+    ## needs a list/array of z
     filtersz['dict_zarray'] = [data.z]
 
-    # save the dictionary for this source in the OUTPUT folder for this source
-    # create this source output folder if it doesn't exist
-    if not os.path.lexists(cat['output_folder'] +'/'+str(data.name)):
-        os.system('mkdir -p ' + cat['output_folder'] +'/'+str(data.name))
-    dictz = cat['output_folder'] +'/'+str(data.name) +'/MODELSDICT_' + str(data.name) 
-    # remove this source modelsdict if it already exists and we want to remove it
+    ## save the dictionary for this source in the OUTPUT folder for this source
+    ## create this source output folder if it doesn't exist
+    if not os.path.lexists(cat['output_folder']+str(data.name)):
+        os.system('mkdir -p ' + cat['output_folder'] +str(data.name))
+    dictz = cat['output_folder'] +str(data.name) +'/MODELSDICT_' + str(data.name) 
+    ## remove this source modelsdict if it already exists and we want to remove it
     if clobbermodel and os.path.lexists(dictz):
         os.system('rm -rf '+dictz)
         print "removing source model dictionary "+dictz
@@ -128,10 +184,14 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     if not os.path.lexists(dictz):
         zdict = MODELSDICT(dictz, cat['path'], filtersz)
         zdict.build()
+        f = open(zdict.filename, 'wb')
+        cPickle.dump(zdict, f, protocol=2)
+        f.close()
         print '_____________________________________________________'
         print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
-
-    Modelsdictz = cPickle.load(file(dictz, 'rb')) 
+    else:
+        zdict = cPickle.load(file(dictz, 'rb'))
+    Modelsdictz = zdict.MD
 
     data.DICTS(filtersz, Modelsdictz)
 
@@ -164,10 +224,10 @@ def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
                                 # From PARAMETERSPACE_AGNfitter.py
 
     print ''
+    print '________________________'      
     print 'Fitting sources from catalog: ', data.catalog 
     print '- Sourceline: ', line
     print '- Sourcename: ', data.name
-
 
     t1= time.time()
 
@@ -230,12 +290,14 @@ if __name__ == "__main__":
       clobbermodel = False
     
     try:
-	cat = CATALOG_settings()
+       cat = CATALOG_settings()
+       filters= FILTERS_settings()
+       models= MODELS_settings()
     except NameError:
         print "Something is wrong with your setting file"
         sys.exit(1)
         
-    filters= FILTERS_settings()
+
     data_ALL = DATA_all(cat)
     data_ALL.PROPS()
 
@@ -243,19 +305,21 @@ if __name__ == "__main__":
     if not os.path.isdir(cat['output_folder']):
         os.system('mkdir -p '+os.path.abspath(cat['output_folder']))
     # abspath is needed because 'dict_path' is a file
-    mpath = cat['dict_path'].replace(os.path.basename(cat['dict_path']),'')
+    modelsdict_name = cat['path']+models['path']+ filters['filterset']+models['modelset']
+    mpath = modelsdict_name.replace(os.path.basename(modelsdict_name),'')
+
     if not os.path.isdir(mpath):
         os.system('mkdir -p '+os.path.abspath(mpath))
     
 
-    # run for once source only and construct dictionary only for this source
+    # run for one source only and construct dictionary only for this source
     if args.independent:
         RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, clobbermodel=clobbermodel)
         
         
     else:
         # make/read the model dictionary
-        Modelsdict = MAKE_model_dictionary(cat, filters, clobbermodel=clobbermodel)
+        Modelsdict = MAKE_model_dictionary(cat, filters, models, clobbermodel=clobbermodel)
 
         # a single source is specified
         if args.sourcenumber >= 0:
