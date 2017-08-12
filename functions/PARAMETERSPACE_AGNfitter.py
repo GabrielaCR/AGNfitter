@@ -209,6 +209,8 @@ def galaxy_Lumfct_prior( z, dlum, bands, gal_flux):
     lumfactor = (4. * pi * dlum**2.)
 
     flux_B = gal_flux[(14.790 < bands)&(bands < 14.870)]
+    if len(flux_B)>1:
+        flux_B = flux_B[0]
     mag1= -2.5 * np.log10(flux_B) - 48.6
     distmod = -5.0 * np.log10((dlum/3.08567758e24 *1e6)/10) 
     abs_mag1 = mag1 + distmod
