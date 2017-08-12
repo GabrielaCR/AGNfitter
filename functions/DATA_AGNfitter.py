@@ -37,7 +37,6 @@ class DATA_all:
     and gives it to the class DATA, which administrates it for each sourceline.
     
     input: catalogname
-    bugs: Not ready to read FITS yet.
 
     """
 
@@ -49,7 +48,6 @@ class DATA_all:
             print 'ERROR: Catalog does not exist under this name '+cat['filename']
             sys.exit(1)
         self.path = cat['path']
-        self.dict_path = cat['dict_path']
         self.output_folder = cat['output_folder']
 
     def PROPS(self):
@@ -259,7 +257,6 @@ class DATA():
         if not os.path.lexists(catalog.cat['filename']):
             print 'Catalog does not exist under this name.'
         self.path = catalog.cat['path']
-        self.dict_path = catalog.cat['dict_path']
         self.output_folder = catalog.cat['output_folder']
 
 
@@ -273,7 +270,6 @@ class DATA():
         idx = (np.abs(z_array.astype(float)-self.z)).argmin()
         z_key = z_array[idx] 
 
-        self.filterdict = dicts.filter_dictionaries(filters['Bandset'], self.path, filters)   
         self.dict_modelfluxes = Modelsdict[z_key]
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
         
