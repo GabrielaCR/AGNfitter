@@ -36,13 +36,13 @@ def main(data, P, mc):
     path = os.path.abspath(__file__).rsplit('/', 1)[0]
 
     print '......................................................'
-    print 'model parameters', P.names
-    print 'minimum values', P.min
-    print 'maximum values', P.max
+    print 'model parameters', P['names']
+    print 'minimum values', P['min']
+    print 'maximum values', P['max']
     print '......................................................'
     print mc['Nwalkers'], 'walkers'
 
-    Npar = len(P.names)
+    Npar = len(P['names'])
 
 
     sampler = emcee.EnsembleSampler(
