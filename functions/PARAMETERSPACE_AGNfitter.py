@@ -17,10 +17,18 @@ import pylab as pl
 import numpy as np
 from math import pi
 import time
+from collections import Iterable
+import itertools
 import pickle
 import MODEL_AGNfitter as model
-from DATA_AGNfitter import DATA
 
+def flatten(lis):
+     for item in lis:
+         if isinstance(item, Iterable) and not isinstance(item, basestring):
+             for x in flatten(item):
+                 yield x
+         else:        
+             yield item
 
 def Pdict (data):
 
@@ -30,17 +38,31 @@ def Pdict (data):
     ## inputs:
     - data object
     """
-    P = adict()
+    P = dict()
+    ga,sb,to,bb= data.dictkey_arrays
+    par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
+               for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
+    par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
+               for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
     
-    P.names ='tau', 'age', 'Nh', 'irlum' , 'SB', 'BB', 'GA', 'TO', 'EBVbbb', 'EBVgal'
-    P.min = 0., 5., 21., 7., 0., 0., 0., 0., -0.1, -0.1
-    P.max = 15, np.log10(model.maximal_age(data.z)), 25, 15, 10., 10., 10., 10., 1.0, 1.0
+    ## Add normalization parameters:
+    normpars=['GA','SB','TO','BB'] 
+    all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
+    npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(normpars)]  
+    [par_mins.append(i) for i in [0.,0.,0.,0.]]
+    [par_maxs.append(i)for i in [15.,15.,15.,15.]]
+   
 
-    Npar = len(P.names)
+    P['names'] = all_pars
+    Npar = len(P['names'])
+    P['priortype'] = np.array(['non-info']*Npar)
+    P['min'] = par_mins
+    P['max'] = par_maxs    
+    P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
-    return P    
 
 
+    return P  
 
 """-------------------------
 PRIOR, LIKELIHOOD, POSTERIOR 
@@ -61,7 +83,7 @@ def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
 
     #1. Flat priors
     for i,p in enumerate(pars):
-        if not (P.min[i] < p < P.max[i]):
+        if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
             return -np.inf
 
     #2. Prior on the luminosity
@@ -74,7 +96,7 @@ def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
 
 
 
-def ln_likelihood(x, y, ysigma, z, y_model):
+def ln_likelihood(x, y, ysigma, z, ymodel):
 
     """Calculates the likelihood function.
 
@@ -91,11 +113,9 @@ def ln_likelihood(x, y, ysigma, z, y_model):
     #x_valid:
     #only frequencies with existing data (no detections nor limits F = -99)        
     #Consider only data free of IGM absorption. Lyz = 15.38 restframe        
-
     x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.)]
 
-    resid = [(y[i] - y_model[i])/ysigma[i] for i in x_valid]
-
+    resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
 
     return -0.5 * np.dot(resid, resid)
 
@@ -116,7 +136,7 @@ def ln_probab(pars, data, P):
     ## dependencies:
     - MCMC_AGNfitter.py"""
 
-    y_model, bands, gal_Fnu = ymodel(data.nus,data.z,data.dictkey_arrays,data.dict_modelfluxes,*pars)
+    y_model, bands, gal_Fnu = ymodel(data.nus,data.z,data.dictkey_arrays,data.dict_modelfluxes, P, *pars)
 
     lnp = ln_prior(data.z, data.dlum, bands,gal_Fnu, P, pars)
 
@@ -131,7 +151,7 @@ def ln_probab(pars, data, P):
 CONSTRUCT TOTAL MODEL 
 ------------------------------------"""
 
-def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, *par):
+def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, P, *par):
 
     """Constructs the total model from parameter values.
 
@@ -148,48 +168,48 @@ def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, *par):
     (2)in scriptPLOTandWRITE.
 
     """
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_= dict_modelfluxes
-    gal_do, irlum_dict, nh_dict, BBebv_dict,_= dictkey_arrays
+    t0 = time.time()
 
-    # Call MCMC-parameter values 
-    tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= par[0:10]
-    age = 10**agelog
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_= dict_modelfluxes
 
-    # Pick dictionary key-values, nearest to the MCMC- parameter values
-    irlum_dct = model.pick_STARBURST_template(irlum, irlum_dict)
-    nh_dct = model.pick_TORUS_template(nh, nh_dict)
-    ebvbbb_dct = model.pick_BBB_template(BBebv, BBebv_dict)
-    gal_do.nearest_par2dict(tau, age, GAebv)
-    tau_dct, age_dct, ebvg_dct=gal_do.t, gal_do.a,gal_do.e
-
-    # Call fluxes from dictionary using keys-values
-    try: 
-        bands, gal_Fnu = GALAXYFdict[tau_dct, age_dct,ebvg_dct]     
-        bands, sb_Fnu= STARBURSTFdict[irlum_dct] 
-        bands, bbb_Fnu = BBBFdict[ebvbbb_dct] 
-        bands, tor_Fnu= TORUSFdict[nh_dct]
+    gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
  
+    par =par[0:len(par)]
+    ## Use pick_nD if model has more than one parameter,
+    ## and pick_1D if it has only one.
+    gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
+    sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
+    tor_obj.pick_1D(par[P['idxs'][2]:P['idxs'][3]])            
+    bbb_obj.pick_1D(par[P['idxs'][3]:P['idxs'][4]])
+    GA, SB, TO, BB = par[-4:]
+
+    t2 = time.time()
+
+    try: 
+        bands, gal_Fnu = GALAXYFdict[tuple(gal_obj.matched_parkeys)]   
+        _, sb_Fnu= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
+        _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]   
+        _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
         print 'Error: Dictionary does not contain some values'
+    t3 = time.time()
 
     # Renormalize to have similar amplitudes. Keep these fixed!
-    sb_Fnu_norm = sb_Fnu.squeeze()/1e20    
-    bbb_Fnu_norm = bbb_Fnu.squeeze()/1e60
-    gal_Fnu_norm = gal_Fnu.squeeze()/1e18
-    tor_Fnu_norm = tor_Fnu.squeeze()/1e-40
-
+    sb_Fnu_norm =sb_Fnu/1e20    
+    bbb_Fnu_norm = bbb_Fnu/ 1e60
+    gal_Fnu_norm = gal_Fnu/1e18
+    tor_Fnu_norm = tor_Fnu/ 1e-40
 
     # Total SED sum
     #--------------------------------------------------------------------
 
-    lum = 10**(SB)* sb_Fnu_norm + 10**(BB)*bbb_Fnu_norm    \
-          + 10**(GA)*gal_Fnu_norm  +(10**TO) *tor_Fnu_norm 
+    lum = 10**(SB)* sb_Fnu_norm  + 10**(BB)*bbb_Fnu_norm    \
+          + 10**(GA)*gal_Fnu_norm  +(10**TO) *tor_Fnu_norm
 
     #--------------------------------------------------------------------
 
     lum = lum.reshape((np.size(lum),))    
-
-    return lum, bands, 10**(GA)*gal_Fnu_norm 
+    return lum, bands, 10**(GA)*gal_Fnu_norm
 
 
 
@@ -240,14 +260,11 @@ def get_initial_positions(nwalkers, P):
     - dictionary P
     ## output:
     - list of positions of length len(P.keys)"""
-
-    Npar = len(P.names) 
+    Npar = len(P['names']) 
     p0 = np.random.uniform(size=(nwalkers, Npar))
 
     for i in range(Npar):
-
-        p0[:, i] = 0.5*(P.max[i] + P.min[i]) + (2* p0[:, i] - 1) * (1)
-        
+        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) * (1)
     p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.001)
     
     return p0
@@ -261,7 +278,7 @@ def get_best_position(filename, nwalkers, P):
     ## output:
     - list of positions of length (P.keys)"""
 
-    Npar = len(P.names) 
+    Npar = len(P['names']) 
     #all saved vectors    
     f = open(filename, 'rb')
     samples = pickle.load(f)
@@ -270,12 +287,12 @@ def get_best_position(filename, nwalkers, P):
     #index for the largest likelihood     
     i = samples['lnprob'].ravel().argmax()
     #the values for the parameters at this index
-    P.ml = samples['chain'].reshape(-1, Npar)[i]
+    P['ml'] = samples['chain'].reshape(-1, Npar)[i]
 
     p1 = np.random.normal(size=(nwalkers, Npar))
 
     for i in range(Npar):
-        p = P.ml[i]
+        p =P['ml'][i]
         
         p1[:, i] = p + 0.00001 * p1[:, i]
 
@@ -283,53 +300,4 @@ def get_best_position(filename, nwalkers, P):
 
 
 
-
-
-
-
-class adict(dict): 
-
-    """ A dictionary with attribute-style access. It maps attribute
-    access to the real dictionary.
-    This class has been obtained from the Barak package by Neil Chrighton)
-    """
-
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-
-    # the following two methods allow pickling
-    def __getstate__(self):
-        """Prepare a state of pickling."""
-        return self.__dict__.items()
-
-    def __setstate__(self, items):
-        """ Unpickle. """
-        for key, val in items:
-            self.__dict__[key] = val
-
-    def __setitem__(self, key, value):
-        return super(adict, self).__setitem__(key, value)
-
-    def __getitem__(self, name):
-        return super(adict, self).__getitem__(name)
-
-    def __delitem__(self, name):
-        return super(adict, self).__delitem__(name)
-
-    def __setattr__(self, key, value):
-        if hasattr(self, key):
-            # make sure existing methods are not overwritten by new
-            # keys.
-            return super(adict, self).__setattr__(key, value)
-        else:
-            return super(adict, self).__setitem__(key, value)
-
-    __getattr__ = __getitem__
-
-    def copy(self):
-        """ Return a copy of the attribute dictionary.
-
-        Does not perform a deep copy
-        """
-        return adict(self)
 
