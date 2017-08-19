@@ -25,8 +25,7 @@ from matplotlib import rc, ticker
 import sys, os
 import math 
 import numpy as np
-import triangle #Author: Dan Foreman-Mackey (danfm@nyu.edu)
-import time
+import corner #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import scipy
 from astropy import units as u
 from astropy import constants as const
@@ -62,7 +61,7 @@ def main(data, P, out):
     print '- Mean acceptance fraction', chain_mcmc.mean_accept
     print '- Mean autocorrelation time', chain_mcmc.mean_autocorr
 
-    output = OUTPUT(chain_mcmc, data)
+    output = OUTPUT(chain_mcmc, data, P)
 
     if out['plot_tracesburn-in']:
         fig, nplot=chain_burnin.plot_trace(P)
@@ -77,7 +76,7 @@ def main(data, P, out):
         plt.close(fig)
 
     if out['plot_posteriortriangle'] :
-        fig = output.plot_PDFtriangle('10pars', P.names)
+        fig = output.plot_PDFtriangle('10pars', P['names'])
         fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_10pars.' + out['plot_format'])
         plt.close(fig)
 
@@ -114,7 +113,7 @@ class OUTPUT:
     - object of the CHAIN class, object of DATA class
     """    
 
-    def __init__(self, chain_obj, data_obj):
+    def __init__(self, chain_obj, data_obj, P):
 
         self.chain = chain_obj
         self.chain.props()
@@ -122,8 +121,8 @@ class OUTPUT:
         self.out = chain_obj.out
         self.data = data_obj
         self.z=self.data.z
-        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, self.out,'int_lums')
-        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, self.out,'plot')
+        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums')
+        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot')
 
         if self.out['calc_intlum']:
             fluxobj_withintlums.fluxes( self.data)
@@ -142,8 +141,7 @@ class OUTPUT:
         Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
-                                            # np.mean(chain_pars, axis[0]),
-                                            # np.std(chain_pars, axis[0]),
+  
         if self.out['calc_intlum']:            
 
 
@@ -156,19 +154,19 @@ class OUTPUT:
 
 
     
-            outputvalues_header= ' '.join([ i for i in np.hstack((P.names, 'log Mstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'log Mstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
 
         else:
             outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
-            outputvalues_header=' '.join( [ i for i in P.names] )
+            outputvalues_header=' '.join( [ i for i in P['names']] )
         return outputvalues, outputvalues_header
 
     def plot_PDFtriangle(self,parameterset, labels):        
 
         if parameterset=='10pars':
-            figure = triangle.corner(self.chain.flatchain, labels= labels, plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
+            figure = corner.corner(self.chain.flatchain,levels=[0.68,0.95],  labels= labels, plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
         elif parameterset == 'int_lums':
-            figure = triangle.corner(self.int_lums.T, labels= labels,   plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
+            figure = corner.corner(self.int_lums.T, levels=[0.68,0.95], labels= labels,   plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
         return figure
 
 
@@ -310,7 +308,7 @@ class CHAIN:
             ax = axes[i]
             for j in range(0, self.nwalkers, max(1, self.nwalkers // nwplot)):
                 ax.plot(self.chain[j,:,i], lw=0.5,  color = 'black', alpha = 0.3)
-            ax.set_title(r'\textit{Parameter : }'+P.names[i], fontsize=12)  
+            ax.set_title(r'\textit{Parameter : }'+P['names'][i], fontsize=12)  
             ax.set_xlabel(r'\textit{Steps}', fontsize=12)
             ax.set_ylabel(r'\textit{Walkers}',fontsize=12)
 
@@ -344,11 +342,11 @@ class FLUXES_ARRAYS:
     """
 
 
-    def __init__(self, chain_obj, out, output_type):
+    def __init__(self, chain_obj, P, out, output_type):
         self.chain_obj = chain_obj
         self.output_type = output_type
         self.out = out
-
+        self.P = P
     def fluxes(self, data):    
 
         """
@@ -365,45 +363,44 @@ class FLUXES_ARRAYS:
         if self.output_type == 'plot':
             filtered_modelpoints_list = []
 
+        gal_obj,sb_obj,tor_obj, bbb_obj = data.dictkey_arrays
 
-        gal_do,  irlum_dict, nh_dict, BBebv_dict,_ = data.dictkey_arrays
-        # Take the last 4 dictionaries, which are for plotting. (the first 4 were at bands)
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_= data.dict_modelfluxes
+        # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
+        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_= data.dict_modelfluxes
 
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name
 
         if self.output_type == 'plot':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:].T
+            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:]#.T        
         elif self.output_type == 'int_lums':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:].T
+            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:]#.T        
         elif self.output_type == 'best_fit':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.best_fit_pars
-
-        age = 10**agelog
+            par= self.best_fit_pars
 
         self.all_nus_rest = np.arange(11.5, 16, 0.001) 
+        for g in range(self.out['realizations2plot']):
 
-        for g in range(len(tau)):
+            ## Pick dictionary key-values, nearest to the MCMC- parameter values
+            ## Use pick_nD if model has more than one parameter,
+            ## and pick_1D if it has only one.
+            gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]])  
+            sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
+            tor_obj.pick_1D(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
+            bbb_obj.pick_1D(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+            GA, SB, TO, BB = par[g][-4:]
 
-
-            # Pick dictionary key-values, nearest to the MCMC- parameter values
-            irlum_dct = model.pick_STARBURST_template(irlum[g], irlum_dict)
-            nh_dct = model.pick_TORUS_template(nh[g], nh_dict)
-            ebvbbb_dct = model.pick_BBB_template(BBebv[g], BBebv_dict)
-            gal_do.nearest_par2dict(tau[g], age[g], GAebv[g])
-            tau_dct, age_dct, ebvg_dct=gal_do.t, gal_do.a,gal_do.e
 
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
-            all_gal_nus, gal_Fnus = GALAXYFdict[tau_dct, age_dct,ebvg_dct]   
+            all_gal_nus, gal_Fnus = GALAXYFdict[tuple(gal_obj.matched_parkeys)] 
             GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus, bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
 
-            all_sb_nus, sb_Fnus= STARBURSTFdict[irlum_dct] 
+            all_sb_nus, sb_Fnus= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
             SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
 
-            all_bbb_nus, bbb_Fnus = BBBFdict[ebvbbb_dct] 
+            all_bbb_nus, bbb_Fnus = BBBFdict[bbb_obj.matched_parkeys] 
             BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
             all_bbb_Fnus = BBinterp(self.all_nus_rest)
 
@@ -411,22 +408,21 @@ class FLUXES_ARRAYS:
             BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
             all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
 
-            all_tor_nus, tor_Fnus= TORUSFdict[nh_dct]
+            all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
             TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
 
 
             if self.output_type == 'plot':
-                par2 = tau[g], agelog[g], nh[g], irlum[g], SB[g] ,BB[g], GA[g] ,TO[g], BBebv[g], GAebv[g]
-                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dictkey_arrays, data.dict_modelfluxes, *par2)
+                par2= par[g]
+                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
                 
-
             #Using the costumized normalization 
-            SBFnu =   (all_sb_Fnus /1e20) *10**float(SB[g]) 
-            BBFnu = (all_bbb_Fnus /1e60) * 10**float(BB[g]) 
-            GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA[g]) 
-            TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO[g])
-            BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB[g])
+            SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
+            BBFnu = (all_bbb_Fnus /1e60) * 10**float(BB) 
+            GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA) 
+            TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO)
+            BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB)
 
             TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu
             
