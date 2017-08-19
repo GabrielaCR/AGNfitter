@@ -36,9 +36,8 @@ import functions.PARAMETERSPACE_AGNfitter as parspace
 from functions.DATA_AGNfitter import DATA, DATA_all
 from functions.PLOTandWRITE_AGNfitter import CHAIN, FLUXES_ARRAYS
 from functions.DICTIONARIES_AGNfitter import MODELSDICT
-import functions.CONSTRUCT_modelobjects as MODELFILES
 from astropy import units as u
-
+from types import *
 
 def header():
     print '              '
@@ -90,7 +89,7 @@ def MAKE_model_dictionary(cat, filters, models, clobbermodel=False):
         print 'If you interrupt it, please trash the empty file created.'
         print ''
 
-        mydict = MODELSDICT( modelsdict_name, cat['path'], filters)
+        mydict = MODELSDICT( modelsdict_name, cat['path'], filters, models)
         mydict.build()
         f = open(mydict.filename, 'wb')
         cPickle.dump(mydict, f, protocol=2)
@@ -109,7 +108,9 @@ def MAKE_model_dictionary(cat, filters, models, clobbermodel=False):
         print 'SAVED AS : ', mydict.filename
         print 'FILTERSET USED : ', mydict.filterset_name
         
-        if (filters.keys()!=mydict.filters_list.keys()) and (filters.values()!=mydict.filters_list.values()): ##  compare nr of data bands with n of model filters
+        test_settingschanges= [mydict.filters_list[i]==filters[i]  for i in filters.keys() if  type(filters[i]) is BooleanType]
+
+        if False in test_settingschanges : ##  compare nr of data bands with n of model filters
             print '________________________'
             print '*** WARNING ***'  
             print 'You have changed entries in your FILTER_settings without updating the filterset name.'
@@ -131,7 +132,9 @@ def MAKE_model_dictionary(cat, filters, models, clobbermodel=False):
                     print 'SAVED AS : ', mydict.filename
                     print 'FILTERSET USED : ', mydict.filterset_name
                     break
-            print "Please answer (yes/no)"
+                else:
+                    print "Please answer (yes/no)"
+                    break
 
     Modelsdict = mydict.MD ## MD is the model dictionary saved as a class of the method MODELSDICT
 
@@ -148,7 +151,7 @@ def MAKE_model_dictionary(cat, filters, models, clobbermodel=False):
     return Modelsdict
 
 
-def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=False):
+def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobbermodel=False):
     """
     Main function for fitting a single source in line and create it's modelsdict independently.
     """
@@ -182,7 +185,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
         print "removing source model dictionary "+dictz
       
     if not os.path.lexists(dictz):
-        zdict = MODELSDICT(dictz, cat['path'], filtersz)
+        zdict = MODELSDICT(dictz, cat['path'], filtersz, models)
         zdict.build()
         f = open(zdict.filename, 'wb')
         cPickle.dump(zdict, f, protocol=2)
@@ -194,7 +197,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, clobbermodel=
     Modelsdictz = zdict.MD
 
     data.DICTS(filtersz, Modelsdictz)
-
 
     P = parspace.Pdict (data)   # Dictionary with all parameter space especifications.
                                 # From PARAMETERSPACE_AGNfitter.py
@@ -314,7 +316,7 @@ if __name__ == "__main__":
 
     # run for one source only and construct dictionary only for this source
     if args.independent:
-        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, clobbermodel=clobbermodel)
+        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, models, clobbermodel=clobbermodel)
         
         
     else:
