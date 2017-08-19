@@ -23,9 +23,9 @@ import MODEL_AGNfitter as model
 import FILTERS_AGNfitter as filterpy
 
 from scipy.integrate  import trapz
+from scipy.interpolate import interp1d
 import time
 import cPickle
-import shelve
 from astropy import units as u 
 
 
@@ -48,11 +48,10 @@ class MODELSDICT:
 
     """     
 
-    def __init__(self, filename, path, filters):
+    def __init__(self, filename, path, filters, models):
         self.filename = filename
         self.path=path
-        self.ebvgal_array = np.array(np.arange(0.,100.,5.)/100)
-        self.ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        self.modelsettings=models
 
         ## To be called form filters
         self.z_array = filters['dict_zarray']
@@ -75,9 +74,8 @@ class MODELSDICT:
     
         for z in self.z_array:                
             i += 1
-            #filterdict = filter_dictionaries(self.filterset, self.path, self.filters_list)
             filterdict = [self.fo.central_nu_array, self.fo.lambdas_dict, self.fo.factors_dict]
-            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict, self.path)
+            dict_modelsfiltered = construct_dictionaryarray_filtered(z, filterdict, self.path, self.modelsettings)
             Modelsdict[str(z)] = dict_modelsfiltered
             time.sleep(0.01)
             dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
@@ -85,143 +83,179 @@ class MODELSDICT:
         self.MD = Modelsdict
 
 
+def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
 
+    """
+    Construct the dictionaries of fluxes at bands (to compare to data), 
+    and dictionaries of fluxes over the whole spectrum, for plotting.
+    All calculations are done at one given redshift.
+    """
 
-    def construct_dictionaryarray_filtered(self, z, filterdict,path):
+    GALAXYFdict_filtered = dict()
+    STARBURSTFdict_filtered = dict()        
+    BBBFdict_filtered = dict()
+    TORUSFdict_filtered = dict()
 
-        """
-        Construct the dictionaries of fluxes at bands (to compare to data), 
-        and dictionaries of fluxes over the whole spectrum, for plotting.
-        """
+  
+    GALAXYFdict_4plot, GALAXY_SFRdict, galaxy_parnames  = model.GALAXY(path, modelsettings)
+    for c in GALAXYFdict_4plot.keys():
+                gal_nu, gal_Fnu=GALAXYFdict_4plot[c]               
+                bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
+                GALAXYFdict_filtered[c] = bands, gal_Fnu_filtered
 
-        GALAXYFdict_filtered = dict()
-        GALAXY_SFRdict = dict()
-        STARBURSTFdict_filtered = dict()        
-        BBBFdict_filtered = dict()
-        TORUSFdict_filtered = dict()
+    STARBURSTFdict_4plot, starburst_parnames  = model.STARBURST(path, modelsettings)
+    for c in STARBURSTFdict_4plot.keys():
+                sb_nu, sb_Fnu=STARBURSTFdict_4plot[c]               
+                bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
+                STARBURSTFdict_filtered[c] = bands, sb_Fnu_filtered
 
-        GALAXYFdict_4plot = dict()
-        STARBURSTFdict_4plot = dict()        
-        BBBFdict_4plot = dict()
-        TORUSFdict_4plot = dict()
+    BBBFdict_4plot, bbb_parnames = model.BBB(path, modelsettings)
+    for c in BBBFdict_4plot.keys():
+                bbb_nu, bbb_Fnu=BBBFdict_4plot[c]               
+                bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
+                BBBFdict_filtered[c] = bands, bbb_Fnu_filtered
 
+    TORUSFdict_4plot, torus_parnames  = model.TORUS(path, modelsettings)
+    for c in TORUSFdict_4plot.keys():
+                tor_nu, tor_Fnu=TORUSFdict_4plot[c]               
+                bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
+                TORUSFdict_filtered[c] = bands, tor_Fnu_filtered
 
-        #Call object containing all galaxy models     
-        galaxy_object = cPickle.load(file(path + 'models/GALAXY/bc03_275templates.pickle', 'rb')) 
-        _, ageidx, tauidx, _, _,_ =  np.shape(galaxy_object.SED)
-        #Construct dictionaries 
-        for taui in range(tauidx):
-            for agei in range(ageidx):
-                t1= time.time()
-                gal_wl, gal_Fwl =  galaxy_object.wave, galaxy_object.SED[:,agei,taui,:,:,:].squeeze()
-                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
-                gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  
-                gal_SFR= galaxy_object.SFR[:,agei,taui,:,:].squeeze()
-                GALAXY_SFRdict[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei])] = gal_SFR
+    norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
+    all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
 
-                for EBV_gal in self.ebvgal_array:
-                    #Apply reddening            
-                    gal_nu, gal_Fnu_red = model.GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], EBV_gal)                    
-                    GALAXYFdict_4plot[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei]), str(EBV_gal)] = \
-                                                                                            np.log10(gal_nu), gal_Fnu_red
-                    #Projection of filter curves on models
-                    bands,  gal_Fnu_filtered =  model.filters1(np.log10(gal_nu), gal_Fnu_red, filterdict, z)            
-                    GALAXYFdict_filtered[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei]), str(EBV_gal)] = \
-                                                                                                        bands, gal_Fnu_filtered
-        #Call object containing all starburst models     
-        starburst_object = cPickle.load(file(path + 'models/STARBURST/dalehelou_charyelbaz_v1.pickle', 'rb')) 
-        irlumidx = len(starburst_object.SED)
-        #Construct dictionaries 
-        for irlumi in range(irlumidx):
-            sb_nu0, sb_Fnu0 = starburst_object.wave[irlumi], starburst_object.SED[irlumi].squeeze()
-            STARBURSTFdict_4plot[str(starburst_object.irlum[irlumi])] = sb_nu0, sb_Fnu0
-            bands, sb_Fnu_filtered = model.filters1(sb_nu0, sb_Fnu0, filterdict, z)
-            STARBURSTFdict_filtered[str(starburst_object.irlum[irlumi])] = bands, sb_Fnu_filtered
-            if np.amax(sb_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of STARBURST flux'
-
-
-
-        #No object to call since bbb is only one model     
-        bbb_object = cPickle.load(file(path + 'models/BBB/richards.pickle', 'rb')) 
-
-        bbb_nu, bbb_Fnu = bbb_object.wave, bbb_object.SED.squeeze()
-        #Construct dictionaries
-        for EBV_bbb in self.ebvbbb_array:
-            bbb_nu0, bbb_Fnu_red = model.BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb, z )
-            BBBFdict_4plot[str(EBV_bbb)] =bbb_nu0, bbb_Fnu_red
-            bands, bbb_Fnu_filtered = model.filters1(bbb_nu0, bbb_Fnu_red, filterdict,z)
-            BBBFdict_filtered[str(EBV_bbb)] = bands, bbb_Fnu_filtered
-            if np.amax(bbb_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of BBB flux'            
-
-
-
-        #Call object containing all torus models     
-        torus_object = cPickle.load(file(path + 'models/TORUS/silva_v1.pickle', 'rb')) 
-        nhidx=len(torus_object.SED)
-        #Construct dictionaries 
-        for nhi in range(nhidx):
-
-            tor_nu0, tor_Fnu0 = torus_object.wave[nhi], torus_object.SED[nhi].squeeze()
-            TORUSFdict_4plot[str(torus_object.nh[nhi])] = tor_nu0, tor_Fnu0
-
-            bands, tor_Fnu_filtered = model.filters1(tor_nu0, tor_Fnu0, filterdict, z)
-            TORUSFdict_filtered[str(torus_object.nh[nhi])] = bands, tor_Fnu_filtered
-            if np.amax(tor_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of TORUS flux'
-
-
-
-
-        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, \
-               STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,GALAXY_SFRdict
-               
-
-
-
+    return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, \
+           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,GALAXY_SFRdict, all_parnames
+           
 
 def dictkey_arrays(MODELSdict):
 
     """
-    Summarizes the model dictionary keys.
+    Summarizes the model dictionary keys and does the interpolation to nearest value in grid.
+    used to be transporte to data
+
     ##input:
 
     ##output:
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict= MODELSdict
-    tau_dict= np.array(list(GALAXYFdict.keys()))[:,0]
-    age_dict= np.array(list(GALAXYFdict.keys()))[:,1]
-    ebvg_dict = np.array(list(GALAXYFdict.keys()))[:,2]
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, all_parnames= MODELSdict
 
-    irlum_dict = np.array(list(STARBURSTFdict.keys()))
-    nh_dict = np.array(list(TORUSFdict.keys()))
-    ebvb_dict = np.array(list(BBBFdict.keys()))
+    galaxy_parkeys= np.array(list(GALAXYFdict.keys()))
+    starburst_parkeys = np.array(list(STARBURSTFdict.keys()))
+    torus_parkeys = np.array(list(TORUSFdict.keys()))
+    bbb_parkeys = np.array(list(BBBFdict.keys()))
+
+    class pick_obj:
+            def __init__(self, par_names,pars_modelkeys):
+
+                self.pars_modelkeys=pars_modelkeys.T
+                self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
+                self.par_names = par_names
+
+            def pick_nD(self, pars_mcmc): 
+                self.matched_parkeys = []
+                for i in range(len(pars_mcmc)):   
+                    matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                    matched_parkey = self.pars_modelkeys[i][matched_idx]
+                    self.matched_parkeys.append(matched_parkey)
+            def pick_1D(self, *pars_mcmc): 
+                matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
+                self.matched_parkeys = self.pars_modelkeys[matched_idx]
+
+    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = all_parnames
+    gal_obj =pick_obj(galaxy_parnames,galaxy_parkeys)
+    sb_obj =pick_obj(starburst_parnames,starburst_parkeys)
+    tor_obj=pick_obj(torus_parnames,torus_parkeys)
+    bbb_obj=pick_obj(bbb_parnames,bbb_parkeys)
+
+    return gal_obj,sb_obj,tor_obj, bbb_obj 
 
 
-    #For computational reasons (to be used in PARAMETERspace_AGNfitter.py)
-    class gal_class:
-        def __init__(self, tau_dict, age_dict, ebvg_dict):
-            self.tau_dict =tau_dict
-            self.age_dict= age_dict
-            self.ebvg_dict = ebvg_dict
-            self.tau_dict_float =tau_dict.astype(float)
-            self.age_dict_float= age_dict.astype(float)
-            self.ebvg_dict_float = ebvg_dict.astype(float)
 
-        def nearest_par2dict(self, tau, age, ebvg):    
-            taui =np.abs(self.tau_dict_float-tau).argmin()
-            agei= np.abs(self.age_dict_float-age).argmin()
-            ebvgi = np.abs(self.ebvg_dict_float-ebvg).argmin()
 
-            self.t = tau_dict[taui]
-            self.a= age_dict[agei]
-            self.e= ebvg_dict[ebvgi]
+def filtering_models( model_nus, model_fluxes, filterdict, z ):    
 
-    gal_obj = gal_class(tau_dict, age_dict, ebvg_dict)
+    """
+    Projects the model SEDs into the filter curves of each photometric band.
 
-    return gal_obj, irlum_dict, nh_dict, ebvb_dict, GALAXY_SFRdict
+    ##input:
+    - model_nus: template frequencies [log10(nu)]
+    - model_fluxes: template fluxes [F_nu]
+    - filterdict: dictionary with all band filter curves' information.
+                  To change this, add one band and filter curve, etc,
+                  look at DICTIONARIES_AGNfitter.py
+    - z: redshift
+
+    ##output:
+    - bands [log10(nu)]
+    - Filtered fluxes at these bands [F_nu]
+    """
+
+    bands, lambdas_dict, factors_dict = filterdict
+    filtered_model_Fnus = []
+
+
+    # Costumize model frequencies and fluxes [F_nu]
+    # to same units as filter curves (to wavelengths [angstrom] and F_lambda)
+    model_lambdas = nu2lambda_angstrom(model_nus) * (1+z)
+    model_lambdas =  model_lambdas[::-1]
+    model_fluxes_nu =  model_fluxes[::-1]
+    model_fluxes_lambda = fluxnu_2_fluxlambda(model_fluxes_nu, model_lambdas) 
+    mod2filter_interpol = interp1d(model_lambdas, model_fluxes_lambda, kind = 'nearest', bounds_error=False, fill_value=0.)            
+
+    # For filter curve at each band. 
+    # (Vectorised integration was not possible -> different filter-curve-arrays' sizes)
+    for iband in bands:
+
+        # Read filter curves info for each data point 
+        # (wavelengths [angstrom] and factors [non])
+        lambdas_filter = np.array(lambdas_dict[iband])
+        factors_filter = np.array(factors_dict[iband])
+        iband_angst = nu2lambda_angstrom(iband)
+
+        # Interpolate the model fluxes to 
+        #the exact wavelengths of filter curves
+        modelfluxes_at_filterlambdas = mod2filter_interpol(lambdas_filter)
+        # Compute the flux ratios, equivalent to the filtered fluxes: 
+        # F = int(model)/int(filter)
+        integral_model = trapz(modelfluxes_at_filterlambdas*factors_filter, x= lambdas_filter)
+        integral_filter = trapz(factors_filter, x= lambdas_filter)     
+        filtered_modelF_lambda = (integral_model/integral_filter)
+
+        # Convert all from lambda, F_lambda  to Fnu and nu    
+        filtered_modelFnu_atfilter_i = fluxlambda_2_fluxnu(filtered_modelF_lambda, iband_angst)
+        filtered_model_Fnus.append(filtered_modelFnu_atfilter_i)
+
+    return bands, np.array(filtered_model_Fnus)
+
+
+
+## ---------------------------------------------------
+c = 2.997e8
+Angstrom = 1.e10
+
+def fluxlambda_2_fluxnu (flux_lambda, wl_angst):
+    """
+    Calculate F_nu from F_lambda.
+    """
+    flux_nu = flux_lambda * (wl_angst**2. ) / c /Angstrom
+    return flux_nu
+def fluxnu_2_fluxlambda (flux_nu, wl_angst):
+    """
+    Calculate F_lambda from  F_nu.
+    """
+    flux_lambda = flux_nu / wl_angst**2 *c * Angstrom
+    return flux_lambda #in angstrom
+def nu2lambda_angstrom(nus):
+    """
+    Calculate wavelength [angstrom] from frequency [log Hz].
+    """
+    lambdas = c / (10**nus) * Angstrom
+    return lambdas
+## ------------------------------------------------
+
+
 
 
 
