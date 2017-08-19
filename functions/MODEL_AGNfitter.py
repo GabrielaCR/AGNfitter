@@ -11,12 +11,6 @@ The functions here translate the parameter space points into total fluxes depend
 
 Functions contained here are the following:
 
-pick_STARBURST_template
-pick_GALAXY_template
-pick_TORUS_template
-pick_EBV_grid
-
-
 STARBURST_nf
 BBB_nf
 GALAXY_nf
@@ -28,53 +22,195 @@ import numpy as np
 from math import exp,pi, sqrt
 import matplotlib.pyplot as plt
 import time
-from scipy.interpolate import interp1d
+import cPickle
+from astropy.table import Table
+from astropy.io import fits
 from scipy.integrate  import quad, trapz
 import astropy.constants as const
 import astropy.units as u
+import itertools
+                     
+"""
+ADDING NEW MODELS
+------------------
+- Add the model similar to the examples given below, 
+    if modelsettings['COMPONENT']=='MYMODEL':
+        ....
+        my_parameternames= ['par1', 'par2']
+        MYMODELdict['par1v','par2v'] = log10(nus[Hz]), Lnu 
+        ....
+        return MYMODELdict_4plot,  my_parameternames
+- Write the name you gave 'MYMODEL' to your settings file for the respectively. 
 
+- Other changes to be done manually (unfortuantely):
+  (Due to computational time reasons not possible yet to do this automatically)
 
+    (1) Go to fct ymodel in PARAMETERSPACE_AGNfitter.py and set (eg. for the galaxy model)
+        gal_obj.pick_1D (if your model has one parameter)
+        or 
+        gal_obj.pick_nD (if your model has more parameters).
 
+    (2) In the same function if your model has more than one parameter, change:
+        GALAXYFdict[gal_obj.matched_parkeys] (model of one parameter)
+        or
+        GALAXYFdict[tuple(gal_obj.matched_parkeys)] (model of more than one parameters
 
-"""==============================
-PICKING TEMPLATES
-==============================
+    (3) and (4) Go to PLOTandWRITE_AGNfitter.py, method fluxes of class FLUXES_ARRAYS, 
+    and do the same two changes as above.
 
-Functions which compensate for the discreteness of pur models. 
-It infers the existent model dictionary key 'par_key',
-from the continous valus par_mcmc, through NearestNeighbour interpolation.
 
 """
+                                                         
+
+def GALAXY(path, modelsettings):
+
+    if modelsettings['GALAXY']=='BC03':
 
 
-def pick_STARBURST_template(ir_lum, irlum_dict):
+        GALAXYFdict_4plot = dict()
+        GALAXY_SFRdict = dict()
+        ## Call object containing all galaxy models     
+        BC03dict = cPickle.load(file(path + 'models/GALAXY/BC03_275seds.pickle', 'rb'))    
 
-    idx = (np.abs(irlum_dict.astype(float)-ir_lum)).argmin()
-    return irlum_dict[idx]
+        ## specify the sizes of the array of parameter values: Here two parameters
+        tau_array = BC03dict['tau-values']
+        age_array = BC03dict['age-values']
+        ebvgal_array = np.array(np.arange(0.,100.,5.)/100)
 
-def pick_BBB_template(ebvb,ebvb_dict):
-    
-    ebvb_idx = (np.abs(ebvb_dict.astype(float)-ebvb)).argmin()
-    return ebvb_dict[ebvb_idx]
+        ## produce all combinations of parameter values (indices)
+        _, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
+        idxs = [np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
-def pick_GALAXY_template( tau, age, ebvg, tau_dict, age_dict, ebvg_dict):
-    tauidx = (np.abs(tau_dict.astype(float)-tau)).argmin()    
-    ageidx = (np.abs(age_dict.astype(float)-age)).argmin()
-    ebvidx = (np.abs(ebvg_dict.astype(float)-ebvg)).argmin()
+        for c in par_idxs_combinations:
+                agei=c[0]
+                taui=c[1]
+                ebvi=c[2]
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][:,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
+                gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  
+                gal_SFR= BC03dict['SFR'][:,agei,taui,:,:].squeeze()
+                GALAXY_SFRdict[str(tau_array.value[taui]),str(age_array.value[agei])] = gal_SFR         
+                gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
+                GALAXYFdict_4plot[str(tau_array.value[taui]),str(age_array.value[agei]), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), gal_Fnu_red        
 
-    return tau_dict[tauidx], age_dict[ageidx], ebvg_dict[ebvidx]
+        ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['tau', 'age','EBVgal']
 
-def pick_TORUS_template(nh, nh_dict):
+        return  GALAXYFdict_4plot, GALAXY_SFRdict, parameters_names
 
-    idx = (np.abs(nh_dict.astype(float)-nh)).argmin()
-    return nh_dict[idx]
 
-def pick_EBV_grid (EBV_array, EBV):
+def STARBURST(path, modelsettings):
 
-    idx = (np.abs(EBV_array-EBV)).argmin()
-    EBV_fromgrid  = EBV_array[idx]
+    if modelsettings['STARBURST']=='DH02_CE01':
 
-    return EBV_fromgrid
+        STARBURSTFdict_4plot = dict()
+
+        #Call object containing all starburst models     
+        DH02CE01dict = cPickle.load(file(path + 'models/STARBURST/DH02_CE01.pickle', 'rb')) 
+        irlumidx = len(DH02CE01dict['SED'])
+
+        #Construct dictionaries 
+        for irlumi in range(irlumidx):
+            sb_nu0, sb_Fnu0 = DH02CE01dict['wavelength'][irlumi], DH02CE01dict['SED'][irlumi].squeeze()
+            print sb_nu0
+            STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, sb_Fnu0
+
+        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['irlum']
+
+        return STARBURSTFdict_4plot, parameters_names
+
+    elif modelsettings['STARBURST']=='S17':
+
+        STARBURSTFdict_4plot = dict()
+
+        #Call object containing all starburst models     
+        dusttable = Table.read(path + 'models/STARBURST/s17_dust.fits')
+        pahstable = Table.read(path + 'models/STARBURST/s17_pah.fits')
+        
+        Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
+        Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
+        Tdust = np.array(dusttable['TDUST'])[0] #K
+        fracPAH = np.arange(1.5,5.0,0.5)/100
+        idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        DLnu= np.array(DnuLnu[0])/Dnu *1e-6 #* u.Lsun.to(u.W)
+        PLnu=np.array(PnuLnu[0])/Pnu *1e-6#* u.Lsun.to(u.W)
+
+
+        #Construct dictionaries 
+        for c in par_idxs_combinations:
+            t=c[0]
+            fp=c[1]
+
+            sb_nu0 = np.array(Dnu[t,:])[::-1]
+            sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
+            # print type(Tdust)#[t]
+            # print (Dnu[t,:])
+            # print np.shape(sb_Fnu0), sb_Fnu0
+
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), sb_Fnu0
+
+        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['Tdust', 'fracPAH']
+
+        return STARBURSTFdict_4plot, parameters_names
+
+
+def BBB(path, modelsettings):
+
+    if modelsettings['BBB']=='R06':
+
+        BBBFdict_4plot = dict()
+        R06dict = cPickle.load(file(path + 'models/BBB/R06.pickle', 'rb')) 
+        #R06dict = cPickle.load(file(path + 'models/BBB/richards.pickle', 'rb')) 
+        parameters_names =['EBVbbb']
+        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+
+        bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
+        #bbb_nu, bbb_Fnu = R06dict.wave, R06dict.SED.squeeze()
+        
+        #Construct dictionaries
+        for EBV_bbb in ebvbbb_array:
+            bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
+            BBBFdict_4plot[str(EBV_bbb)] =bbb_nu0, bbb_Fnu_red
+
+        ## Name the parameters that compose the keys of the dictionary: BBFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['EBVbbb']
+
+        return BBBFdict_4plot, parameters_names
+
+
+def TORUS(path, modelsettings):
+
+    if modelsettings['TORUS']=='S04':    
+
+        TORUSFdict_4plot  = dict()
+
+        #Call object containing all torus models     
+        S04dict = cPickle.load(file(path + 'models/TORUS/S04.pickle', 'rb')) 
+        parameters_names = ['Nh']
+        nhidx=len(S04dict['SED'])
+        #Construct dictionaries 
+        for nhi in range(nhidx):
+
+            tor_nu0, tor_Fnu0 = S04dict['wavelength'][nhi], S04dict['SED'][nhi].squeeze()
+            TORUSFdict_4plot[str(S04dict['Nh-values'][nhi])] = tor_nu0, tor_Fnu0
+
+        ## Name the parameters that compose the keys of the dictionary: TORUSFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.   
+        parameters_names = ['Nh']
+
+        return TORUSFdict_4plot, parameters_names
 
 
 
@@ -122,7 +258,7 @@ Reddening functions
 ==================================================="""
 
 
-def BBBred_Prevot(bbb_x, bbb_y, BBebv, z ):
+def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
 
     """
     
@@ -189,7 +325,6 @@ def GALAXYred_Calzetti(gal_nu, gal_Fnu,GAebv):
     return gal_nu, gal_Fnu_red
 
 
-
 Angstrom = 1e10
 
 def z2Dlum(z):
@@ -237,12 +372,13 @@ def stellar_info(chain, data):
     computes stellar masses and SFRs
     """
 
-    gal_do,  irlum_dict, nh_dict, BBebv_dict, SFRdict = data.dictkey_arrays #call dictionary info
-
+    gal_obj,_,_,_ = data.dictkey_arrays
+    _,_,_,_,_,_,_,_,SFRdict,_= data.dict_modelfluxes
     #relevanta parameters form the MCMC chain
     tau_mcmc = chain[:,0]     
     age_mcmc = chain[:,1] 
-    GA = chain[:,6] - 18. #1e18 is the common normalization factor used in parspace.ymodel in order to have comparable NORMfactors    
+    GA = chain[:, -4] - 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
+                            ## in order to have comparable NORMfactors    
 
     z = data.z
     distance = z2Dlum(z)
@@ -254,12 +390,12 @@ def stellar_info(chain, data):
     Mstar_list=[]
     SFR_list=[]
 
-
+    print len(tau_mcmc), len(GA)
     for i in range (len (tau_mcmc)):        
         N = 10**GA[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
 
-        gal_do.nearest_par2dict(tau_mcmc[i], 10**age_mcmc[i], 0.)
-        tau_dct, age_dct, ebvg_dct=gal_do.t, gal_do.a,gal_do.e
+        gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
+        tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
         SFR_mcmc =SFRdict[tau_dct, age_dct]
 
         # Calculate Mstar. BC03 templates are normalized to M* = 1 M_sun. 
@@ -270,7 +406,7 @@ def stellar_info(chain, data):
         SFR_list.append(SFR.value)    
         Mstar_list.append(Mstar)    
 
-    return np.array(Mstar_list)    , np.array(SFR_list)
+    return np.array(Mstar_list) , np.array(SFR_list)
 
 
 def stellar_info_array(chain_flat, data, Nthin_compute):
@@ -313,97 +449,5 @@ def sfr_IR(logL_IR):
     else:        
         SFR = 3.88e-44* (10**logL_IR)
         return SFR
-
-
-"""---------------------------------------------
-     PROJECTION MODELS ON BAND FILTER CURVES
------------------------------------------------"""
-
-
-def filters1( model_nus, model_fluxes, filterdict, z ):    
-
-    """
-    Projects the model SEDs into the filter curves of each photometric band.
-
-    ##input:
-    - model_nus: template frequencies [log10(nu)]
-    - model_fluxes: template fluxes [F_nu]
-    - filterdict: dictionary with all band filter curves' information.
-                  To change this, add one band and filter curve, etc,
-                  look at DICTIONARIES_AGNfitter.py
-    - z: redshift
-
-    ##output:
-    - bands [log10(nu)]
-    - Filtered fluxes at these bands [F_nu]
-    """
-
-    bands, lambdas_dict, factors_dict = filterdict
-    filtered_model_Fnus = []
-
-
-    # Costumize model frequencies and fluxes [F_nu]
-    # to same units as filter curves (to wavelengths [angstrom] and F_lambda)
-    model_lambdas = nu2lambda_angstrom(model_nus) * (1+z)
-    model_lambdas =  model_lambdas[::-1]
-    model_fluxes_nu =  model_fluxes[::-1]
-    model_fluxes_lambda = fluxnu_2_fluxlambda(model_fluxes_nu, model_lambdas) 
-    mod2filter_interpol = interp1d(model_lambdas, model_fluxes_lambda, kind = 'nearest', bounds_error=False, fill_value=0.)            
-
-    # For filter curve at each band. 
-    # (Vectorised integration was not possible -> different filter-curve-arrays' sizes)
-    for iband in bands:
-
-        # Read filter curves info for each data point 
-        # (wavelengths [angstrom] and factors [non])
-        lambdas_filter = np.array(lambdas_dict[iband])
-        factors_filter = np.array(factors_dict[iband])
-        iband_angst = nu2lambda_angstrom(iband)
-
-        # Interpolate the model fluxes to 
-        #the exact wavelengths of filter curves
-        modelfluxes_at_filterlambdas = mod2filter_interpol(lambdas_filter)
-        # Compute the flux ratios, equivalent to the filtered fluxes: 
-        # F = int(model)/int(filter)
-        integral_model = trapz(modelfluxes_at_filterlambdas*factors_filter, x= lambdas_filter)
-        integral_filter = trapz(factors_filter, x= lambdas_filter)     
-        filtered_modelF_lambda = (integral_model/integral_filter)
-
-        # Convert all from lambda, F_lambda  to Fnu and nu    
-        filtered_modelFnu_atfilter_i = fluxlambda_2_fluxnu(filtered_modelF_lambda, iband_angst)
-        filtered_model_Fnus.append(filtered_modelFnu_atfilter_i)
-
-    return bands, np.array(filtered_model_Fnus)
-
-
-c = 2.997e8
-
-def fluxlambda_2_fluxnu (flux_lambda, wl_angst):
-
-    """
-    Calculate F_nu from F_lambda.
-    """
-    flux_nu = flux_lambda * (wl_angst**2. ) / c /Angstrom
-    return flux_nu
-
-
-def fluxnu_2_fluxlambda (flux_nu, wl_angst):
-
-    """
-    Calculate F_lambda from  F_nu.
-    """
-    flux_lambda = flux_nu / wl_angst**2 *c * Angstrom
-
-    return flux_lambda #in angstrom
-
-def nu2lambda_angstrom(nus):
-
-    """
-    Calculate wavelength [angstrom] from frequency [log Hz].
-    """
-
-    lambdas = c / (10**nus) * Angstrom
-    return lambdas
-
 
 
