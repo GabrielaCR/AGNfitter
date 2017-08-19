@@ -173,6 +173,21 @@ def MODELS_settings():
     models['path'] = 'models/' 
     models['modelset'] = 'modelsv1'
 
+
+    models['GALAXY'] = 'BC03'   ### Current options:
+                                ### 'BC03' (Bruzual & Charlot 2003)
+
+    models['STARBURST'] = 'S17' ### Current options:
+                                ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
+                                ### 'S07' (Schreiber et al. 2017 (submitted))
+
+    models['BBB'] ='R06' ### Current options:
+                         ### 'R06' (Richards et al. 2006)
+
+    models['TORUS'] ='S04' ### Current options:
+                           ### 'S04' (Silva et al. 2004)
+
+
     return models
 
 def MCMC_settings():
