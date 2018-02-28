@@ -181,7 +181,7 @@ def MODELS_settings():
                                 ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
                                 ### 'S07' (Schreiber et al. 2017 (submitted))
 
-    models['BBB'] ='R06' ### Current options:
+    models['BBB'] ='D12_S' ### Current options:
                          ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
                          ### 'SN12' (Slone&Netzer 2012)
                          ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
