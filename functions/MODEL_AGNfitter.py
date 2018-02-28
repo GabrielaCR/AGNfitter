@@ -42,7 +42,7 @@ ADDING NEW MODELS
         return MYMODELdict_4plot,  my_parameternames
 - Write the name you gave 'MYMODEL' to your settings file for the respectively. 
 
-- Other changes to be done manually (unfortuantely):
+- Other changes to be done manually (unfortunately):
   (Due to computational time reasons not possible yet to do this automatically)
 
     (1) Go to fct ymodel in PARAMETERSPACE_AGNfitter.py and set (eg. for the galaxy model)
@@ -50,14 +50,10 @@ ADDING NEW MODELS
         or 
         gal_obj.pick_nD (if your model has more parameters).
 
-    (2) In the same function if your model has more than one parameter, change:
+    (2) In the same function if your model has more than one parameter, change (e.g. for GALAXYFdict):
         GALAXYFdict[gal_obj.matched_parkeys] (model of one parameter)
         or
         GALAXYFdict[tuple(gal_obj.matched_parkeys)] (model of more than one parameters
-
-    (3) and (4) Go to PLOTandWRITE_AGNfitter.py, method fluxes of class FLUXES_ARRAYS, 
-    and do the same two changes as above.
-
 
 """
                                                          
@@ -182,12 +178,76 @@ def BBB(path, modelsettings):
         for EBV_bbb in ebvbbb_array:
             bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
             BBBFdict_4plot[str(EBV_bbb)] =bbb_nu0, bbb_Fnu_red
+        return BBBFdict_4plot, parameters_names
 
-        ## Name the parameters that compose the keys of the dictionary: BBFdict_4plot[key]. 
-        ## Add the names in the same order as their values are arranged in the dictionary key above.    
-        parameters_names =['EBVbbb']
+
+    ## Name the parameters that compose the keys of the dictionary: BBFdict_4plot[key]. 
+    ## Add the names in the same order as their values are arranged in the dictionary key above.    
+
+    elif modelsettings['BBB']=='SN12':
+
+        BBBFdict_4plot = dict()
+        ## Call file containing all galaxy models     
+        SN12dict = cPickle.load(file(path + 'models/BBB/SN12.pickle', 'rb'))    
+        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']#SN12dict['parameters']
+
+        ## specify the sizes of the array of parameter values: Here two parameters
+        ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
+        Mbh_array = SN12dict['logBHmass-values']
+        EddR_array = SN12dict['logEddra-values']
+        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+
+        ## produce all combinations of parameter values (indices)
+        _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
+        idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                Mbhi=c[0]
+                EddRi=c[1]
+                ebvi=c[2]
+                bbb_nu, bbb_Fnu_nored =  SN12dict['frequency'],SN12dict['SED'][:,Mbhi,EddRi].squeeze()
+                bbb_nu, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
+                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = np.log10(bbb_nu), bbb_Fnu_red        
+        
+        return BBBFdict_4plot, parameters_names
+
+    elif modelsettings['BBB']=='D12_S':
+
+        BBBFdict_4plot = dict()
+        ## Call file containing all galaxy models     
+        D12dict = cPickle.load(file(path + 'models/BBB/D12_S.pickle', 'rb'))    
+        parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
+
+        ## specify the sizes of the array of parameter values: Here two parameters
+        ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
+        Mbh_array = D12dict['logBHmass-values']
+        EddR_array = D12dict['logEddra-values']
+        #ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+
+        ## produce all combinations of parameter values (indices)
+        _, EddRidx,Mbhidx =  np.shape(D12dict['SED'])
+        #idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array))]
+        idxs = [np.arange(EddRidx),np.arange(Mbhidx)]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                EddRi=c[0]
+                Mbhi=c[1]
+                bbb_nu, bbb_Fnu_nored =  D12dict['frequency'],D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                
+                ### Apply reddening
+                #ebvi=c[2]                
+                #bbb_nu, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
+                #BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = np.log10(bbb_nu), bbb_Fnu_red        
+                
+                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
 
         return BBBFdict_4plot, parameters_names
+
+    else:
+        print ' '
+        print 'ERROR: The model with the name "'+modelsettings['BBB']+'" does not exist.'
 
 
 def TORUS(path, modelsettings):
@@ -270,11 +330,11 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
     #Application of reddening - reading E(B-V) from MCMC sampler
     RV= 2.72
 
-    #converting freq to wavelenght, to be able to use prevots function instead on simple linera interpolation 
+    #converting freq to wavelenght, to be able to use prevots function instead on simple linear interpolation 
     redd_x =  2.998 * 1e10 / (10**(bbb_x)* 1e-8)
     redd_x= redd_x[::-1]
 
-    #    Define prevots function for the reddenin law redd_k    
+    #    Define prevots function for the reddening law redd_k    
     def function_prevot(x, RV):
            y=1.39*pow((pow(10.,-4.)*x),-1.2)-0.38 ;
            return y 
@@ -284,6 +344,8 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
     bbb_k= bbb_k[::-1]
 
     bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
+
+    bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
 
     return bbb_x, bbb_Lnu_red
 
@@ -357,7 +419,7 @@ def z2Dlum(z):
     
     integral = quad( integrand , z_now, z_obs)    
     dlum_cm = (1+z)*c_cm/ H_sec * integral[0] 
-    dlum_Mpc = dlum_cm/3.08567758e24
+    dlum_Mpc = dlum_cm/3.08567758e24 
 
     return dlum_cm
    
@@ -390,7 +452,6 @@ def stellar_info(chain, data):
     Mstar_list=[]
     SFR_list=[]
 
-    print len(tau_mcmc), len(GA)
     for i in range (len (tau_mcmc)):        
         N = 10**GA[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
 
