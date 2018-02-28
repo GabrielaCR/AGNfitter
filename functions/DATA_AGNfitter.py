@@ -57,7 +57,7 @@ class DATA_all:
             column = np.loadtxt(self.catalog, skiprows=1, unpack=True)
 
             #properties
-            self.name = column[self.cat['name']].astype(int)
+            self.name = column[self.cat['name']]#.astype(int)
             self.z = column[self.cat['redshift']].astype(float)
             self.dlum = np.array([model.z2Dlum(z) for z in self.z])
 
@@ -236,7 +236,6 @@ class DATA():
     object from class DATA_all and administrates it for each sourceline.
 
     input: object of class DATA_all, sourceline
-    bugs: Not ready to read FITS yet.
 
     """
 
@@ -272,4 +271,3 @@ class DATA():
 
         self.dict_modelfluxes = Modelsdict[z_key]
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
-        
