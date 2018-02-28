@@ -37,8 +37,8 @@ def main(data, P, mc):
 
     print '......................................................'
     print 'model parameters', P['names']
-    print 'minimum values', P['min']
-    print 'maximum values', P['max']
+    print 'minimum values', ['{0:.2f}'.format(k) for k in P['min']]
+    print 'maximum values', ['{0:.2f}'.format(k) for k in P['max']]
     print '......................................................'
     print mc['Nwalkers'], 'walkers'
 
