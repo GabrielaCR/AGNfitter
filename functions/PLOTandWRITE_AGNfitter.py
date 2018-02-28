@@ -37,7 +37,7 @@ import cPickle
 
 
 
-def main(data, P, out):
+def main(data, P, out, models):
 
 
     """
@@ -61,7 +61,7 @@ def main(data, P, out):
     print '- Mean acceptance fraction', chain_mcmc.mean_accept
     print '- Mean autocorrelation time', chain_mcmc.mean_autocorr
 
-    output = OUTPUT(chain_mcmc, data, P)
+    output = OUTPUT(chain_mcmc, data, P, models)
 
     if out['plot_tracesburn-in']:
         fig, nplot=chain_burnin.plot_trace(P)
@@ -113,17 +113,17 @@ class OUTPUT:
     - object of the CHAIN class, object of DATA class
     """    
 
-    def __init__(self, chain_obj, data_obj, P):
+    def __init__(self, chain_obj, data_obj, P, models):
 
         self.chain = chain_obj
         self.chain.props()
 
         self.out = chain_obj.out
         self.data = data_obj
+        self.models = models
         self.z=self.data.z
-        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums')
-        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot')
-
+        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums', self.models)
+        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot', self.models)
         if self.out['calc_intlum']:
             fluxobj_withintlums.fluxes( self.data)
             self.nuLnus = fluxobj_withintlums.nuLnus4plotting
@@ -196,7 +196,7 @@ class OUTPUT:
         SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
 
         #plotting settings
-        fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest)
+        fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
         SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
 
@@ -218,7 +218,7 @@ class OUTPUT:
             (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
 
 
-        ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
+        ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.'
 
         return fig
@@ -342,10 +342,11 @@ class FLUXES_ARRAYS:
     """
 
 
-    def __init__(self, chain_obj, P, out, output_type):
+    def __init__(self, chain_obj, P, out, output_type, models):
         self.chain_obj = chain_obj
         self.output_type = output_type
         self.out = out
+        self.models=models
         self.P = P
     def fluxes(self, data):    
 
@@ -378,17 +379,34 @@ class FLUXES_ARRAYS:
         elif self.output_type == 'best_fit':
             par= self.best_fit_pars
 
-        self.all_nus_rest = np.arange(11.5, 16, 0.001) 
+        if self.models['BBB'] =='D12_S' or self.models['BBB'] =='D12_K':
+            self.all_nus_rest = np.arange(11.5, 19, 0.001) 
+        else:
+            self.all_nus_rest = np.arange(11.5, 16.2, 0.001) 
         for g in range(self.out['realizations2plot']):
 
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
             ## Use pick_nD if model has more than one parameter,
             ## and pick_1D if it has only one.
             gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]])  
-            sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
             tor_obj.pick_1D(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
-            bbb_obj.pick_1D(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
-            GA, SB, TO, BB = par[g][-4:]
+
+            if len(sb_obj.par_names)==1:
+                sb_obj.pick_1D(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
+                all_sb_nus, sb_Fnus= STARBURSTFdict[sb_obj.matched_parkeys] 
+            else:
+                sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
+                all_sb_nus, sb_Fnus= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
+
+            if len(bbb_obj.par_names)==1:
+                GA, SB, TO, BB = par[g][-4:]
+                bbb_obj.pick_1D(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+                all_bbb_nus, bbb_Fnus = BBBFdict[bbb_obj.matched_parkeys] 
+            else:
+                GA, SB, TO = par[g][-3:]
+                BB = 0.
+                bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+                all_bbb_nus, bbb_Fnus = BBBFdict[tuple(bbb_obj.matched_parkeys)] 
 
 
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
@@ -396,30 +414,32 @@ class FLUXES_ARRAYS:
             GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus, bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
 
-            all_sb_nus, sb_Fnus= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
             SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
 
-            all_bbb_nus, bbb_Fnus = BBBFdict[bbb_obj.matched_parkeys] 
             BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
             all_bbb_Fnus = BBinterp(self.all_nus_rest)
 
-            all_bbb_nus, bbb_Fnus_deredd = BBBFdict['0.0']
-            BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
-            all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+            ### Plot dereddened
+            if len(bbb_obj.par_names)==1:
+                all_bbb_nus, bbb_Fnus_deredd = BBBFdict[tuple([bbb_obj.matched_parkeys[0],bbb_obj.matched_parkeys[1],str(0.)])]
+                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
+                all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+            else:
+                all_bbb_Fnus_deredd = all_bbb_Fnus
 
             all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
             TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
-
+            all_tor_Fnus[self.all_nus_rest>16]= 0
 
             if self.output_type == 'plot':
                 par2= par[g]
-                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
+                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
                 
             #Using the costumized normalization 
             SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
-            BBFnu = (all_bbb_Fnus /1e60) * 10**float(BB) 
+            BBFnu = (all_bbb_Fnus / (data.dlum)**2) * 10**float(BB) #/1e60
             GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA) 
             TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO)
             BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB)
@@ -530,14 +550,14 @@ Some stand-alone functions on the SED plot format
 
 
 
-def SED_plotting_settings(x, ydata):
+def SED_plotting_settings(x, ydata, modeldata):
 
     """
     This function produces the setting for the figures for SED plotting.
     **Input:
     - all nus, and data (to make the plot limits depending on the data)
     """
-    fig = plt.figure()
+    fig = plt.figure(figsize=(9,5))
     ax1 = fig.add_subplot(111)
     ax2 = ax1.twiny()
 
@@ -562,11 +582,12 @@ def SED_plotting_settings(x, ydata):
 
 
     mediandata = np.median(ydata)
-    ax1.set_ylim(mediandata /50.,mediandata * 50.)
+    ax1.set_ylim(mediandata /90.,mediandata * 50.)
+    ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.set_ylim( mediandata /50., mediandata * 50.)
+    ax2.set_ylim( mediandata /90., mediandata * 50.)
 
 
     ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())

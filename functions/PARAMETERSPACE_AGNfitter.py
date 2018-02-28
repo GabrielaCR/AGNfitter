@@ -46,12 +46,18 @@ def Pdict (data):
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
     
     ## Add normalization parameters:
-    normpars=['GA','SB','TO','BB'] 
+    if len(bb.par_names)==1:
+        [par_mins.append(i) for i in [0.,0.,0.,0.]]
+        [par_maxs.append(i)for i in [15.,15.,15.,15.]]
+        normpars=['GA','SB','TO','BB'] 
+
+    else:
+        [par_mins.append(i) for i in [0.,0.,0.]]
+        [par_maxs.append(i)for i in [15.,15.,15.]]           
+        normpars=['GA','SB','TO'] 
+
     all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
     npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(normpars)]  
-    [par_mins.append(i) for i in [0.,0.,0.,0.]]
-    [par_maxs.append(i)for i in [15.,15.,15.,15.]]
-   
 
     P['names'] = all_pars
     Npar = len(P['names'])
@@ -59,8 +65,6 @@ def Pdict (data):
     P['min'] = par_mins
     P['max'] = par_maxs    
     P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
-
-
 
     return P  
 
@@ -116,7 +120,6 @@ def ln_likelihood(x, y, ysigma, z, ymodel):
     x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.)]
 
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
-
     return -0.5 * np.dot(resid, resid)
 
 
@@ -136,7 +139,7 @@ def ln_probab(pars, data, P):
     ## dependencies:
     - MCMC_AGNfitter.py"""
 
-    y_model, bands, gal_Fnu = ymodel(data.nus,data.z,data.dictkey_arrays,data.dict_modelfluxes, P, *pars)
+    y_model, bands, gal_Fnu = ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays,data.dict_modelfluxes, P, *pars)
 
     lnp = ln_prior(data.z, data.dlum, bands,gal_Fnu, P, pars)
 
@@ -151,7 +154,7 @@ def ln_probab(pars, data, P):
 CONSTRUCT TOTAL MODEL 
 ------------------------------------"""
 
-def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, P, *par):
+def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
 
     """Constructs the total model from parameter values.
 
@@ -175,20 +178,29 @@ def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, P, *par):
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
  
     par =par[0:len(par)]
+
     ## Use pick_nD if model has more than one parameter,
     ## and pick_1D if it has only one.
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
     tor_obj.pick_1D(par[P['idxs'][2]:P['idxs'][3]])            
-    bbb_obj.pick_1D(par[P['idxs'][3]:P['idxs'][4]])
-    GA, SB, TO, BB = par[-4:]
+
+    ### Use when BBB model has only 1 par (Richards 06)
+    # GA, SB, TO, BB = par[-4:]
+    # bbb_obj.pick_1D(par[P['idxs'][3]:P['idxs'][4]])
+
+    ### Use when the BBB model has >1 parameters
+    GA, SB, TO = par[-3:]
+    BB = 0.
+    bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
     t2 = time.time()
 
     try: 
         bands, gal_Fnu = GALAXYFdict[tuple(gal_obj.matched_parkeys)]   
         _, sb_Fnu= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
-        _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]   
+        _, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys)]   ### use when the BBB model has >1 parameters
+        #_, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]   ### use when BBB model has only 1 par (Richards 06)
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
         print 'Error: Dictionary does not contain some values'
@@ -196,7 +208,7 @@ def ymodel(data_nus, z, dictkey_arrays, dict_modelfluxes, P, *par):
 
     # Renormalize to have similar amplitudes. Keep these fixed!
     sb_Fnu_norm =sb_Fnu/1e20    
-    bbb_Fnu_norm = bbb_Fnu/ 1e60
+    bbb_Fnu_norm = bbb_Fnu/ (dlum)**2
     gal_Fnu_norm = gal_Fnu/1e18
     tor_Fnu_norm = tor_Fnu/ 1e-40
 

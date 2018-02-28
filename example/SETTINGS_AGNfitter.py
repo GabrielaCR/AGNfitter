@@ -182,7 +182,10 @@ def MODELS_settings():
                                 ### 'S07' (Schreiber et al. 2017 (submitted))
 
     models['BBB'] ='R06' ### Current options:
-                         ### 'R06' (Richards et al. 2006)
+                         ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
+                         ### 'SN12' (Slone&Netzer 2012)
+                         ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
+                         ### 'D12_K' (Done et al. 2012) for Kerr BH, with x-ray predictions
 
     models['TORUS'] ='S04' ### Current options:
                            ### 'S04' (Silva et al. 2004)

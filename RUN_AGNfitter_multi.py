@@ -34,7 +34,6 @@ import argparse
 from functions import  MCMC_AGNfitter, PLOTandWRITE_AGNfitter
 import functions.PARAMETERSPACE_AGNfitter as parspace
 from functions.DATA_AGNfitter import DATA, DATA_all
-from functions.PLOTandWRITE_AGNfitter import CHAIN, FLUXES_ARRAYS
 from functions.DICTIONARIES_AGNfitter import MODELSDICT
 from astropy import units as u
 from types import *
@@ -158,7 +157,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobb
     
     mc = MCMC_settings()
     out = OUTPUT_settings()
-
     data = DATA(data_obj,line)
 
     print ''
@@ -204,21 +202,20 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobb
     t1= time.time()
 
     MCMC_AGNfitter.main(data, P, mc)        
-    PLOTandWRITE_AGNfitter.main(data,  P,  out)
+    PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
 
 
     print '_____________________________________________________'
     print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
     return
 
-def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
+def RUN_AGNfitter_onesource( line, data_obj, models):
     """
     Main function for fitting a single source in line 'line'.
     """
     
     mc = MCMC_settings()
     out = OUTPUT_settings()
-
     data = DATA(data_obj,line)
     data.DICTS(filters, Modelsdict)
 
@@ -234,7 +231,7 @@ def RUN_AGNfitter_onesource( line, data_obj, modelsdict):
     t1= time.time()
 
     MCMC_AGNfitter.main(data, P, mc)        
-    PLOTandWRITE_AGNfitter.main(data,  P,  out)
+    PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
 
 
     print '_____________________________________________________'
@@ -325,9 +322,9 @@ if __name__ == "__main__":
 
         # a single source is specified
         if args.sourcenumber >= 0:
-            RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, Modelsdict)
+            RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models)
         else:
-            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, Modelsdict)
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models)
         
         
     print '======= : ======='
