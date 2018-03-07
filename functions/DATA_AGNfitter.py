@@ -158,14 +158,14 @@ class DATA_all:
             # check that the flux and error columns exist in the fits table
             # stop running if they don't
             if np.any(np.array([f not in colnames for f in flux_cols])):
-                print 'wavelength columns exist without corresponding flux columns'
-                print wl_cols
-                print flux_cols
+                print 'wavelength columns exist without corresponding flux columns in fits file:'
+                for f in flux_cols:
+                    if f not  in colnames: print f
                 sys.exit(1)
             if np.any(np.array([f not in colnames for f in flux_err_cols])):
-                print 'wavelength columns exist without corresponding flux err columns'
-                print wl_cols
-                print flux_cols
+                print 'wavelength columns exist without corresponding flux err columns in fits file:'
+                for f in flux_err_cols:
+                    if f not  in colnames: print f
                 sys.exit(1)
 
             freq_wl_cat_ALL = \
@@ -290,4 +290,6 @@ class DATA():
         self.filterdict = dicts.filter_dictionaries(filters['Bandset'], self.path, filters)   
         self.dict_modelfluxes = Modelsdict[z_key]
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
+        
+        
         
