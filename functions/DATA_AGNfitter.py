@@ -291,5 +291,9 @@ class DATA():
         self.dict_modelfluxes = Modelsdict[z_key]
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
         
+        print 'Filter set contains {:d} bands'.format(len(self.filterdict[0]))
+        m = Modelsdict[z_key]
+        bands = m[0][m[0].keys()[0]][0]
+        print 'Model sets contains {:d} bands'.format(len(bands))
         
         
