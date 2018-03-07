@@ -149,10 +149,24 @@ class DATA_all:
 
             #read all wavelengths, fluxes, fluerrors, flags
             colnames = fitstable.dtype.names
+            # handle the case when the columns are strangley ordered in the fits file (i.e. not band1_wl, band1_f, band1_e, band2_wl, band1_f, band1_f, band2_e, etc)
+            # if only their suffixes are different, sorting them should put them in the same order
             wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
-            flux_cols = [ c for c in colnames if self.cat['flux_suffix'] in c]
-            flux_err_cols = [ c for c in colnames if self.cat['fluxerr_suffix'] in c]
-
+            flux_cols = [ w.replace(self.cat['freq/wl_suffix'], self.cat['flux_suffix']) for w in wl_cols ]
+            flux_err_cols = [ w.replace(self.cat['freq/wl_suffix'], self.cat['fluxerr_suffix']) for w in wl_cols ]
+            
+            # check that the flux and error columns exist in the fits table
+            # stop running if they don't
+            if np.any(np.array([f not in colnames for f in flux_cols])):
+                print 'wavelength columns exist without corresponding flux columns'
+                print wl_cols
+                print flux_cols
+                sys.exit(1)
+            if np.any(np.array([f not in colnames for f in flux_err_cols])):
+                print 'wavelength columns exist without corresponding flux err columns'
+                print wl_cols
+                print flux_cols
+                sys.exit(1)
 
             freq_wl_cat_ALL = \
                 np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
