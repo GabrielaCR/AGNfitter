@@ -181,33 +181,46 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobb
     if clobbermodel and os.path.lexists(dictz):
         os.system('rm -rf '+dictz)
         print "removing source model dictionary "+dictz
-      
-    if not os.path.lexists(dictz):
-        zdict = MODELSDICT(dictz, cat['path'], filtersz, models)
-        zdict.build()
-        f = open(zdict.filename, 'wb')
-        cPickle.dump(zdict, f, protocol=2)
-        f.close()
+    try:  
+        if not os.path.lexists(dictz):
+            zdict = MODELSDICT(dictz, cat['path'], filtersz, models)
+            zdict.build()
+            f = open(zdict.filename, 'wb')
+            cPickle.dump(zdict, f, protocol=2)
+            f.close()
+            print '_____________________________________________________'
+            print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
+        else:
+            zdict = cPickle.load(file(dictz, 'rb'))
+        Modelsdictz = zdict.MD
+
+
+        data.DICTS(filtersz, Modelsdictz)
+
+
+
+        P = parspace.Pdict (data)   # Dictionary with all parameter space specifications.
+                                    # From PARAMETERSPACE_AGNfitter.py
+
+        t1= time.time()
+        MCMC_AGNfitter.main(data, P, mc)    
+        PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
+
+        # try:
+        #     PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
+        # except:
+        #     MCMC_AGNfitter.main(data, P, mc)    
+        #     try:    
+        #         PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
+        #     except:
+        #         print line, 'is problematic to plot and write'
+
         print '_____________________________________________________'
-        print 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.)
-    else:
-        zdict = cPickle.load(file(dictz, 'rb'))
-    Modelsdictz = zdict.MD
+        print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
 
-    data.DICTS(filtersz, Modelsdictz)
-
-    P = parspace.Pdict (data)   # Dictionary with all parameter space especifications.
-                                # From PARAMETERSPACE_AGNfitter.py
-
-    t1= time.time()
-
-    MCMC_AGNfitter.main(data, P, mc)        
-    PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
-
-
-    print '_____________________________________________________'
-    print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
-    return
+    except EOFError: 
+        
+        print 'Line ',line,' cannot be fitted.'
 
 def RUN_AGNfitter_onesource( line, data_obj, models):
     """
@@ -217,7 +230,11 @@ def RUN_AGNfitter_onesource( line, data_obj, models):
     mc = MCMC_settings()
     out = OUTPUT_settings()
     data = DATA(data_obj,line)
-    data.DICTS(filters, Modelsdict)
+    try:
+        data.DICTS(filters, Modelsdict)
+                #PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
+    except EOFError:
+        print 'Line ',line,' cannot be fitted.'
 
     P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
                                 # From PARAMETERSPACE_AGNfitter.py
@@ -229,10 +246,17 @@ def RUN_AGNfitter_onesource( line, data_obj, models):
     print '- Sourcename: ', data.name
 
     t1= time.time()
-
     MCMC_AGNfitter.main(data, P, mc)        
     PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
 
+    # try:
+    #     MCMC_AGNfitter.main(data, P, mc)        
+    #     PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
+    #     print 'Done already'        
+    # except:
+    #     print 'Not done yet'
+    #     MCMC_AGNfitter.main(data, P, mc)        
+    #     PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
 
     print '_____________________________________________________'
     print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)
@@ -244,27 +268,37 @@ def multi_run_wrapper(args):
     wrapper to allow calling RUN_AGNfitter_onesource in pool.map
     """
     return RUN_AGNfitter_onesource(*args)
+def multi_run_wrapper_indep(args):
+    """
+    wrapper to allow calling RUN_AGNfitter_onesource in pool.map
+    """
+    return RUN_AGNfitter_onesource_independent(*args)
 
-def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict):
+def RUN_AGNfitter_multiprocessing(processors, data_obj, modelsdict, indep_bool=False, filters='None'):
     """
     Main function for fitting all sources in a large catalog.
     Splits the job of running the large number of sources
     into a chosen number of processors.
     """
     
-    
-    
-    nsources = data_obj.cat['nsources']
-    
-    print "processing all {0:d} sources with {1:d} cpus".format(nsources, processors)
-    
-    pool = mp.Pool(processes = processors)
-    catalog_fitting = pool.map(multi_run_wrapper, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(modelsdict)))
-    pool.close()
-    pool.join()
-    ##WRITE ALL RESULST IN ONE TABLE
-    return
-
+    if indep_bool==False:
+        nsources = data_obj.cat['nsources']
+        
+        print "processing all {0:d} sources with {1:d} cpus".format(nsources, processors)
+        
+        pool = mp.Pool(processes = processors)
+        catalog_fitting = pool.map(multi_run_wrapper, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(modelsdict)))
+        pool.close()
+        pool.join()
+    else:
+        nsources = data_obj.cat['nsources']
+        
+        print "processing all {0:d} sources with {1:d} cpus".format(nsources, processors)
+        
+        pool = mp.Pool(processes = processors)
+        catalog_fitting = pool.map(multi_run_wrapper_indep, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(filters),itertools.repeat(modelsdict)))
+        pool.close()
+        pool.join()
 
 if __name__ == "__main__":
     header()
@@ -297,7 +331,7 @@ if __name__ == "__main__":
         sys.exit(1)
         
 
-    data_ALL = DATA_all(cat)
+    data_ALL = DATA_all(cat, filters)
     data_ALL.PROPS()
 
     ## make sure the output paths exist
@@ -313,15 +347,23 @@ if __name__ == "__main__":
 
     # run for one source only and construct dictionary only for this source
     if args.independent:
-        RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, models, clobbermodel=clobbermodel)
-        
+        if args.ncpu>1.:
+            
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models, indep_bool=True, filters=filters)
+
+        elif args.sourcenumber >= 0:
+            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters, models, clobbermodel=clobbermodel)
+        else:
+            for i in range(0, 110, 1):
+                RUN_AGNfitter_onesource_independent(i, data_ALL, filters, models, clobbermodel=clobbermodel)
+            
         
     else:
         # make/read the model dictionary
         Modelsdict = MAKE_model_dictionary(cat, filters, models, clobbermodel=clobbermodel)
 
         # a single source is specified
-        if args.sourcenumber >= 0:
+        if args.sourcenumber >= 0 and args.independent==False:
             RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models)
         else:
             RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models)
