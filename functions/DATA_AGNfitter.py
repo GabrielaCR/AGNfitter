@@ -23,7 +23,7 @@ from astropy.io import fits
 import cPickle
 import functions.MODEL_AGNfitter as model
 import functions.DICTIONARIES_AGNfitter as dicts
-
+import functions.FILTERS_AGNfitter as filterpy
 
 
 class DATA_all:
@@ -40,8 +40,9 @@ class DATA_all:
 
     """
 
-    def __init__(self, cat):
+    def __init__(self, cat, filters):
         self.cat = cat
+        self.filters = filters
         #self.sourceline = sourceline
         self.catalog = cat['filename']
         if not os.path.lexists(cat['filename']):
@@ -53,17 +54,57 @@ class DATA_all:
     def PROPS(self):
 
         if self.cat['filetype'] == 'ASCII': 
-            #read all columns
+
+            ### read catalog columns
             column = np.loadtxt(self.catalog, skiprows=1, unpack=True)
 
-            #properties
+            ### properties
             self.name = column[self.cat['name']]#.astype(int)
             self.z = column[self.cat['redshift']].astype(float)
             self.dlum = np.array([model.z2Dlum(z) for z in self.z])
 
-            #read all wavelengths, fluxes, fluerrors, flags
-            freq_wl_cat_ALL = \
-                np.array([column[c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
+            if self.cat['use_central_wavelength']:
+                ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
+
+                ### read all wavelengths, fluxes, fluerrors, flags                
+                names = np.loadtxt(self.cat['path'] + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter = '|', usecols=[1], skiprows = 1, dtype=str)
+                centralwls = np.loadtxt(self.cat['path'] + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter = '|', usecols=[3], skiprows = 1)
+
+                dictionary = self.filters.copy()
+                
+                del dictionary['dict_zarray'];
+                #del dictionary['order'];
+                del dictionary['add_filters_dict'];
+                del dictionary['add_filters'];
+                del dictionary['path'];
+
+                list_centralwls = []
+                for i in range(len(dictionary.keys())):
+
+                    for j in range(len(names)):
+                        try:
+                            ### The filter dictionary need to have to entries [True/False, column_number]
+                            if dictionary.keys()[i] == names[j] and dictionary[dictionary.keys()[i]][0]:
+                                list_centralwls.append([ dictionary[dictionary.keys()[i]][1], centralwls[j]])
+                        except:
+                            print dictionary.keys()[i], 'not in list'
+                        #elif names[j] not in dictionary.keys()[i]:
+                            #print 'ERROR: ',str(names[j]) ,' needs to be added.'
+
+                def getkeynumber(item):
+                    return item[0]
+
+                sortedwl = sorted(list_centralwls, key=getkeynumber)
+                sortedwl = np.asarray(sortedwl)
+                centr_wl = sortedwl[:,1]
+                freq_wl_cat_ALL = centr_wl # These are in 10log frequency!
+
+            else:
+                ### If central wavelengths are given in catalog 
+                freq_wl_cat_ALL = \
+                    np.array([column[c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
+ 
+
             flux_cat_ALL =\
                 np.array([ca for ca in  column[self.cat['flux_list']] ])*self.cat['flux_unit']
             fluxerr_cat_ALL = \
@@ -82,19 +123,28 @@ class DATA_all:
 
             ##Convert to right units but give back just values
             for j in range(nrSOURCES):
-            
-                freq_wl_cat= freq_wl_cat_ALL[:,j]
+                
+                if self.cat['use_central_wavelength']:
+                    freq_wl_cat = freq_wl_cat_ALL                    
+                
+                else:
+                    freq_wl_cat = freq_wl_cat_ALL[:,j]
+                
                 flux_cat= flux_cat_ALL[:,j]
                 fluxerr_cat= fluxerr_cat_ALL[:,j]
 
-                if self.cat['freq/wl_format']== 'frequency' :
-                    nus0 = np.log10(freq_wl_cat.to(u.Hz).value)
-                if self.cat['freq/wl_format']== 'wavelength' :
-                    nus0 = np.log10(freq_wl_cat.to(u.Hz, equivalencies=u.spectral()).value)
+                if self.cat['use_central_wavelength']:
+                    nus0 = freq_wl_cat
+                    
+                else:
+                    if self.cat['freq/wl_format']== 'frequency' :
+                        nus0 = np.log10(freq_wl_cat.to(u.Hz).value)
+                    if self.cat['freq/wl_format']== 'wavelength' :
+                        nus0 = np.log10(freq_wl_cat.to(u.Hz, equivalencies=u.spectral()).value)
 
                 fluxes0 = np.array(flux_cat.to(u.erg/ u.s/ (u.cm)**2 / u.Hz).value)
                 fluxerrs0 = np.array(fluxerr_cat.to(u.erg/ u.s/(u.cm)**2/u.Hz).value)
-
+                
                 ## If columns with flags exist
                 if self.cat['ndflag_bool'] == True: 
                     ndflag_cat0 = ndflag_cat_ALL[:,j]     
@@ -145,15 +195,52 @@ class DATA_all:
             self.z = fitstable[self.cat['redshift']].astype(float)
             self.dlum = np.array([model.z2Dlum(z) for z in self.z])
 
+
+            if self.cat['use_central_wavelength']:
+                ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
+
+                ### read all wavelengths, fluxes, fluerrors, flags                
+                names = np.loadtxt(self.cat['path'] + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter = '|', usecols=[1], skiprows = 1, dtype=str)
+                centralwls = np.loadtxt(self.cat['path'] + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter = '|', usecols=[3], skiprows = 1)
+
+                dictionary = self.filters.copy()
+                
+                del dictionary['dict_zarray'];
+                #del dictionary['order'];
+                del dictionary['add_filters_dict'];
+                del dictionary['add_filters'];
+                del dictionary['path'];
+
+                list_centralwls = []
+                for i in range(len(dictionary.keys())):
+
+                    for j in range(len(names)):
+                        try:
+                            ### The filter dictionary need to have to entries [True/False, column_number]
+                            if dictionary.keys()[i] == names[j] and dictionary[dictionary.keys()[i]][0]:
+                                list_centralwls.append([ dictionary[dictionary.keys()[i]][1], centralwls[j]])
+                        except:
+                            print dictionary.keys()[i], 'not in list'
+                        #elif names[j] not in dictionary.keys()[i]:
+                            #print 'ERROR: ',str(names[j]) ,' needs to be added.'
+
+                def getkeynumber(item):
+                    return item[0]
+
+                sortedwl = sorted(list_centralwls, key=getkeynumber)
+                sortedwl = np.asarray(sortedwl)
+                centr_wl = sortedwl[:,1]
+                freq_wl_cat_ALL = centr_wl # These are in 10log frequency!
+
             #read all wavelengths, fluxes, fluerrors, flags
             colnames = fitstable.dtype.names
             wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
             flux_cols = [ c for c in colnames if self.cat['flux_suffix'] in c]
             flux_err_cols = [ c for c in colnames if self.cat['fluxerr_suffix'] in c]
 
-
-            freq_wl_cat_ALL = \
-                np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
+            else:
+                freq_wl_cat_ALL = \
+                                np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
             flux_cat_ALL =\
                 np.array([fitstable[ca] for ca in  flux_cols ])*self.cat['flux_unit']
             fluxerr_cat_ALL = \
