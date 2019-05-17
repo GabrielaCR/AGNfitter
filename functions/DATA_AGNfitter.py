@@ -23,7 +23,7 @@ from astropy.io import fits
 import cPickle
 import functions.MODEL_AGNfitter as model
 import functions.DICTIONARIES_AGNfitter as dicts
-import functions.FILTERS_AGNfitter as filterpy
+#import functions.FILTERS_AGNfitter as filterpy
 
 
 class DATA_all:
@@ -232,13 +232,14 @@ class DATA_all:
                 centr_wl = sortedwl[:,1]
                 freq_wl_cat_ALL = centr_wl # These are in 10log frequency!
 
-            #read all wavelengths, fluxes, fluerrors, flags
-            colnames = fitstable.dtype.names
-            wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
-            flux_cols = [ c for c in colnames if self.cat['flux_suffix'] in c]
-            flux_err_cols = [ c for c in colnames if self.cat['fluxerr_suffix'] in c]
-
             else:
+
+                #read all wavelengths, fluxes, fluerrors, flags
+                colnames = fitstable.dtype.names
+                wl_cols = [ c for c in colnames if self.cat['freq/wl_suffix'] in c]
+                flux_cols = [ c for c in colnames if self.cat['flux_suffix'] in c]
+                flux_err_cols = [ c for c in colnames if self.cat['fluxerr_suffix'] in c]
+
                 freq_wl_cat_ALL = \
                                 np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
             flux_cat_ALL =\
