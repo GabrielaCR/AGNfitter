@@ -44,11 +44,9 @@ def main(data, P, mc):
 
     Npar = len(P['names'])
 
-
     sampler = emcee.EnsembleSampler(
             mc['Nwalkers'], Npar, parspace.ln_probab,
-            args=[data, P],  daemon= True)
-
+            args=[data,  P],  daemon= True)
 
     ## BURN-IN SETS ##
     if mc['Nburn'] > 0:

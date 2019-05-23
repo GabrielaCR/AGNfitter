@@ -194,10 +194,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobb
             zdict = cPickle.load(file(dictz, 'rb'))
         Modelsdictz = zdict.MD
 
-
         data.DICTS(filtersz, Modelsdictz)
-
-
 
         P = parspace.Pdict (data)   # Dictionary with all parameter space specifications.
                                     # From PARAMETERSPACE_AGNfitter.py
@@ -205,15 +202,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models, clobb
         t1= time.time()
         MCMC_AGNfitter.main(data, P, mc)    
         PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
-
-        # try:
-        #     PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
-        # except:
-        #     MCMC_AGNfitter.main(data, P, mc)    
-        #     try:    
-        #         PLOTandWRITE_AGNfitter.main(data,  P,  out, models)
-        #     except:
-        #         print line, 'is problematic to plot and write'
 
         print '_____________________________________________________'
         print 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.)

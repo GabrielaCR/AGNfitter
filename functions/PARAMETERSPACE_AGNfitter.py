@@ -47,13 +47,14 @@ def Pdict (data):
     
     ## Add normalization parameters:
     if len(bb.par_names)==1:
-        [par_mins.append(i) for i in [0.,0.,0.,0.]]
-        [par_maxs.append(i)for i in [15.,15.,15.,15.]]
+       ## With tor but correct 
+        [par_mins.append(i) for i in [-10.,-10.,-10.,-10.]]
+        [par_maxs.append(i)for i in [10.,10.,10.,10.]]
         normpars=['GA','SB','TO','BB'] 
 
     else:
-        [par_mins.append(i) for i in [0.,0.,0.]]
-        [par_maxs.append(i)for i in [15.,15.,15.]]           
+        [par_mins.append(i) for i in [-10.,-10.,-10.]]
+        [par_maxs.append(i)for i in [10.,10.,10.]]           
         normpars=['GA','SB','TO'] 
 
     all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
@@ -91,10 +92,10 @@ def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
             return -np.inf
 
     #2. Prior on the luminosity
-    B_band_expected, B_band_thispoint = galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)    # Bband expectations
+    #B_band_expected, B_band_thispoint = galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)    # Bband expectations
     #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
-    if B_band_thispoint < (B_band_expected - 5):#2.5):
-        return -np.inf
+    #if B_band_thispoint < (B_band_expected - 5):#2.5):
+    #    return -np.inf
 
     return 0.
 
@@ -117,8 +118,7 @@ def ln_likelihood(x, y, ysigma, z, ymodel):
     #x_valid:
     #only frequencies with existing data (no detections nor limits F = -99)        
     #Consider only data free of IGM absorption. Lyz = 15.38 restframe        
-    x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.)]
-
+    x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
     return -0.5 * np.dot(resid, resid)
 
@@ -139,12 +139,11 @@ def ln_probab(pars, data, P):
     ## dependencies:
     - MCMC_AGNfitter.py"""
 
-    y_model, bands, gal_Fnu = ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays,data.dict_modelfluxes, P, *pars)
-
-    lnp = ln_prior(data.z, data.dlum, bands,gal_Fnu, P, pars)
+    y_model, bands, gal_Fnu = ymodel(data.nus, data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
+    lnp = ln_prior(data.z, data.dlum, bands, gal_Fnu, P, pars)
 
     if np.isfinite(lnp):    
-        posterior = lnp + ln_likelihood(data.nus,data.fluxes,data.fluxerrs, data.z, y_model)     
+        posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model)     
         return posterior
     return -np.inf
 
@@ -171,46 +170,39 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     (2)in scriptPLOTandWRITE.
 
     """
-    t0 = time.time()
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_= dict_modelfluxes
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_ = dict_modelfluxes
 
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
- 
-    par =par[0:len(par)]
 
-    ## Use pick_nD if model has more than one parameter,
-    ## and pick_1D if it has only one.
+    par = par[0:len(par)]
+
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
-    tor_obj.pick_1D(par[P['idxs'][2]:P['idxs'][3]])            
-
-    ### Use when BBB model has only 1 par (Richards 06)
-    # GA, SB, TO, BB = par[-4:]
-    # bbb_obj.pick_1D(par[P['idxs'][3]:P['idxs'][4]])
-
-    ### Use when the BBB model has >1 parameters
-    GA, SB, TO = par[-3:]
-    BB = 0.
+    tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
-    t2 = time.time()
-
     try: 
-        bands, gal_Fnu = GALAXYFdict[tuple(gal_obj.matched_parkeys)]   
-        _, sb_Fnu= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
-        _, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys)]   ### use when the BBB model has >1 parameters
-        #_, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]   ### use when BBB model has only 1 par (Richards 06)
+        bands, gal_Fnu = GALAXYFdict[gal_obj.matched_parkeys]   
+        _, sb_Fnu= STARBURSTFdict[sb_obj.matched_parkeys] 
+        _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]  
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
         print 'Error: Dictionary does not contain some values'
-    t3 = time.time()
-
-    # Renormalize to have similar amplitudes. Keep these fixed!
-    sb_Fnu_norm =sb_Fnu/1e20    
-    bbb_Fnu_norm = bbb_Fnu/ (dlum)**2
+    
+    ### Renormalize to have similar amplitudes. Keep these fixed! 
+    sb_Fnu_norm = sb_Fnu/1e20 
     gal_Fnu_norm = gal_Fnu/1e18
     tor_Fnu_norm = tor_Fnu/ 1e-40
+
+    ### Normalization is not a free parameter for M_bh-dependent models
+    if len(bbb_obj.par_names)==1:
+        bbb_Fnu_norm = bbb_Fnu/ 1e60 
+        GA, SB, TO, BB = par[-4:]
+    else:
+        bbb_Fnu_norm = bbb_Fnu/ (dlum)**2
+        GA, SB, TO = par[-3:]
+        BB=0
 
     # Total SED sum
     #--------------------------------------------------------------------
@@ -218,13 +210,11 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     lum = 10**(SB)* sb_Fnu_norm  + 10**(BB)*bbb_Fnu_norm    \
           + 10**(GA)*gal_Fnu_norm  +(10**TO) *tor_Fnu_norm
 
-    #--------------------------------------------------------------------
+    #--------------------------------------------------------------------    
 
-    lum = lum.reshape((np.size(lum),))    
+    lum = lum.reshape((np.size(lum),))
+
     return lum, bands, 10**(GA)*gal_Fnu_norm
-
-
-
 
 
 def galaxy_Lumfct_prior( z, dlum, bands, gal_flux):
