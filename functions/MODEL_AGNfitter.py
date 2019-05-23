@@ -98,6 +98,47 @@ def GALAXY(path, modelsettings):
         return  GALAXYFdict_4plot, GALAXY_SFRdict, parameters_names
 
 
+    elif modelsettings['GALAXY']=='BC03_metal':
+
+
+        GALAXYFdict_4plot = dict()
+        GALAXY_SFRdict = dict()
+        ## Call object containing all galaxy models     
+
+        BC03dict = cPickle.load(file(path + 'models/GALAXY/BC03_seds_metal_medium.pickle', 'rb'))    
+
+        ## specify the sizes of the array of parameter values: Here two parameters
+        tau_array = BC03dict['tau-values']
+        age_array = BC03dict['age-values']
+        metal_array = BC03dict['metallicity-values']
+        ebvgal_array = np.array(np.arange(0.,250.,25.)/100)
+
+        ## produce all combinations of parameter values (indices)
+        metalidx, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
+        idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                metali=c[0]
+                agei=c[1]
+                taui=c[2]
+                ebvi=c[3]
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][metali,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
+                gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  
+                gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
+                GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(age_array.value[agei])] = gal_SFR         
+                gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
+                GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(age_array.value[agei]), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), gal_Fnu_red        
+
+        ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['metal','tau', 'age','EBVgal']
+
+        return  GALAXYFdict_4plot, GALAXY_SFRdict, parameters_names
+
+
 def STARBURST(path, modelsettings):
 
     if modelsettings['STARBURST']=='DH02_CE01':
@@ -131,7 +172,7 @@ def STARBURST(path, modelsettings):
         Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
         Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
         Tdust = np.array(dusttable['TDUST'])[0] #K
-        fracPAH = np.arange(1.5,5.0,0.5)/100
+        fracPAH = np.arange(0.25, 6.25, 0.25)/100
         idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
         par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
@@ -160,6 +201,126 @@ def STARBURST(path, modelsettings):
 
         return STARBURSTFdict_4plot, parameters_names
 
+    elif modelsettings['STARBURST']=='S17_newmodel':
+
+        STARBURSTFdict_4plot = dict()
+
+        #Call object containing all starburst models     
+        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits')
+        pahstable = Table.read(path + 'models/STARBURST/s17_lowvsg_pah.fits')
+        
+        Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
+        Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
+        Tdust = np.array(dusttable['TDUST'])[0] #K
+        #fracPAH = np.arange(0.0, 5.5, 0.05)/100
+        fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
+
+
+        idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        DLnu= np.array(DnuLnu[0])/Dnu *1e-6 #* u.Lsun.to(u.W)
+        PLnu=np.array(PnuLnu[0])/Pnu *1e-6#* u.Lsun.to(u.W)
+
+
+        #Construct dictionaries 
+        for c in par_idxs_combinations:
+            t=c[0]
+            fp=c[1]
+            #print fracPAH[0]
+
+            sb_nu0 = np.array(Dnu[t,:])[::-1]
+            sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
+            # print type(Tdust)#[t]
+            # print (Dnu[t,:])
+            # print np.shape(sb_Fnu0), sb_Fnu0
+
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), sb_Fnu0
+
+        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['Tdust', 'fracPAH']
+
+        return STARBURSTFdict_4plot, parameters_names
+
+    elif modelsettings['STARBURST']=='S17_newmodel_radio':
+
+        STARBURSTFdict_4plot = dict()
+
+        #Call object containing all starburst models     
+        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits')
+        pahstable = Table.read(path + 'models/STARBURST/s17_lowvsg_pah.fits')
+         
+        Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
+        Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
+        Tdust = np.array(dusttable['TDUST'])[0] #K
+        LIR=  np.array(dusttable['LIR'])[0]
+
+        #fracPAH = np.arange(0.0, 5.5, 0.05)/100
+        fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
+        RADexc= np.arange(0, 100, 5)
+
+        idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH)),np.arange(len(RADexc))]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+        conv_factor=1e-6
+        Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
+        DLnu= np.array(DnuLnu[0])/Dnu *conv_factor #* u.Lsun.to(u.W)
+        PLnu=np.array(PnuLnu[0])/Pnu *conv_factor#* u.Lsun.to(u.W)
+
+
+        #Construct dictionaries 
+        for c in par_idxs_combinations:
+            t=c[0]
+            fp=c[1]
+            re=c[2]
+            #print fracPAH[0]
+
+            sb_nu0 = np.array(Dnu[t,:])[::-1]
+            sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
+
+            rad_sb_nu0 ,rad_sb_Fnu0= RADIO(LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re])
+
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, rad_sb_Fnu0
+
+        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['Tdust', 'fracPAH', 'RADexc']
+
+        return STARBURSTFdict_4plot, parameters_names
+
+def RADIO(LIR, conv_factor, sb_nu0, sb_Fnu0, radioexcess):
+
+    q_IR_r14 = np.random.normal(2.64, 0.26,1)
+    alpha_syn  = -0.75
+    alpha_th = -0.1
+    nth_frac =0.9
+
+    L14 = 10**(np.log10(LIR*conv_factor)-q_IR_r14)/3.75e12#1.4e9 #to Wats
+    nu_spacing= (np.log10(sb_nu0)[2]-np.log10(sb_nu0)[1])
+    radio_points = (np.log10(sb_nu0)[0]-9)/nu_spacing
+    radio_nu14= np.log10(1.4e9)
+
+    radio_nu = np.arange(np.log10(sb_nu0)[0]- nu_spacing*int(radio_points),np.log10(sb_nu0)[0], nu_spacing)
+    radio_nu2 = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
+    all_nu=  np.concatenate((radio_nu, np.log10(sb_nu0)))
+
+    Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(all_nu)-len(sb_Fnu0)),sb_Fnu0))
+
+    Lsyn_0 = 10**(-1*alpha_syn* np.log10(1.4e9/10**radio_nu2[0])) * L14*(nth_frac)* rad_excess
+    Lsyn_rad = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_nu2/10**radio_nu2[0])) 
+    Lsyn = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad))))
+
+    Lff_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_nu2[0])) * L14*(1.-nth_frac)
+    Lff_rad= Lff_0* 10**(alpha_th* np.log10(10**radio_nu2/10**radio_nu2[0])) 
+    Lsyn = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad))))
+
+    Lir_rad= Lsb+Lsyn+Lff
+
+    return  all_nu, Lir_rad
+
 
 def BBB(path, modelsettings):
 
@@ -167,17 +328,15 @@ def BBB(path, modelsettings):
 
         BBBFdict_4plot = dict()
         R06dict = cPickle.load(file(path + 'models/BBB/R06.pickle', 'rb')) 
-        #R06dict = cPickle.load(file(path + 'models/BBB/richards.pickle', 'rb')) 
         parameters_names =['EBVbbb']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
-        #bbb_nu, bbb_Fnu = R06dict.wave, R06dict.SED.squeeze()
         
         #Construct dictionaries
         for EBV_bbb in ebvbbb_array:
             bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
-            BBBFdict_4plot[str(EBV_bbb)] =bbb_nu0, bbb_Fnu_red
+            BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, bbb_Fnu_red
         return BBBFdict_4plot, parameters_names
 
 
@@ -217,6 +376,39 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         D12dict = cPickle.load(file(path + 'models/BBB/D12_S.pickle', 'rb'))    
+        parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
+
+        ## specify the sizes of the array of parameter values: Here two parameters
+        ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
+        Mbh_array = D12dict['logBHmass-values']
+        EddR_array = D12dict['logEddra-values']
+        #ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+
+        ## produce all combinations of parameter values (indices)
+        _, EddRidx,Mbhidx =  np.shape(D12dict['SED'])
+        #idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array))]
+        idxs = [np.arange(EddRidx),np.arange(Mbhidx)]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                EddRi=c[0]
+                Mbhi=c[1]
+                bbb_nu, bbb_Fnu_nored =  D12dict['frequency'],D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                
+                ### Apply reddening
+                #ebvi=c[2]                
+                #bbb_nu, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
+                #BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = np.log10(bbb_nu), bbb_Fnu_red        
+                
+                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
+
+        return BBBFdict_4plot, parameters_names
+
+    elif modelsettings['BBB']=='D12_K':
+
+        BBBFdict_4plot = dict()
+        ## Call file containing all galaxy models     
+        D12dict = cPickle.load(file(path + 'models/BBB/D12_K.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
 
         ## specify the sizes of the array of parameter values: Here two parameters
@@ -330,7 +522,7 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
     #Application of reddening - reading E(B-V) from MCMC sampler
     RV= 2.72
 
-    #converting freq to wavelenght, to be able to use prevots function instead on simple linear interpolation 
+    #converting freq to wavelength, to be able to use prevots function instead on simple linear interpolation 
     redd_x =  2.998 * 1e10 / (10**(bbb_x)* 1e-8)
     redd_x= redd_x[::-1]
 
@@ -436,12 +628,17 @@ def stellar_info(chain, data):
 
     gal_obj,_,_,_ = data.dictkey_arrays
     _,_,_,_,_,_,_,_,SFRdict,_= data.dict_modelfluxes
-    #relevanta parameters form the MCMC chain
-    tau_mcmc = chain[:,0]     
-    age_mcmc = chain[:,1] 
+        
+    if len(gal_obj.par_names)==3:
+        tau_mcmc = chain[:,0]  
+        age_mcmc = chain[:,1] 
+    elif len(gal_obj.par_names)==4:
+        metal_mcmc = chain[:,0]   ###  
+        tau_mcmc = chain[:,1]     
+        age_mcmc = chain[:,2] 
+
     GA = chain[:, -4] - 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
                             ## in order to have comparable NORMfactors    
-
     z = data.z
     distance = z2Dlum(z)
 
@@ -454,10 +651,15 @@ def stellar_info(chain, data):
 
     for i in range (len (tau_mcmc)):        
         N = 10**GA[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
-
-        gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
-        tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
-        SFR_mcmc =SFRdict[tau_dct, age_dct]
+        
+        if len(gal_obj.par_names)==3:
+            gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
+            tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+            SFR_mcmc =SFRdict[tau_dct, age_dct]
+        elif len(gal_obj.par_names)==4:
+            gal_obj.pick_nD(tuple([metal_mcmc[i], tau_mcmc[i], age_mcmc[i], 0.]))
+            metal_dct,tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+            SFR_mcmc =SFRdict[metal_dct,tau_dct, age_dct]
 
         # Calculate Mstar. BC03 templates are normalized to M* = 1 M_sun. 
         # Thanks to Kenneth Duncan, and his python version of BC03, smpy
