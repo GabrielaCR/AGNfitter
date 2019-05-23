@@ -189,32 +189,24 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
         print 'Error: Dictionary does not contain some values'
-    
-    ### Renormalize to have similar amplitudes. Keep these fixed! 
-    sb_Fnu_norm = sb_Fnu/1e20 
-    gal_Fnu_norm = gal_Fnu/1e18
-    tor_Fnu_norm = tor_Fnu/ 1e-40
 
     ### Normalization is not a free parameter for M_bh-dependent models
     if len(bbb_obj.par_names)==1:
-        bbb_Fnu_norm = bbb_Fnu/ 1e60 
         GA, SB, TO, BB = par[-4:]
     else:
-        bbb_Fnu_norm = bbb_Fnu/ (dlum)**2
+        bbb_Fnu = bbb_Fnu/ (dlum)**2
         GA, SB, TO = par[-3:]
         BB=0
 
     # Total SED sum
     #--------------------------------------------------------------------
-
-    lum = 10**(SB)* sb_Fnu_norm  + 10**(BB)*bbb_Fnu_norm    \
-          + 10**(GA)*gal_Fnu_norm  +(10**TO) *tor_Fnu_norm
-
+    lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
+          + 10**(GA)*gal_Fnu +(10**TO) *tor_Fnu
     #--------------------------------------------------------------------    
 
     lum = lum.reshape((np.size(lum),))
 
-    return lum, bands, 10**(GA)*gal_Fnu_norm
+    return lum, bands, 10**(GA)*gal_Fnu
 
 
 def galaxy_Lumfct_prior( z, dlum, bands, gal_flux):

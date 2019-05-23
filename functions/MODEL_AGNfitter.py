@@ -89,7 +89,7 @@ def GALAXY(path, modelsettings):
                 GALAXY_SFRdict[str(tau_array.value[taui]),str(age_array.value[agei])] = gal_SFR         
                 gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
                 GALAXYFdict_4plot[str(tau_array.value[taui]),str(age_array.value[agei]), str(ebvgal_array[ebvi])] = \
-                                                                                        np.log10(gal_nu), gal_Fnu_red        
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)        
 
         ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -130,7 +130,7 @@ def GALAXY(path, modelsettings):
                 GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(age_array.value[agei])] = gal_SFR         
                 gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
                 GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(age_array.value[agei]), str(ebvgal_array[ebvi])] = \
-                                                                                        np.log10(gal_nu), gal_Fnu_red        
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)       
 
         ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -152,8 +152,7 @@ def STARBURST(path, modelsettings):
         #Construct dictionaries 
         for irlumi in range(irlumidx):
             sb_nu0, sb_Fnu0 = DH02CE01dict['wavelength'][irlumi], DH02CE01dict['SED'][irlumi].squeeze()
-            print sb_nu0
-            STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, sb_Fnu0
+            STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, renorm_template('SB',sb_Fnu0)
 
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -193,7 +192,7 @@ def STARBURST(path, modelsettings):
             # print (Dnu[t,:])
             # print np.shape(sb_Fnu0), sb_Fnu0
 
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), sb_Fnu0
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
 
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -237,7 +236,7 @@ def STARBURST(path, modelsettings):
             # print (Dnu[t,:])
             # print np.shape(sb_Fnu0), sb_Fnu0
 
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), sb_Fnu0
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
 
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -283,7 +282,7 @@ def STARBURST(path, modelsettings):
 
             rad_sb_nu0 ,rad_sb_Fnu0= RADIO(LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re])
 
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, rad_sb_Fnu0
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, renorm_template('SB',rad_sb_Fnu0)
 
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -336,7 +335,7 @@ def BBB(path, modelsettings):
         #Construct dictionaries
         for EBV_bbb in ebvbbb_array:
             bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
-            BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, bbb_Fnu_red
+            BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
         return BBBFdict_4plot, parameters_names
 
 
@@ -456,7 +455,7 @@ def TORUS(path, modelsettings):
         for nhi in range(nhidx):
 
             tor_nu0, tor_Fnu0 = S04dict['wavelength'][nhi], S04dict['SED'][nhi].squeeze()
-            TORUSFdict_4plot[str(S04dict['Nh-values'][nhi])] = tor_nu0, tor_Fnu0
+            TORUSFdict_4plot[str(S04dict['Nh-values'][nhi])] = tor_nu0, renorm_template('TO',tor_Fnu0)
 
         ## Name the parameters that compose the keys of the dictionary: TORUSFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.   
@@ -637,7 +636,7 @@ def stellar_info(chain, data):
         tau_mcmc = chain[:,1]     
         age_mcmc = chain[:,2] 
 
-    GA = chain[:, -4] - 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
+    GA = chain[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
                             ## in order to have comparable NORMfactors    
     z = data.z
     distance = z2Dlum(z)
@@ -713,4 +712,23 @@ def sfr_IR(logL_IR):
         SFR = 3.88e-44* (10**logL_IR)
         return SFR
 
+
+
+"""---------------------------------------------
+            RENORMALIZATION OF MODELS
+-----------------------------------------------"""
+
+def renorm_template(model, Fnu):
+    if model=='GA':
+        Fnu_norm = Fnu/1e18
+        return Fnu_norm
+    elif model== 'SB':
+        Fnu_norm = Fnu/1e20
+        return Fnu_norm
+    elif model== 'TO':
+        Fnu_norm = Fnu/1e-40
+        return Fnu_norm
+    elif model== 'BB':
+        Fnu_norm = Fnu/1e60
+        return Fnu_norm
 
