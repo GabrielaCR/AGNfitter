@@ -85,6 +85,10 @@ def main(data, P, out, models):
         fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_intlums.' + out['plot_format'])
         plt.close(fig)
 
+    if out['save_posterior_luminosities']: 
+        int_lums_array =output.save_realizations()
+        np.savetxt(data.output_folder+str(data.name)+'/posterior_intlums_'+str(data.name)+'.txt', int_lums_array.T, fmt= "%1.4f" ,header= str(out['intlum_names']))
+
     if out['writepar_meanwitherrors']:
         outputvalues, outputvalues_header = output.write_parameters_outputvalues(P)
         comments_ouput= ' # Output for source ' +str(data.name) + '\n' +' Rows are: 2.5, 16, 50, 84, 97.5 percentiles # '+'\n'+ '-----------------------------------------------------'+'\n' 
@@ -141,6 +145,14 @@ class OUTPUT:
         Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
+
+        ####################   ERASE   #####
+        fig0 = plt.figure(figsize=(9,5))
+        ax1 = fig0.add_subplot(111)
+        ax1.plot(self.chain.flatchain_sorted[:,0],self.chain.flatchain_sorted[:,1], '.', alpha=0.1)
+        fig0.savefig('/Users/Gabriela/Desktop/AGNfitter/OUTPUT/COSMOS/plot_dummy')####
+        plt.close(fig0)
+        ###################################
   
         if self.out['calc_intlum']:            
 
@@ -154,12 +166,15 @@ class OUTPUT:
 
 
     
-            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'log Mstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
 
         else:
             outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
             outputvalues_header=' '.join( [ i for i in P['names']] )
         return outputvalues, outputvalues_header
+
+    def save_realizations(self):        
+        return self.int_lums
 
     def plot_PDFtriangle(self,parameterset, labels):        
 
@@ -209,13 +224,13 @@ class OUTPUT:
             p5=ax1.plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = 0.5)
             p1= ax1.plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= 0.5)
 
-            p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =0.7)
+            p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=2, color="red", alpha =0.7)
 
             det = [yndflags==1]
             upp = [yndflags==0]
 
-            upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=5, color="black")
-            (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
+            upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=2, color="black")
+            (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=2, color="black", alpha = 1)
 
 
         ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
@@ -265,7 +280,6 @@ class CHAIN:
 
 
             self.flatchain = samples['chain'][:,0:Ns*Nt:Nt,:].reshape(-1, npar)
-
             chain_length = int(len(self.flatchain))
 
             self.flatchain_sorted = self.flatchain[isort]
@@ -374,8 +388,12 @@ class FLUXES_ARRAYS:
 
         if self.output_type == 'plot':
             par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:]#.T        
+            realization_nr=self.out['realizations2plot']
+        
         elif self.output_type == 'int_lums':
-            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:]#.T        
+            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:]#.T
+            realization_nr=self.out['realizations2int']
+        
         elif self.output_type == 'best_fit':
             par= self.best_fit_pars
 
@@ -383,7 +401,8 @@ class FLUXES_ARRAYS:
             self.all_nus_rest = np.arange(11.5, 19, 0.001) 
         else:
             self.all_nus_rest = np.arange(11.5, 16.2, 0.001) 
-        for g in range(self.out['realizations2plot']):
+        
+        for g in range(realization_nr):
 
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
             ## Use pick_nD if model has more than one parameter,
@@ -422,7 +441,7 @@ class FLUXES_ARRAYS:
 
             ### Plot dereddened
             if len(bbb_obj.par_names)==1:
-                all_bbb_nus, bbb_Fnus_deredd = BBBFdict[tuple([bbb_obj.matched_parkeys[0],bbb_obj.matched_parkeys[1],str(0.)])]
+                all_bbb_nus, bbb_Fnus_deredd = BBBFdict['0.0']
                 BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
                 all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
             else:
@@ -437,12 +456,26 @@ class FLUXES_ARRAYS:
                 par2= par[g]
                 filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
                 
+            # #Using the costumized normalization 
+            # SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
+            # if len(bbb_obj.par_names)==1:
+            #     BBFnu = (all_bbb_Fnus / 1e60) * 10**float(BB) 
+            # else:
+            #     BBFnu = (all_bbb_Fnus /(data.dlum)**2) * 10**float(BB) 
+            # GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA) 
+            # TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO)
+            # BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB)
+
             #Using the costumized normalization 
-            SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
-            BBFnu = (all_bbb_Fnus / (data.dlum)**2) * 10**float(BB) #/1e60
-            GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA) 
-            TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO)
-            BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB)
+            SBFnu =   all_sb_Fnus *10**float(SB) 
+            if len(bbb_obj.par_names)==1:
+                BBFnu = all_bbb_Fnus * 10**float(BB) 
+            else:
+                BBFnu = (all_bbb_Fnus /(data.dlum)**2) * 10**float(BB) 
+            GAFnu =   all_gal_Fnus * 10**float(GA) 
+            TOFnu =   all_tor_Fnus * 10**float(TO)
+            BBFnu_deredd = all_bbb_Fnus_deredd * 10**float(BB)
+
 
             TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu
             
@@ -468,6 +501,7 @@ class FLUXES_ARRAYS:
 
         #Put them all together to transport
         FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, TOTALFnu_array,BBFnu_array_deredd)
+
         #Convert Fluxes to nuLnu
         self.nuLnus4plotting = self.FLUXES2nuLnu_4plotting(self.all_nus_rest, FLUXES4plotting, data.z)
 
@@ -479,6 +513,7 @@ class FLUXES_ARRAYS:
             self.filtered_modelpoints_nuLnu = (filtered_modelpoints *lumfactor* 10**(data.nus))
         #Only if calculating integrated luminosities:    
         elif self.output_type == 'int_lums':
+            #Convert Fluxes to nuLnu
             self.int_lums= np.log10(self.integrated_luminosities(self.out ,self.all_nus_rest, self.nuLnus4plotting))
         # elif self.output_type == 'best_fit':
         #     self.filtered_modelpoints_nuLnu = self.FLUXES2nuLnu_4plotting(all_nus_rest,  filtered_modelpoints, self.chain_obj.data.z)
