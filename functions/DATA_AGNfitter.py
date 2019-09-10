@@ -97,8 +97,11 @@ class DATA_all:
                 sortedwl = sorted(list_centralwls, key=getkeynumber)
                 sortedwl = np.asarray(sortedwl)
                 centr_wl = sortedwl[:,1]
-                freq_wl_cat_ALL = centr_wl # These are in 10log frequency!
-
+                if self.cat['freq/wl_format'] == 'wavelength':
+                    freq_wl_cat_ALL = centr_wl # These are in 10log frequency but the other way around!?
+                elif self.cat['freq/wl_format'] == 'frequency':
+                    freq_wl_cat_ALL = centr_wl[::-1]
+                    print centr_wl[::-1]
             else:
                 ### If central wavelengths are given in catalog 
                 freq_wl_cat_ALL = \
@@ -355,7 +358,6 @@ class DATA():
 
         z_array = np.array(list(Modelsdict.keys()))
         idx = (np.abs(z_array.astype(float)-self.z)).argmin()
-        z_key = z_array[idx] 
-
+        z_key = z_array[idx]
         self.dict_modelfluxes = Modelsdict[z_key]
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
