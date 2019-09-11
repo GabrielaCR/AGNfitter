@@ -48,8 +48,8 @@ def Pdict (data):
     ## Add normalization parameters:
     if len(bb.par_names)==1:
        ## With tor but correct 
-        [par_mins.append(i) for i in [-10.,-10.,-10.,-10.]]
-        [par_maxs.append(i)for i in [10.,10.,10.,10.]]
+        [par_mins.append(i) for i in [-10,-10.,-10.,-10.]]
+        [par_maxs.append(i)for i in [10.,10,10,-9]]
         normpars=['GA','SB','TO','BB'] 
 
     else:
@@ -89,6 +89,18 @@ def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
     #1. Flat priors
     for i,p in enumerate(pars):
         if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
+            return -np.inf
+    def prior_energy_balance():
+
+        L_IR = get_IRlum(pars_SB)
+        L_att = get_att_lumdiff(pars_gal, EBVgal)
+        if (L_IR-L_att)**2>L_att*0.25:
+            return -np.inf
+
+    def prior_gal_luminosity(z, dlum, bands, gal_Fnu):
+        B_band_expected, B_band_thispoint = galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
+        #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
+        if B_band_thispoint < (B_band_expected - 5):#2.5):
             return -np.inf
 
     #2. Prior on the luminosity
@@ -176,7 +188,6 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
     par = par[0:len(par)]
-
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
     tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
@@ -201,9 +212,8 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     # Total SED sum
     #--------------------------------------------------------------------
     lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
-          + 10**(GA)*gal_Fnu +(10**TO) *tor_Fnu
+          + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu
     #--------------------------------------------------------------------    
-
     lum = lum.reshape((np.size(lum),))
 
     return lum, bands, 10**(GA)*gal_Fnu
@@ -258,8 +268,8 @@ def get_initial_positions(nwalkers, P):
     p0 = np.random.uniform(size=(nwalkers, Npar))
 
     for i in range(Npar):
-        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) * (1)
-    p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.001)
+        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) * (0.00001)
+    #p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.0001)
     
     return p0
 

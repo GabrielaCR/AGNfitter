@@ -98,10 +98,10 @@ class DATA_all:
                 sortedwl = np.asarray(sortedwl)
                 centr_wl = sortedwl[:,1]
                 if self.cat['freq/wl_format'] == 'wavelength':
-                    freq_wl_cat_ALL = centr_wl # These are in 10log frequency but the other way around!?
+                    ### given in log freq but inverse order (wavelength order)
+                    freq_wl_cat_ALL = centr_wl 
                 elif self.cat['freq/wl_format'] == 'frequency':
                     freq_wl_cat_ALL = centr_wl[::-1]
-                    print centr_wl[::-1]
             else:
                 ### If central wavelengths are given in catalog 
                 freq_wl_cat_ALL = \

@@ -146,13 +146,13 @@ class OUTPUT:
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
 
-        ####################   ERASE   #####
+        ####################   ERASE   ######################
         fig0 = plt.figure(figsize=(9,5))
         ax1 = fig0.add_subplot(111)
         ax1.plot(self.chain.flatchain_sorted[:,0],self.chain.flatchain_sorted[:,1], '.', alpha=0.1)
         fig0.savefig('/Users/Gabriela/Desktop/AGNfitter/OUTPUT/COSMOS/plot_dummy')####
         plt.close(fig0)
-        ###################################
+        #####################################################
   
         if self.out['calc_intlum']:            
 
@@ -226,8 +226,8 @@ class OUTPUT:
 
             p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=2, color="red", alpha =0.7)
 
-            det = [yndflags==1]
-            upp = [yndflags==0]
+            det = tuple([yndflags==1])
+            upp = tuple([yndflags==0])
 
             upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=2, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=2, color="black", alpha = 1)
@@ -398,6 +398,7 @@ class FLUXES_ARRAYS:
             par= self.best_fit_pars
 
         if self.models['BBB'] =='D12_S' or self.models['BBB'] =='D12_K':
+            ### extend SED to X-rays
             self.all_nus_rest = np.arange(11.5, 19, 0.001) 
         else:
             self.all_nus_rest = np.arange(11.5, 16.2, 0.001) 
@@ -617,12 +618,12 @@ def SED_plotting_settings(x, ydata, modeldata):
 
 
     mediandata = np.median(ydata)
-    ax1.set_ylim(mediandata /90.,mediandata * 50.)
-    ax1.set_xlim(min(modeldata), max(modeldata))
+    #ax1.set_ylim(mediandata /90.,mediandata * 50.)
+    #ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.set_ylim( mediandata /90., mediandata * 50.)
+    #ax2.set_ylim( mediandata /90., mediandata * 50.)
 
 
     ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())

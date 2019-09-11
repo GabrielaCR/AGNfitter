@@ -55,13 +55,26 @@ class MODELSDICT:
 
         ## To be called form filters
         self.z_array = filters['dict_zarray']
-        self.filters_list = filters
+                    
+        a = dict.fromkeys(filters)
+
+        for i in range(len(a.keys())):
+
+            if a.keys()[i] == 'add_filters' or a.keys()[i] == 'dict_zarray' or a.keys()[i] == 'add_filters_dict' or a.keys()[i] == 'path':
+
+                a[a.keys()[i]] = filters[a.keys()[i]]               
+                
+            else:
+                a[a.keys()[i]] = filters[a.keys()[i]]#[0]
+
+        #print a
+        self.filters_list = a
         if os.path.lexists(filename):
             self.fo = cPickle.load(file(filename, 'rb'))
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
         else:
-            self.fo = filterpy.create_filtersets(filters, path)
+            self.fo = filterpy.create_filtersets(a, path)
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
 
@@ -155,10 +168,18 @@ def dictkey_arrays(MODELSdict):
 
             def pick_nD(self, pars_mcmc): 
                 self.matched_parkeys = []
-                for i in range(len(pars_mcmc)):   
-                    matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
-                    matched_parkey = self.pars_modelkeys[i][matched_idx]
-                    self.matched_parkeys.append(matched_parkey)
+                if len(pars_mcmc)==1:
+                    for i in range(len(pars_mcmc)):   
+                        matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+                        matched_parkey = self.pars_modelkeys[matched_idx]
+                        self.matched_parkeys =matched_parkey
+                else:
+                    for i in range(len(pars_mcmc)):   
+                        matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                        matched_parkey = self.pars_modelkeys[i][matched_idx]
+                        self.matched_parkeys.append(matched_parkey)
+                    self.matched_parkeys=tuple(self.matched_parkeys)
+
             def pick_1D(self, *pars_mcmc): 
                 matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
                 self.matched_parkeys = self.pars_modelkeys[matched_idx]

@@ -1,7 +1,7 @@
 
 """%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    DICTIONARIES_AGNFitter.py
+    FILTERS_AGNFitter.py
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -51,7 +51,9 @@ class FILTER:
 		self.original_filename=filename
 		self.description = description
 		## Extract lambdas and throughput factors from files
+		print filename, 
 		wl_or_freq, self.factors =  np.loadtxt(filename, usecols=(0,1),unpack= True)
+		print 'Done'
 
 		if freqwl_format == 'frequency':
 		    newfilter_lambdas = wl_or_freq* freqwl_unit.to(u.Angstrom, equivalencies=u.spectral())
@@ -92,8 +94,17 @@ class FILTER_SET:
 		 	filters_objects_chosen = [o for o in filters_objects_all.values() \
 								  if o.filtername in default_filters]
 		else:
-			filters_objects_chosen = [o for o in filters_objects_all.values() \
-								  if filtersdict[o.filtername]==True]
+			# filters_objects_chosen = [o for o in filters_objects_all.values() \
+			# 						  if filtersdict[o.filtername]==True]
+			filters_objects_chosen = []
+			for o in filters_objects_all.values():
+				try:
+					if o.filtername in filtersdict.keys():
+						if filtersdict[o.filtername]==True or True in filtersdict[o.filtername]:
+							filters_objects_chosen.append(o)
+				except:
+						print 'Filter ',o.filtername, ' still needs to be added.'
+					
 		self.filternames =[i.filtername for i in filters_objects_chosen]
 		#dictionaries lambdas_dict, factors_dict
 		lambdas_dict = defaultdict(list)
@@ -108,7 +119,6 @@ class FILTER_SET:
 		self.central_nu_array=np.array(sorted(central_nu_list))
 		self.lambdas_dict= lambdas_dict
 		self.factors_dict= factors_dict
-
 
 
 	def save(self,filename):
@@ -163,7 +173,7 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') )
 	filters_table_sorted =filters_table.sort('central nu (log Hz)')
 	ascii.write(filters_table, path + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter ='|', overwrite=True)
-	
+
 	## save again the dictionary of all FILTER objects, now including the new aded ones.
 	a = open(filters_objects_all_filename, 'wb')
 	cPickle.dump(filters_objects_all, a, protocol=2) ## save list of FILTER objects
