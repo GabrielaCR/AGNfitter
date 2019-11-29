@@ -109,14 +109,13 @@ def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
     BBBFdict_filtered = dict()
     TORUSFdict_filtered = dict()
 
-  
-    GALAXYFdict_4plot, GALAXY_SFRdict, galaxy_parnames  = model.GALAXY(path, modelsettings)
+    GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames  = model.GALAXY(path, modelsettings)
     for c in GALAXYFdict_4plot.keys():
                 gal_nu, gal_Fnu=GALAXYFdict_4plot[c]               
                 bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
                 GALAXYFdict_filtered[c] = bands, gal_Fnu_filtered
 
-    STARBURSTFdict_4plot, starburst_parnames  = model.STARBURST(path, modelsettings)
+    STARBURSTFdict_4plot, STARBURST_LIRdict, starburst_parnames  = model.STARBURST(path, modelsettings)
     for c in STARBURSTFdict_4plot.keys():
                 sb_nu, sb_Fnu=STARBURSTFdict_4plot[c]               
                 bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
@@ -138,7 +137,8 @@ def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
     all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
 
     return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, \
-           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,GALAXY_SFRdict, all_parnames
+           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,\
+           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
            
 
 def dictkey_arrays(MODELSdict):
@@ -152,7 +152,7 @@ def dictkey_arrays(MODELSdict):
     ##output:
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, all_parnames= MODELSdict
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
 
     galaxy_parkeys= np.array(list(GALAXYFdict.keys()))
     starburst_parkeys = np.array(list(STARBURSTFdict.keys()))

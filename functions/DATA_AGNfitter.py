@@ -22,7 +22,7 @@ from astropy.table import Table
 from astropy.io import fits
 import cPickle
 import functions.MODEL_AGNfitter as model
-import functions.DICTIONARIES_AGNfitter as dicts
+#import functions.DICTIONARIES_AGNfitter as dicts
 #import functions.FILTERS_AGNfitter as filterpy
 
 
@@ -350,14 +350,14 @@ class DATA():
         self.output_folder = catalog.cat['output_folder']
 
 
-    def DICTS(self, filters, Modelsdict):
-        """
-        Helps transporting the dictionary content
-        corresponding to the redshift of the source
-        """
+    # def DICTS(self, filters, Modelsdict):
+    #     """
+    #     Helps transporting the dictionary content
+    #     corresponding to the redshift of the source
+    #     """
 
-        z_array = np.array(list(Modelsdict.keys()))
-        idx = (np.abs(z_array.astype(float)-self.z)).argmin()
-        z_key = z_array[idx]
-        self.dict_modelfluxes = Modelsdict[z_key]
-        self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
+    #     z_array = np.array(list(Modelsdict.keys()))
+    #     idx = (np.abs(z_array.astype(float)-self.z)).argmin()
+    #     z_key = z_array[idx]
+    #     self.dict_modelfluxes = Modelsdict[z_key]
+    #     self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)

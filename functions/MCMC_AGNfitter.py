@@ -16,11 +16,12 @@ import time
 import numpy as np
 import cPickle
 import PARAMETERSPACE_AGNfitter as parspace
-from DATA_AGNfitter import DATA
+#from DATA_AGNfitter import DATA
 
 
 
-def main(data, P, mc):
+###!!!def main(data, P, mc):
+def main(data, models, P, mc):
 
     """
     Main function for the MCMC sampling.
@@ -46,7 +47,8 @@ def main(data, P, mc):
 
     sampler = emcee.EnsembleSampler(
             mc['Nwalkers'], Npar, parspace.ln_probab,
-            args=[data,  P],  daemon= True)
+            ###!!!args=[data,  P],  daemon= True)
+            args=[data, models, P],  daemon= True)
 
     ## BURN-IN SETS ##
     if mc['Nburn'] > 0:

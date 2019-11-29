@@ -37,7 +37,8 @@ import cPickle
 
 
 
-def main(data, P, out, models):
+###!!!def main(data, P, out, models_settings):
+def main(data, models, P, out, models_settings):
 
 
     """
@@ -61,7 +62,7 @@ def main(data, P, out, models):
     print '- Mean acceptance fraction', chain_mcmc.mean_accept
     print '- Mean autocorrelation time', chain_mcmc.mean_autocorr
 
-    output = OUTPUT(chain_mcmc, data, P, models)
+    output = OUTPUT(chain_mcmc, data, models, P, models_settings)
 
     if out['plot_tracesburn-in']:
         fig, nplot=chain_burnin.plot_trace(P)
@@ -117,42 +118,43 @@ class OUTPUT:
     - object of the CHAIN class, object of DATA class
     """    
 
-    def __init__(self, chain_obj, data_obj, P, models):
+    def __init__(self, chain_obj, data_obj, model_obj, P, models_settings):
 
         self.chain = chain_obj
         self.chain.props()
 
         self.out = chain_obj.out
         self.data = data_obj
-        self.models = models
+        self.models = model_obj
+        self.models_settings = models_settings
         self.z=self.data.z
-        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums', self.models)
-        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot', self.models)
+        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums', self.models_settings)
+        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot', self.models_settings)
         if self.out['calc_intlum']:
-            fluxobj_withintlums.fluxes( self.data)
+            fluxobj_withintlums.fluxes( self.data, self.models)
             self.nuLnus = fluxobj_withintlums.nuLnus4plotting
             self.allnus = fluxobj_withintlums.all_nus_rest
             self.int_lums = fluxobj_withintlums.int_lums
 
         if self.out['plotSEDrealizations']:
-            fluxobj_4SEDplots.fluxes(self.data)
+            fluxobj_4SEDplots.fluxes(self.data, self.models)
             self.nuLnus = fluxobj_4SEDplots.nuLnus4plotting
             self.filtered_modelpoints_nuLnu = fluxobj_4SEDplots.filtered_modelpoints_nuLnu
             self.allnus = fluxobj_4SEDplots.all_nus_rest
 
     def write_parameters_outputvalues(self, P):        
 
-        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.out['realizations2int'])
+        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.models, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
 
-        ####################   ERASE   ######################
-        fig0 = plt.figure(figsize=(9,5))
-        ax1 = fig0.add_subplot(111)
-        ax1.plot(self.chain.flatchain_sorted[:,0],self.chain.flatchain_sorted[:,1], '.', alpha=0.1)
-        fig0.savefig('/Users/Gabriela/Desktop/AGNfitter/OUTPUT/COSMOS/plot_dummy')####
-        plt.close(fig0)
-        #####################################################
+        # ####################   ERASE   ######################
+        # fig0 = plt.figure(figsize=(9,5))
+        # ax1 = fig0.add_subplot(111)
+        # ax1.plot(self.chain.flatchain_sorted[:,0],self.chain.flatchain_sorted[:,1], '.', alpha=0.1)
+        # fig0.savefig('/Users/Gabriela/Desktop/AGNfitter/OUTPUT/COSMOS/plot_dummy')####
+        # plt.close(fig0)
+        # #####################################################
   
         if self.out['calc_intlum']:            
 
@@ -211,6 +213,7 @@ class OUTPUT:
         SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
 
         #plotting settings
+        print self.data.fluxes
         fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
         SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
@@ -356,13 +359,15 @@ class FLUXES_ARRAYS:
     """
 
 
-    def __init__(self, chain_obj, P, out, output_type, models):
+    def __init__(self, chain_obj, P, out, output_type, models_settings):
         self.chain_obj = chain_obj
         self.output_type = output_type
         self.out = out
-        self.models=models
+        self.models_settings=models_settings
         self.P = P
-    def fluxes(self, data):    
+    ###!!!def fluxes(self, data):    
+    ###!!!
+    def fluxes(self, data, models):    
 
         """
         This is the main function of the class.
@@ -378,10 +383,14 @@ class FLUXES_ARRAYS:
         if self.output_type == 'plot':
             filtered_modelpoints_list = []
 
-        gal_obj,sb_obj,tor_obj, bbb_obj = data.dictkey_arrays
+        ###!!!gal_obj,sb_obj,tor_obj, bbb_obj = data.dictkey_arrays
+        ###!!!
+        gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
         # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_= data.dict_modelfluxes
+        ###!!!_,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_= data.dict_modelfluxes
+        ###!!!
+        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_= models.dict_modelfluxes
 
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name
@@ -397,7 +406,7 @@ class FLUXES_ARRAYS:
         elif self.output_type == 'best_fit':
             par= self.best_fit_pars
 
-        if self.models['BBB'] =='D12_S' or self.models['BBB'] =='D12_K':
+        if self.models_settings['BBB'] =='D12_S' or self.models_settings['BBB'] =='D12_K':
             ### extend SED to X-rays
             self.all_nus_rest = np.arange(11.5, 19, 0.001) 
         else:
@@ -455,7 +464,8 @@ class FLUXES_ARRAYS:
 
             if self.output_type == 'plot':
                 par2= par[g]
-                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
+                ###!!!filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
+                filtered_modelpoints, _ = parspace.ymodel(data.nus,data.z, data.dlum, models.dictkey_arrays, models.dict_modelfluxes, self.P, *par2)
                 
             # #Using the costumized normalization 
             # SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
@@ -569,6 +579,24 @@ class FLUXES_ARRAYS:
                  nuLnu=GAnuLnu
             elif out['intlum_models'][m] == 'tor':    
                  nuLnu=TOnuLnu
+            elif out['intlum_models'][m] == 'AGNfrac':    
+                 nuLnuto=TOnuLnu
+                 nuLnusb=SBnuLnu
+                 nuLnuga=GAnuLnu
+
+                 index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                 all_nus_rest_int = 10**(all_nus_rest[index])
+                 Lnuto = nuLnuto[:,index] / all_nus_rest_int
+                 Lnusb = nuLnusb[:,index] / all_nus_rest_int
+                 Lnuga = nuLnuga[:,index] / all_nus_rest_int
+                 Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
+                 Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
+                 Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
+                 AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
+                 int_lums.append(AGNfrac)
+
+                 return np.array(int_lums)
+
         
             index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
             all_nus_rest_int = 10**(all_nus_rest[index])
@@ -618,12 +646,12 @@ def SED_plotting_settings(x, ydata, modeldata):
 
 
     mediandata = np.median(ydata)
-    #ax1.set_ylim(mediandata /90.,mediandata * 50.)
-    #ax1.set_xlim(min(modeldata), max(modeldata))
+    ax1.set_ylim(mediandata /90.,mediandata * 50.)
+    ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    #ax2.set_ylim( mediandata /90., mediandata * 50.)
+    ax2.set_ylim( mediandata /90., mediandata * 50.)
 
 
     ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())

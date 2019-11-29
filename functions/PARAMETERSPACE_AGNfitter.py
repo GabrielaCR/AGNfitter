@@ -21,6 +21,7 @@ from collections import Iterable
 import itertools
 import pickle
 import MODEL_AGNfitter as model
+import PRIORS_AGNfitter as priors
 
 def flatten(lis):
      for item in lis:
@@ -30,7 +31,8 @@ def flatten(lis):
          else:        
              yield item
 
-def Pdict (data):
+###!!!def Pdict (data):
+def Pdict (data, models):
 
     """Constructs a dictionary P with the name of all model parameters as keys. 
     The values are tuples with the same length, with the parameter limits. 
@@ -39,7 +41,8 @@ def Pdict (data):
     - data object
     """
     P = dict()
-    ga,sb,to,bb= data.dictkey_arrays
+    ###!!!ga,sb,to,bb= data.dictkey_arrays
+    ga,sb,to,bb= models.dictkey_arrays
     par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
     par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
@@ -48,8 +51,9 @@ def Pdict (data):
     ## Add normalization parameters:
     if len(bb.par_names)==1:
        ## With tor but correct 
-        [par_mins.append(i) for i in [-10,-10.,-10.,-10.]]
-        [par_maxs.append(i)for i in [10.,10,10,-9]]
+        [par_mins.append(i) for i in [-10,-10.,-13,-10.]]
+        [par_maxs.append(i)for i in [10.,10,10,3]]
+        #[par_maxs.append(i)for i in [10.,10,10,-9]]
         normpars=['GA','SB','TO','BB'] 
 
     else:
@@ -65,6 +69,11 @@ def Pdict (data):
     P['priortype'] = np.array(['non-info']*Npar)
     P['min'] = par_mins
     P['max'] = par_maxs    
+    for i,ps in enumerate(P['names']): ### Maximum age is the age of the Universe
+        if P['names'][i]=='age':
+            P['max'][i] =np.log10(priors.maximal_age(data.z))
+        if P['names'][i]=='tau':
+            P['max'][i] =np.log10(priors.maximal_age(data.z))
     P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
     return P  
@@ -74,7 +83,8 @@ PRIOR, LIKELIHOOD, POSTERIOR
 ---------------------------"""
 
 
-def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
+def ln_prior(data, models, P, *pars):
+###!!! def ln_prior(dictkey_arrays, dict_modelfluxes, P, pars):
 
     """Calculates the prior probability on the parameters.
 
@@ -82,34 +92,46 @@ def ln_prior(z, dlum,bands, gal_Fnu, P, pars):
     (2) Flat prior on the galaxy, using the B-band magnitude expected 
          from the galaxy luminosity function as a maximum of the prior.
 
-    ## inputs: z, dlum,bands, gal_Fnu, P, pars
-    ## output: -inf or 0.
     """
-
-    #1. Flat priors
     for i,p in enumerate(pars):
         if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
             return -np.inf
-    def prior_energy_balance():
 
-        L_IR = get_IRlum(pars_SB)
-        L_att = get_att_lumdiff(pars_gal, EBVgal)
-        if (L_IR-L_att)**2>L_att*0.25:
-            return -np.inf
+    prior= priors.PRIORS(data, models, P, *pars)
+    # if prior!=0 :
+    #     print prior
+    return prior
 
-    def prior_gal_luminosity(z, dlum, bands, gal_Fnu):
-        B_band_expected, B_band_thispoint = galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
-        #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
-        if B_band_thispoint < (B_band_expected - 5):#2.5):
-            return -np.inf
+    ###!!!return model.PRIORS(dictkey_arrays, dict_modelfluxes, P, *pars)
+#    return 0.
+    #1. Flat priors
+    # for i,p in enumerate(pars):
+    #     if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
+    #         return -np.inf
+
+    # Lgal_att, Lsb_emit = prior_energy_balance (dictkey_arrays, dict_modelfluxes, P, *pars)
+    # if Lsb_emit < Lgal_att:
+    #     ###!!! if np.sqrt((dust_emit-gal_abs)**2) > galabs_int*0.25:
+    #     return -np.inf
+
+    # def prior_gal_luminosity(z, dlum, bands, gal_Fnu):
+    #     B_band_expected, B_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
+    #     #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
+    #     if B_band_thispoint < (B_band_expected - 5):#2.5):
+    #         return -np.inf
+
+    # def prior_QSO_LF(z, dlum, bands, gal_Fnu):
+    #     J_band_expected, J_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
+    #     if J_band_thispoint < (J_band_expected - 5):#2.5):
+    #         return -np.inf
 
     #2. Prior on the luminosity
-    #B_band_expected, B_band_thispoint = galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)    # Bband expectations
+    #B_band_expected, B_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)    # Bband expectations
     #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
     #if B_band_thispoint < (B_band_expected - 5):#2.5):
     #    return -np.inf
 
-    return 0.
+    #return 0.
 
 
 
@@ -135,9 +157,8 @@ def ln_likelihood(x, y, ysigma, z, ymodel):
     return -0.5 * np.dot(resid, resid)
 
 
-
-
-def ln_probab(pars, data, P):
+###!!!def ln_probab(pars, data, P):
+def ln_probab(pars, data, models, P):
 
     """Calculates the posterior probability as Ppos= Pprior + Pdata
     ## inputs:
@@ -151,8 +172,15 @@ def ln_probab(pars, data, P):
     ## dependencies:
     - MCMC_AGNfitter.py"""
 
-    y_model, bands, gal_Fnu = ymodel(data.nus, data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
-    lnp = ln_prior(data.z, data.dlum, bands, gal_Fnu, P, pars)
+    ###!!!y_model, bands, gal_Fnu = ymodel(data.nus, data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
+    ###!!!    
+    y_model, bands  = ymodel(data.nus, data.z, data.dlum, models.dictkey_arrays, models.dict_modelfluxes, P, *pars)
+
+    ###!!!lnp = ln_prior(data.z, data.dlum, bands, gal_Fnu, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
+    ###!!!    
+    lnp = ln_prior(data, models, P, *pars)
+    ###!!! lnp = ln_prior(data.z, data.dlum, bands, models.priors, P, pars)
+
 
     if np.isfinite(lnp):    
         posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model)     
@@ -183,7 +211,7 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
 
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_ = dict_modelfluxes
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_ = dict_modelfluxes
 
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
@@ -194,7 +222,7 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
     try: 
-        bands, gal_Fnu = GALAXYFdict[gal_obj.matched_parkeys]   
+        bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
         _, sb_Fnu= STARBURSTFdict[sb_obj.matched_parkeys] 
         _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]  
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
@@ -216,39 +244,8 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     #--------------------------------------------------------------------    
     lum = lum.reshape((np.size(lum),))
 
-    return lum, bands, 10**(GA)*gal_Fnu
+    return lum, bands###, 10**(GA)*gal_Fnu ###!!!10**(GA)*gal_abs_Fnu_int, 10**(SB)*LIR 
 
-
-def galaxy_Lumfct_prior( z, dlum, bands, gal_flux):
-
-    """This function calculates 
-    (1)the Bband magnitude of the galaxy template
-    (2)the Bband magnitude expected from the galaxy luminosity function
-         given in Iovino et al. (2010)
-    ## inputs:
-    -    z(float), dlum(float), bands(array), gal_flux (array)"""
-
-    # Calculated B-band at this parameter space point
-    h_70 = 1.
-    lumfactor = (4. * pi * dlum**2.)
-
-    flux_B = gal_flux[(14.790 < bands)&(bands < 14.870)]
-    if len(flux_B)>1:
-        flux_B = flux_B[0]
-    mag1= -2.5 * np.log10(flux_B) - 48.6
-    distmod = -5.0 * np.log10((dlum/3.08567758e24 *1e6)/10) 
-    abs_mag1 = mag1 + distmod
-    thispoint1 = abs_mag1
-
-    lum_B = lumfactor * flux_B
-    abs_mag = 51.6 - 2.5 *np.log10(lum_B)
-    thispoint = abs_mag
-
-    # Expected B-band calculation (Iovino et al. (2010))
-    expected = -20.3 - (5 * np.log10(h_70) )- (1.1 * z) 
-
-
-    return expected,thispoint
 
 
 """--------------------------------------
