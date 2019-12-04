@@ -2,7 +2,6 @@ import numpy as np
 from math import exp,pi, sqrt
 import matplotlib.pyplot as plt
 import time
-import cPickle
 from astropy.table import Table
 from astropy.io import fits, ascii
 import scipy
@@ -53,7 +52,7 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['XRAYS']==True:  
 
-    	prior=  prior_xrays(data, models, P, *pars)
+        prior=  prior_xrays(data, models, P, *pars)
         all_priors.append(a)
 
     if modelsettings['RADIO']==True:  

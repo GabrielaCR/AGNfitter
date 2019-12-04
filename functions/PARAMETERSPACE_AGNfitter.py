@@ -20,12 +20,11 @@ import time
 from collections import Iterable
 import itertools
 import pickle
-import MODEL_AGNfitter as model
-import PRIORS_AGNfitter as priors
+from . import PRIORS_AGNfitter as priors
 
 def flatten(lis):
      for item in lis:
-         if isinstance(item, Iterable) and not isinstance(item, basestring):
+         if isinstance(item, Iterable) and not isinstance(item, str):
              for x in flatten(item):
                  yield x
          else:        
@@ -101,37 +100,6 @@ def ln_prior(data, models, P, *pars):
     # if prior!=0 :
     #     print prior
     return prior
-
-    ###!!!return model.PRIORS(dictkey_arrays, dict_modelfluxes, P, *pars)
-#    return 0.
-    #1. Flat priors
-    # for i,p in enumerate(pars):
-    #     if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
-    #         return -np.inf
-
-    # Lgal_att, Lsb_emit = prior_energy_balance (dictkey_arrays, dict_modelfluxes, P, *pars)
-    # if Lsb_emit < Lgal_att:
-    #     ###!!! if np.sqrt((dust_emit-gal_abs)**2) > galabs_int*0.25:
-    #     return -np.inf
-
-    # def prior_gal_luminosity(z, dlum, bands, gal_Fnu):
-    #     B_band_expected, B_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
-    #     #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
-    #     if B_band_thispoint < (B_band_expected - 5):#2.5):
-    #         return -np.inf
-
-    # def prior_QSO_LF(z, dlum, bands, gal_Fnu):
-    #     J_band_expected, J_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)
-    #     if J_band_thispoint < (J_band_expected - 5):#2.5):
-    #         return -np.inf
-
-    #2. Prior on the luminosity
-    #B_band_expected, B_band_thispoint = priors.galaxy_Lumfct_prior( z, dlum, bands, gal_Fnu)    # Bband expectations
-    #if Bband magnitude in this trial is brighter than expected by the luminosity function, dont accept this one
-    #if B_band_thispoint < (B_band_expected - 5):#2.5):
-    #    return -np.inf
-
-    #return 0.
 
 
 
@@ -227,7 +195,7 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
         _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]  
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
-        print 'Error: Dictionary does not contain some values'
+        print ('Error: Dictionary does not contain some values')
 
     ### Normalization is not a free parameter for M_bh-dependent models
     if len(bbb_obj.par_names)==1:

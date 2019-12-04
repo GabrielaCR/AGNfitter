@@ -19,7 +19,7 @@ import sys
 from collections import defaultdict
 import sys,os
 import time
-import cPickle
+import pickle
 import shelve
 from astropy import units as u 
 from astropy.table import Table
@@ -51,16 +51,16 @@ class FILTER:
 		self.original_filename=filename
 		self.description = description
 		## Extract lambdas and throughput factors from files
-		print filename, 
+		print (filename) 
 		wl_or_freq, self.factors =  np.loadtxt(filename, usecols=(0,1),unpack= True)
-		print 'Done'
+		print ('Done')
 
 		if freqwl_format == 'frequency':
 		    newfilter_lambdas = wl_or_freq* freqwl_unit.to(u.Angstrom, equivalencies=u.spectral())
 		elif freqwl_format == 'wavelength':
 		    newfilter_lambdas = wl_or_freq* freqwl_unit.to(u.Angstrom)
 		else:
-		    print 'ERROR: Please enter the strings "frequency" or "wavelength" for the ADDfilters[freq/wl_format].'
+		    print ('ERROR: Please enter the strings "frequency" or "wavelength" for the ADDfilters[freq/wl_format].')
 
 		self.lambdas = newfilter_lambdas
 		c= 2.997e8
@@ -91,8 +91,7 @@ class FILTER_SET:
 		 'Y_VISTA', 'z_SUBARU', 'i_SUBARU', 'r_SUBARU', 'B_SUBARU', 'u_CHFT',\
 		  'GALEX_2500']
 
-		 	filters_objects_chosen = [o for o in filters_objects_all.values() \
-								  if o.filtername in default_filters]
+			filters_objects_chosen = [o for o in filters_objects_all.values() if o.filtername in default_filters]
 		else:
 			# filters_objects_chosen = [o for o in filters_objects_all.values() \
 			# 						  if filtersdict[o.filtername]==True]
@@ -103,7 +102,7 @@ class FILTER_SET:
 						if filtersdict[o.filtername]==True or True in filtersdict[o.filtername]:
 							filters_objects_chosen.append(o)
 				except:
-						print 'Filter ',o.filtername, ' still needs to be added.'
+						print ('Filter ',o.filtername, ' still needs to be added.')
 					
 		self.filternames =[i.filtername for i in filters_objects_chosen]
 		#dictionaries lambdas_dict, factors_dict
@@ -123,7 +122,7 @@ class FILTER_SET:
 
 	def save(self,filename):
 		f = open(filename, 'wb')
-		cPickle.dump(self, f, protocol=2)
+		pickle.dump(self, f, protocol=2)
 		f.close()
 
 
@@ -152,12 +151,12 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 		central_nus = [filters_objects_all[i].central_nu for i in ADDfilters_dict['names']]
 		IDs= [filters_objects_all[i].ID for i in ADDfilters_dict['names']]
 		f = open(filters_objects_all_filename, 'wb')
-		cPickle.dump(filters_objects_all, f, protocol=2) 
+		pickle.dump(filters_objects_all, f, protocol=2) 
 
 	## Add the user's new filters 
 	else: 
 		with open(filters_objects_all_filename, "rb") as f: ## Get old set of all filters
-			filters_objects_all = cPickle.load(f)
+			filters_objects_all = pickle.load(f)
 		f.close()
 
 		for i in range(len(ADDfilters_dict['names'])): ## Add the new ones
@@ -211,7 +210,7 @@ def create_filtersets(filters_dict, path):
 		ADDfilters_dict = filters_dict['add_filters_dict']
 		add_newfilters(filters_objects_all_filename, ADDfilters_dict, path)	    	
 
-	filters_objects_all = cPickle.load(file(filters_objects_all_filename, 'rb'))
+	filters_objects_all = pickle.load(file(filters_objects_all_filename, 'rb'))
 	filterset = FILTER_SET(filters_dict['filterset'], filters_dict, filters_objects_all)
 
 	return filterset

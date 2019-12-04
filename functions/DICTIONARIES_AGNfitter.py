@@ -19,13 +19,13 @@ import numpy as np
 import sys
 from collections import defaultdict
 
-import MODEL_AGNfitter as model
-import FILTERS_AGNfitter as filterpy
+from . import MODEL_AGNfitter as model
+from . import FILTERS_AGNfitter as filterpy
 
 from scipy.integrate  import trapz
 from scipy.interpolate import interp1d
 import time
-import cPickle
+import pickle
 from astropy import units as u 
 
 
@@ -58,19 +58,19 @@ class MODELSDICT:
                     
         a = dict.fromkeys(filters)
 
-        for i in range(len(a.keys())):
+        for i in range(len(list(a.keys()))):
 
-            if a.keys()[i] == 'add_filters' or a.keys()[i] == 'dict_zarray' or a.keys()[i] == 'add_filters_dict' or a.keys()[i] == 'path':
+            if list(a.keys())[i] == 'add_filters' or list(a.keys())[i] == 'dict_zarray' or list(a.keys())[i] == 'add_filters_dict' or list(a.keys())[i] == 'path':
 
-                a[a.keys()[i]] = filters[a.keys()[i]]               
+                a[list(a.keys())[i]] = filters[list(a.keys())[i]]               
                 
             else:
-                a[a.keys()[i]] = filters[a.keys()[i]]#[0]
+                a[list(a.keys())[i]] = filters[list(a.keys())[i]]#[0]
 
         #print a
         self.filters_list = a
         if os.path.lexists(filename):
-            self.fo = cPickle.load(file(filename, 'rb'))
+            self.fo = pickle.load(file(filename, 'rb'))
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
         else:

@@ -20,7 +20,6 @@ from astropy import constants as const
 from astropy import units as u
 from astropy.table import Table
 from astropy.io import fits
-import cPickle
 import functions.MODEL_AGNfitter as model
 #import functions.DICTIONARIES_AGNfitter as dicts
 #import functions.FILTERS_AGNfitter as filterpy
@@ -46,7 +45,7 @@ class DATA_all:
         #self.sourceline = sourceline
         self.catalog = cat['filename']
         if not os.path.lexists(cat['filename']):
-            print 'ERROR: Catalog does not exist under this name '+cat['filename']
+            print ('ERROR: Catalog does not exist under this name '+cat['filename'])
             sys.exit(1)
         self.path = cat['path']
         self.output_folder = cat['output_folder']
@@ -79,15 +78,15 @@ class DATA_all:
                 del dictionary['path'];
 
                 list_centralwls = []
-                for i in range(len(dictionary.keys())):
+                for i in range(len(list(dictionary.keys()))):
 
                     for j in range(len(names)):
                         try:
                             ### The filter dictionary need to have to entries [True/False, column_number]
-                            if dictionary.keys()[i] == names[j] and dictionary[dictionary.keys()[i]][0]:
-                                list_centralwls.append([ dictionary[dictionary.keys()[i]][1], centralwls[j]])
+                            if list(dictionary.keys())[i] == names[j] and dictionary[list(dictionary.keys())[i]][0]:
+                                list_centralwls.append([ dictionary[list(dictionary.keys())[i]][1], centralwls[j]])
                         except:
-                            print dictionary.keys()[i], 'not in list'
+                            print (list(dictionary.keys())[i], 'not in list')
                         #elif names[j] not in dictionary.keys()[i]:
                             #print 'ERROR: ',str(names[j]) ,' needs to be added.'
 
@@ -223,7 +222,7 @@ class DATA_all:
                             if dictionary.keys()[i] == names[j] and dictionary[dictionary.keys()[i]][0]:
                                 list_centralwls.append([ dictionary[dictionary.keys()[i]][1], centralwls[j]])
                         except:
-                            print dictionary.keys()[i], 'not in list'
+                            print (dictionary.keys()[i], 'not in list')
                         #elif names[j] not in dictionary.keys()[i]:
                             #print 'ERROR: ',str(names[j]) ,' needs to be added.'
 
@@ -345,7 +344,7 @@ class DATA():
         #self.sourceline = sourceline
         self.catalog = catalog.cat['filename']
         if not os.path.lexists(catalog.cat['filename']):
-            print 'Catalog does not exist under this name.'
+            print ('Catalog does not exist under this name.')
         self.path = catalog.cat['path']
         self.output_folder = catalog.cat['output_folder']
 

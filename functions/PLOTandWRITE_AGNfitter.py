@@ -25,15 +25,15 @@ from matplotlib import rc, ticker
 import sys, os
 import math 
 import numpy as np
-import corner #Author: Dan Foreman-Mackey (danfm@nyu.edu)
+from . import corner #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import scipy
 from astropy import units as u
 from astropy import constants as const
 
 #AGNfitter IMPORTS
-import MODEL_AGNfitter as model
-import PARAMETERSPACE_AGNfitter as parspace
-import cPickle
+from . import MODEL_AGNfitter as model
+from . import PARAMETERSPACE_AGNfitter as parspace
+import pickle
 
 
 
@@ -57,10 +57,10 @@ def main(data, models, P, out, models_settings):
     chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/samples_mcmc.sav',  out)
     chain_mcmc.props()
 
-    print '_________________________________'
-    print 'Properties of the sampling results:'
-    print '- Mean acceptance fraction', chain_mcmc.mean_accept
-    print '- Mean autocorrelation time', chain_mcmc.mean_autocorr
+    print( '_________________________________')
+    print( 'Properties of the sampling results:')
+    print( '- Mean acceptance fraction', chain_mcmc.mean_accept)
+    print( '- Mean autocorrelation time', chain_mcmc.mean_autocorr)
 
     output = OUTPUT(chain_mcmc, data, models, P, models_settings)
 
@@ -162,8 +162,8 @@ class OUTPUT:
             SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
 
             chain_others =np.column_stack((self.int_lums.T, SFR_IR))
-            outputvalues = np.column_stack((np.transpose(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0)))),
-                                            np.transpose(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0)))),
+            outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
+                                            np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
                                             np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
 
 
@@ -171,7 +171,8 @@ class OUTPUT:
             outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
 
         else:
-            outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
+            #outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
+            outputvalues = np.column_stack(([(v[1], v[2]-v[1], v[1]-v[0]) for v in zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))])) 
             outputvalues_header=' '.join( [ i for i in P['names']] )
         return outputvalues, outputvalues_header
 
@@ -213,7 +214,6 @@ class OUTPUT:
         SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
 
         #plotting settings
-        print self.data.fluxes
         fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
         SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
@@ -237,7 +237,7 @@ class OUTPUT:
 
 
         ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
-        print ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.'
+        print( ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
         return fig
 
@@ -267,7 +267,7 @@ class CHAIN:
     def props(self):
         if os.path.lexists(self.outputfilename):
             f = open(self.outputfilename, 'rb')
-            samples = cPickle.load(f)
+            samples = pickle.load(f, encoding='latin1')
             f.close()
 
             self.chain = samples['chain']

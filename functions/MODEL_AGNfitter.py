@@ -22,7 +22,7 @@ import numpy as np
 from math import exp,pi, sqrt
 import matplotlib.pyplot as plt
 import time
-import cPickle
+import pickle
 from astropy.table import Table
 from astropy.io import fits, ascii
 import scipy
@@ -69,7 +69,7 @@ def GALAXY(path, modelsettings):
         GALAXY_SFRdict = dict()
         ## Call object containing all galaxy models     
         #BC03dict = cPickle.load(file(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'))    
-        BC03dict = cPickle.load(file(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'))    
+        BC03dict = pickle.load(file(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'))    
 
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
@@ -123,7 +123,7 @@ def GALAXY(path, modelsettings):
         GALAXYatt_dict = dict()
         ## Call object containing all galaxy models     
 
-        BC03dict = cPickle.load(file(path + 'models/GALAXY/BC03_seds_metal_medium.pickle', 'rb'))    
+        BC03dict = pickle.load(file(path + 'models/GALAXY/BC03_seds_metal_medium.pickle', 'rb'))    
 
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
@@ -171,7 +171,7 @@ def STARBURST(path, modelsettings):
         STARBURSTFdict_4plot = dict()
 
         #Call object containing all starburst models     
-        DH02CE01dict = cPickle.load(file(path + 'models/STARBURST/DH02_CE01.pickle', 'rb')) 
+        DH02CE01dict = pickle.load(file(path + 'models/STARBURST/DH02_CE01.pickle', 'rb')) 
         irlumidx = len(DH02CE01dict['SED'])
 
         #Construct dictionaries 
@@ -320,7 +320,7 @@ def BBB(path, modelsettings):
     if modelsettings['BBB']=='R06':
 
         BBBFdict_4plot = dict()
-        R06dict = cPickle.load(file(path + 'models/BBB/R06.pickle', 'rb')) 
+        R06dict = pickle.load(file(path + 'models/BBB/R06.pickle', 'rb')) 
         parameters_names =['EBVbbb']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
@@ -340,7 +340,7 @@ def BBB(path, modelsettings):
 
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
-        SN12dict = cPickle.load(file(path + 'models/BBB/SN12.pickle', 'rb'))    
+        SN12dict = pickle.load(file(path + 'models/BBB/SN12.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra', 'EBVbbb']#SN12dict['parameters']
 
         ## specify the sizes of the array of parameter values: Here two parameters
@@ -368,7 +368,7 @@ def BBB(path, modelsettings):
 
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
-        D12dict = cPickle.load(file(path + 'models/BBB/D12_S.pickle', 'rb'))    
+        D12dict = pickle.load(file(path + 'models/BBB/D12_S.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
 
         ## specify the sizes of the array of parameter values: Here two parameters
@@ -401,7 +401,7 @@ def BBB(path, modelsettings):
 
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
-        D12dict = cPickle.load(file(path + 'models/BBB/D12_K.pickle', 'rb'))    
+        D12dict = pickle.load(file(path + 'models/BBB/D12_K.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
 
         ## specify the sizes of the array of parameter values: Here two parameters
@@ -431,20 +431,18 @@ def BBB(path, modelsettings):
         return BBBFdict_4plot, parameters_names
 
     else:
-        print ' '
-        print 'ERROR: The model with the name "'+modelsettings['BBB']+'" does not exist.'
+        print (' ')
+        print ('ERROR: The model with the name "'+modelsettings['BBB']+'" does not exist.')
 
 
 def TORUS(path, modelsettings):
-
-    print modelsettings
 
     if modelsettings['TORUS']=='S04':    
 
         TORUSFdict_4plot  = dict()
 
         #Call object containing all torus models     
-        S04dict = cPickle.load(file(path + 'models/TORUS/S04.pickle', 'rb')) 
+        S04dict = pickle.load(file(path + 'models/TORUS/S04.pickle', 'rb')) 
         parameters_names = ['Nh']
         nhidx=len(S04dict['SED'])
         #Construct dictionaries 
@@ -463,7 +461,7 @@ def TORUS(path, modelsettings):
         
         TORUSFdict_4plot  = dict()
 
-        NK0 = cPickle.load(file(path + 'models/TORUS/nenkova_v0.pickle', 'rb'))  #torus_object = cPickle.load(file(path + 'models/TORUS/silva_v1.pickle', 'rb')) 
+        NK0 = pickle.load(file(path + 'models/TORUS/nenkova_v0.pickle', 'rb'))  #torus_object = pickle.load(file(path + 'models/TORUS/silva_v1.pickle', 'rb')) 
         incl_idx=len(NK0.SED) #nhidx=len(torus_object.SED)
         #Construct dictionaries 
         for incl_i in range(incl_idx): #for nhi in range(nhidx):
@@ -510,7 +508,7 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, radioexcess):
 
     else:
 
-        print 'No radio data included in the fit.'
+        print ('No radio data included in the fit.')
 
 
 def XRAYS(modelsettings):
@@ -527,7 +525,7 @@ def XRAYS(modelsettings):
 
     else:
 
-        print 'No X-ray data included in the fit.'
+        print ('No X-ray data included in the fit.')
 
 
 
