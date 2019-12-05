@@ -210,7 +210,7 @@ def create_filtersets(filters_dict, path):
 		ADDfilters_dict = filters_dict['add_filters_dict']
 		add_newfilters(filters_objects_all_filename, ADDfilters_dict, path)	    	
 
-	filters_objects_all = pickle.load(file(filters_objects_all_filename, 'rb'))
+	filters_objects_all = pickle.load(open(filters_objects_all_filename, 'rb'))
 	filterset = FILTER_SET(filters_dict['filterset'], filters_dict, filters_objects_all)
 
 	return filterset

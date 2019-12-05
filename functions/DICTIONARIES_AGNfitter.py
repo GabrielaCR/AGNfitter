@@ -70,7 +70,7 @@ class MODELSDICT:
         #print a
         self.filters_list = a
         if os.path.lexists(filename):
-            self.fo = pickle.load(file(filename, 'rb'))
+            self.fo = pickle.load(open(filename, 'rb'))
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
         else:
