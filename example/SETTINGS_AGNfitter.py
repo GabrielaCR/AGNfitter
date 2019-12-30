@@ -186,7 +186,7 @@ def OUTPUT_settings():
     out['Nthinning'] = 10 ## This describes thinning of the chain to sample
     out['writepar_meanwitherrors'] = True ##Write output values for all parameters in a file.
     out['plot_posteriortriangle'] = False ##Plot triangle with all parameters' PDFs?
-
+    out['chi_squared_value'] = True ##Write chi-squared value of best-fit SED, excludes upper limits
     #INTEGRATED LUMINOSITIES
     out['calc_intlum'] = True  
     out['realizations2int'] = 100 #This process is very time consuming.
