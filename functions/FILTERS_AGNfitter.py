@@ -24,7 +24,7 @@ import shelve
 from astropy import units as u 
 from astropy.table import Table
 from astropy.io import ascii
-
+import locale
 
 
 class FILTER:
@@ -154,9 +154,10 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 		pickle.dump(filters_objects_all, f, protocol=2) 
 
 	## Add the user's new filters 
-	else: 
-		with open(filters_objects_all_filename, "rb") as f: ## Get old set of all filters
-			filters_objects_all = pickle.load(f)
+	else:
+		locale.getpreferredencoding(False) 
+		with open(filters_objects_all_filename, 'rb') as f: ## Get old set of all filters
+			filters_objects_all = pickle.load(f, encoding='latin1')
 		f.close()
 
 		for i in range(len(ADDfilters_dict['names'])): ## Add the new ones
@@ -168,8 +169,8 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 				'ERROR in adding new filter: "'+ ADDfilters_dict['names'][i] + '" is already recorded.'	
 
 	## Save the info of all filters, including new added ones in a table ALL_FILTERS_info.dat.
-	filters_table = Table(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.3f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()])) ,\
-					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') )
+	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.3f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()])) ,\
+					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') ))
 	filters_table_sorted =filters_table.sort('central nu (log Hz)')
 	ascii.write(filters_table, path + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter ='|', overwrite=True)
 
