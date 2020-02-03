@@ -155,7 +155,6 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 
 	## Add the user's new filters 
 	else:
-		locale.getpreferredencoding(False) 
 		with open(filters_objects_all_filename, 'rb') as f: ## Get old set of all filters
 			filters_objects_all = pickle.load(f, encoding='latin1')
 		f.close()
@@ -169,14 +168,14 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 				'ERROR in adding new filter: "'+ ADDfilters_dict['names'][i] + '" is already recorded.'	
 
 	## Save the info of all filters, including new added ones in a table ALL_FILTERS_info.dat.
-	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.3f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()])) ,\
-					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') ))
+	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.3f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()]))) ,\
+					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') )
 	filters_table_sorted =filters_table.sort('central nu (log Hz)')
 	ascii.write(filters_table, path + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter ='|', overwrite=True)
 
 	## save again the dictionary of all FILTER objects, now including the new aded ones.
 	a = open(filters_objects_all_filename, 'wb')
-	cPickle.dump(filters_objects_all, a, protocol=2) ## save list of FILTER objects
+	pickle.dump(filters_objects_all, a, protocol=2) ## save list of FILTER objects
 
 	## Tell the user to add the new filters to the settings file,
 	## So that these can be reused for other configurations.
@@ -211,7 +210,8 @@ def create_filtersets(filters_dict, path):
 		ADDfilters_dict = filters_dict['add_filters_dict']
 		add_newfilters(filters_objects_all_filename, ADDfilters_dict, path)	    	
 
-	filters_objects_all = pickle.load(open(filters_objects_all_filename, 'rb'))
+	a=open(filters_objects_all_filename, 'rb')
+	filters_objects_all = pickle.load(a, encoding='latin1')
 	filterset = FILTER_SET(filters_dict['filterset'], filters_dict, filters_objects_all)
 
 	return filterset

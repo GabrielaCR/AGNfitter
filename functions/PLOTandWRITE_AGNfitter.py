@@ -646,13 +646,14 @@ def SED_plotting_settings(x, ydata, modeldata):
 
 
     mediandata = np.median(ydata)
+    ax1.set_ylim(1e33,1e46)
     ax1.set_ylim(mediandata /90.,mediandata * 50.)
     ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
     ax2.set_ylim( mediandata /90., mediandata * 50.)
-
+    #ax2.set_ylim(1e33,1e46)
 
     ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
     ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5)

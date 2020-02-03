@@ -209,23 +209,19 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
 
         t1= time.time()
         #MCMC_AGNfitter.main(data, models, P, mc)
-        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+        #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings
         try:
             PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
             print ( 'Done already'  )      
         except:
             print ( 'Not done yet')
-            ###!!!MCMC_AGNfitter.main(data, P, mc)        
             MCMC_AGNfitter.main(data, models, P, mc)        
-
-            ###!!!PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
             PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
         print ( '_____________________________________________________')
         print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
 
     except EOFError: 
-        
         print ( 'Line ',line,' cannot be fitted.')
 
 def RUN_AGNfitter_onesource( line, data_obj, models_settings):

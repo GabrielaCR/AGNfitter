@@ -67,6 +67,8 @@ def GALAXY(path, modelsettings):
 
         GALAXYFdict_4plot = dict()
         GALAXY_SFRdict = dict()
+        GALAXYatt_dict = dict()
+
         ## Call object containing all galaxy models     
         BC03dict = pickle.load(open(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'), encoding='latin1')    
 
@@ -95,23 +97,21 @@ def GALAXY(path, modelsettings):
                 gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])  #erg/s/Hz                  
                 GALAXYFdict_4plot[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
                                                                                         np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)  
-                #GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
+                GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
                 gal_Fnu_int = scipy.integrate.trapz(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
                 gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red, x=gal_nu)
                 gal_att_int = gal_Fnu_int- gal_Fnured_int
+                GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
+
                 #print gal_Fnu_int, gal_Fnured_int, gal_att_int
-                GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] =  gal_att_int      
+                #GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] =  gal_att_int      
       
 
         # ## Name the parameters that compose the keyes of the dictionary: GALAXYFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['tau', 'age','EBVgal']
 
-        #plt.show()
-
-
-         
-        return  GALAXYFdict_4plot, GALAXY_SFRdict, parameters_names
+        return GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names
 
 
     elif modelsettings['GALAXY']=='BC03_metal':
@@ -168,25 +168,28 @@ def STARBURST(path, modelsettings):
     if modelsettings['STARBURST']=='DH02_CE01':
 
         STARBURSTFdict_4plot = dict()
+        STARBURST_LIRdict = dict()
 
         #Call object containing all starburst models     
-        DH02CE01dict = pickle.load(open(path + 'models/STARBURST/DH02_CE01.pickle', 'rb'),, encoding='latin1') 
+        DH02CE01dict = pickle.load(open(path + 'models/STARBURST/DH02_CE01.pickle', 'rb'), encoding='latin1') 
         irlumidx = len(DH02CE01dict['SED'])
 
         #Construct dictionaries 
         for irlumi in range(irlumidx):
             sb_nu0, sb_Fnu0 = DH02CE01dict['wavelength'][irlumi], DH02CE01dict['SED'][irlumi].squeeze()
             STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, renorm_template('SB',sb_Fnu0)
-
+            STARBURST_LIRdict[str(DH02CE01dict['irlum-values'][irlumi])] = pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6
+            print (pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6)
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['irlum']
 
-        return STARBURSTFdict_4plot, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
 
     elif modelsettings['STARBURST']=='S17':
 
         STARBURSTFdict_4plot = dict()
+        STARBURST_LIRdict = dict()
 
         #Call object containing all starburst models     
         dusttable = Table.read(path + 'models/STARBURST/s17_dust.fits')
@@ -217,12 +220,13 @@ def STARBURST(path, modelsettings):
             # print np.shape(sb_Fnu0), sb_Fnu0
 
             STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
+            STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = Lir[t]
 
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['Tdust', 'fracPAH']
 
-        return STARBURSTFdict_4plot, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
 
     elif modelsettings['STARBURST']=='S17_newmodel':
 
@@ -235,7 +239,7 @@ def STARBURST(path, modelsettings):
         Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
         Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
         Tdust = np.array(dusttable['TDUST'])[0] #K
-        Lir=  np.array(dusttable['LIR'])[0] *3.826e33 ###!!!*1e-6 #Lsum2ergs ### consider taking away renormalizaion 1e-6
+        Lir=  np.array(dusttable['LIR'])[0] *3.826e33 ###!!!*1e-6 #Lsun2ergs ### consider taking away renormalizaion 1e-6
         #fracPAH = np.arange(0.0, 5.5, 0.05)/100
         fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
 
@@ -346,7 +350,7 @@ def BBB(path, modelsettings):
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']
-        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)#np.array(np.arange(0.,100.,5.)/100)
 
         ## produce all combinations of parameter values (indices)
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])

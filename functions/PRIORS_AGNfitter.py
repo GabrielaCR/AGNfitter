@@ -129,15 +129,17 @@ def prior_low_AGNfraction(data, models, P, *pars):
 
     """Setting-up prior"""
     AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs)
+    if len(AGNfrac1500)>1:
+        AGNfrac1500=AGNfrac1500[0]
 
     if abs_mag_data > (characteristic_mag-2.): # If UV luminosity  is below the characteristic galaxy luminosity at that given redshifts
     									  # the luminosity is preferable fitted by the stellar component rather than the AGN,
     									  # unless the data strongly prefers it.
         mu = -2.
         sigma = 0.5
-        #prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
+        prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
         #prior_AGNfrac = Clipped_Gaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)        
-        prior_AGNfrac = Clipped_TophatAndGaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)
+        #prior_AGNfrac = Clipped_TophatAndGaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)
 
     elif abs_mag_data <= (characteristic_mag-2.):
         mu = -2

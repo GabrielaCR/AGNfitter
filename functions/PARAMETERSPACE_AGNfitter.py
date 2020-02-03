@@ -50,8 +50,8 @@ def Pdict (data, models):
     ## Add normalization parameters:
     if len(bb.par_names)==1:
        ## With tor but correct 
-        [par_mins.append(i) for i in [-10,-10.,-13,-10.]]
-        [par_maxs.append(i)for i in [10.,10,10,3]]
+        [par_mins.append(i) for i in [-10,-10.,-10,-10.]]
+        [par_maxs.append(i)for i in [10.,10,10,10]]
         #[par_maxs.append(i)for i in [10.,10,10,-9]]
         normpars=['GA','SB','TO','BB'] 
 
@@ -73,6 +73,9 @@ def Pdict (data, models):
             P['max'][i] =np.log10(priors.maximal_age(data.z))
         if P['names'][i]=='tau':
             P['max'][i] =np.log10(priors.maximal_age(data.z))
+        if P['names'][i]=='EBVbbb':####!!!
+            P['max'][i] =0.4
+
     P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
     return P  
