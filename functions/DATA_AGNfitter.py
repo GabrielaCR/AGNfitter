@@ -33,7 +33,7 @@ class DATA_all:
     ---------------
     Object with data info for the total catalog.
     It reads and processes all information about the catalog.
-    It returns arrays with all important values (sourcenames, redhisft, etc)
+    It returns arrays with all important values (sourcenames, redshift, etc)
     and gives it to the class DATA, which administrates it for each sourceline.
     
     input: catalogname
