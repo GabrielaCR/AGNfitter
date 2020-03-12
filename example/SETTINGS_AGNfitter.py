@@ -37,7 +37,7 @@ def CATALOG_settings():
 
     ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(2,56,3).tolist()                                  
+    cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                  
                                         ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
@@ -47,11 +47,12 @@ def CATALOG_settings():
 
     ##FLUXES 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['flux_unit'] = u.Jy             ## Astropy unit of *flux* (astropy-units)
-    cat['flux_list'] = np.arange(3,57,3).tolist()        
+    cat['flux_in_magAB'] = False # Option to calculate flux and flux_error from magnitude AB.
+    cat['flux_unit'] = u.Jy     ## Astropy unit of *flux* (astropy-units)
+    cat['flux_list'] = np.arange(2,51,2).tolist()        
                                         ## If ASCII: List of column indexes (int)
     #cat['flux_suffix'] = '_f'          ## If FITS: Common ending of all flux column names (str)    
-    cat['fluxerr_list'] = np.arange(4,58,3).tolist() 
+    cat['fluxerr_list'] = np.arange(3,52,2).tolist() 
                                         ## If ASCII: List of column indexes (int)
     #cat['fluxerr_suffix'] = '_e'       ## If FITS: common ending to fluxerr column names (str)
 
@@ -70,8 +71,10 @@ def CATALOG_settings():
                                       # Specially needed in order not to alter git original repository
                                       # and when using an external processor.
                                       # Default: cat['path'] (same as AGNfitter code path) 
-
+                                      
+    cat['use_central_wavelength'] = True # Option to use central wavelength if no wavelengths in table
     cat['output_folder'] =  cat['workingpath'] +'OUTPUT/' #if no special OUTPUT folder, leave default
+	cat['use_central_wavelength']:
 
 
     return cat

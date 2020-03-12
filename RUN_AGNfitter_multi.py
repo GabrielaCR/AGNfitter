@@ -185,44 +185,49 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     if clobbermodel and os.path.lexists(dictz):
         os.system('rm -rf '+dictz)
         print ( "removing source model dictionary "+dictz )
-    try:  
-        if not os.path.lexists(dictz):
-            zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings)
-            zdict.build()
-            f = open(zdict.filename, 'wb')
-            pickle.dump(zdict, f, protocol=2)
-            f.close()
+    
+    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc2.sav'):           
+        print('Done')
+    else:
+
+        try:  
+            if not os.path.lexists(dictz):
+                zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings)
+                zdict.build()
+                f = open(zdict.filename, 'wb')
+                pickle.dump(zdict, f, protocol=2)
+                f.close()
+                print ( '_____________________________________________________')
+                print ( 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.) )
+            else:
+                dictz = str.encode(dictz)
+                with open(dictz, 'rb') as f:
+                    zdict = pickle.load(f, encoding='latin1')
+            Modelsdictz = zdict.MD
+
+            ###!!!data.DICTS(filtersz, Modelsdictz)
+            ###!!!
+            models.DICTS(filtersz, Modelsdictz)
+
+            P = parspace.Pdict (data, models)   # Dictionary with all parameter space specifications.
+                                        # From PARAMETERSPACE_AGNfitter.py
+
+            t1= time.time()
+            #MCMC_AGNfitter.main(data, models, P, mc)
+            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings
+            try:            
+                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+                print ( 'Done already'  )      
+            except:
+                print ( 'Not done yet')
+                MCMC_AGNfitter.main(data, models, P, mc)        
+                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+
             print ( '_____________________________________________________')
-            print ( 'For this dictionary creation %.2g min elapsed'% ((time.time() - t0)/60.) )
-        else:
-            dictz = str.encode(dictz)
-            with open(dictz, 'rb') as f:
-                zdict = pickle.load(f, encoding='latin1')
-        Modelsdictz = zdict.MD
+            print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
 
-        ###!!!data.DICTS(filtersz, Modelsdictz)
-        ###!!!
-        models.DICTS(filtersz, Modelsdictz)
-
-        P = parspace.Pdict (data, models)   # Dictionary with all parameter space specifications.
-                                    # From PARAMETERSPACE_AGNfitter.py
-
-        t1= time.time()
-        #MCMC_AGNfitter.main(data, models, P, mc)
-        #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings
-        try:
-            PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
-            print ( 'Done already'  )      
-        except:
-            print ( 'Not done yet')
-            MCMC_AGNfitter.main(data, models, P, mc)        
-            PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
-
-        print ( '_____________________________________________________')
-        print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
-
-    except EOFError: 
-        print ( 'Line ',line,' cannot be fitted.')
+        except EOFError: 
+            print ( 'Line ',line,' cannot be fitted.')
 
 def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     """

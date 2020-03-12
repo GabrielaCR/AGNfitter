@@ -49,6 +49,13 @@ def PRIORS(data, models, P, *pars):
         prior= prior_low_AGNfraction(data, models, P, *pars)
         all_priors.append(prior)
 
+    if modelsettings['PRIOR_high_AGNfraction']==True:  
+        """
+        Allows the 
+        """
+        prior= prior_high_AGNfraction(data, models, P, *pars)
+        all_priors.append(prior)
+
 
     if modelsettings['XRAYS']==True:  
 
@@ -87,7 +94,7 @@ def prior_energy_balance(models, *par):
 
     if Lsb_emit < Lgal_att:
     ###!!! if np.sqrt((dust_emit-gal_abs)**2) > galabs_int*0.25:
-        return -np.inf
+        return -1 *np.inf
     else:
         return 0
 
@@ -113,6 +120,12 @@ def prior_low_AGNfraction(data, models, P, *pars):
     gal_flux_1500Angs = gal_flux[(14.7 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
     bbb_flux_1500Angs = bbb_flux[(14.7 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
 
+    if data_flux_1500Angs[-1]>0:### Check if it's not a non-detection (-99)
+        data_flux_1500Angs=data_flux_1500Angs
+    else:
+        data_flux_trial= data.fluxes[(14. < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.3 )]
+        data_flux_1500Angs=data_flux_trial[data_flux_trial>0]
+
     if len(data_flux_1500Angs)>1:
         gal_flux_1500Angs = gal_flux_1500Angs[-1]
         bbb_flux_1500Angs = bbb_flux_1500Angs[-1]
@@ -131,8 +144,7 @@ def prior_low_AGNfraction(data, models, P, *pars):
     AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs)
     if len(AGNfrac1500)>1:
         AGNfrac1500=AGNfrac1500[0]
-
-    if abs_mag_data > (characteristic_mag-2.): # If UV luminosity  is below the characteristic galaxy luminosity at that given redshifts
+    if abs_mag_data > (characteristic_mag-3.): # If UV luminosity  is below the characteristic galaxy luminosity at that given redshifts
     									  # the luminosity is preferable fitted by the stellar component rather than the AGN,
     									  # unless the data strongly prefers it.
         mu = -2.
@@ -140,12 +152,83 @@ def prior_low_AGNfraction(data, models, P, *pars):
         prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
         #prior_AGNfrac = Clipped_Gaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)        
         #prior_AGNfrac = Clipped_TophatAndGaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)
-
-    elif abs_mag_data <= (characteristic_mag-2.):
-        mu = -2
-        sigma = 1.
+    else: ##type2
+        mu = -2.
+        sigma = 2
         prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
 
+    return prior_AGNfrac
+
+def prior_high_AGNfraction(data, models, P, *pars):
+
+    _ , BBBFdict, GALAXYFdict, _,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
+    gal_obj,_,_, bbb_obj = models.dictkey_arrays
+
+    if len(bbb_obj.par_names)==1:
+        GA, SB, TO, BB= pars[-4:]
+    else:
+        GA, SB, TO = pars[-3:]
+
+    bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
+    bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
+
+    gal_flux= gal_Fnu* 10**(GA)
+    bbb_flux= bbb_Fnu* 10**(BB)
+
+    """calculate 1500 Angstrom magnitude in the data and model"""
+
+    data_flux_1500Angs = data.fluxes[(15. < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.3 )]
+    
+    if data_flux_1500Angs[-1]>0:### Check if it's not a non-detection (-99)
+        data_flux_1500Angs=data_flux_1500Angs
+    else:
+        data_flux_trial= data.fluxes[(14. < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.3 )]
+        data_flux_1500Angs=data_flux_trial[data_flux_trial>0]
+    
+    gal_flux_1500Angs = gal_flux[(14.7 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
+    bbb_flux_1500Angs = bbb_flux[(14.7 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
+    
+    if len(gal_flux_1500Angs)==0:
+        gal_flux_1500Angs = gal_flux[(14. < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
+        bbb_flux_1500Angs = bbb_flux[(14. < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 14.9)]
+
+    if len(data_flux_1500Angs)>1:
+        gal_flux_1500Angs = gal_flux_1500Angs[-1]
+        bbb_flux_1500Angs = bbb_flux_1500Angs[-1]
+        data_flux_1500Angs = data_flux_1500Angs[data_flux_1500Angs>0][-1]
+
+    lumfactor = (4. * pi * data.dlum**2.)
+    data_lum_1500Angs = lumfactor*data_flux_1500Angs
+    abs_mag_data = 51.6 - 2.5 *np.log10(data_lum_1500Angs)
+
+    """ Expected UV magnitude from Parsa, Dunlop et al. 2014.
+    These calculations are based on Hubble Ultra Deep Field (HUDF), CANDELS/GOODS-South,
+    and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts."""
+    characteristic_mag = -35.4 * (1+data.z)**0.524/(1+(1+data.z)**0.678)
+
+    """Setting-up prior"""
+    AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs)
+
+    if len(AGNfrac1500)>1:
+        AGNfrac1500=AGNfrac1500[0]
+
+    if abs_mag_data > (characteristic_mag-1.): # If UV luminosity  is below the characteristic galaxy luminosity at that given redshifts
+                                          # the luminosity is preferable fitted by the stellar component rather than the AGN,
+                                          # unless the data strongly prefers it.
+        mu = -2.
+        sigma = 0.5
+        prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
+        #prior_AGNfrac = Clipped_Gaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)        
+        #prior_AGNfrac = Clipped_TophatAndGaussian_prior(mu, sigma, -5, 0.2, AGNfrac1500)
+
+    elif abs_mag_data <= (characteristic_mag-1.):
+        if AGNfrac1500<1:
+            prior_AGNfrac=-np.inf
+        else:
+            mu = 3
+            sigma = 2.
+            prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
+            #print(AGNfrac1500, prior_AGNfrac)
     return prior_AGNfrac
 
 
