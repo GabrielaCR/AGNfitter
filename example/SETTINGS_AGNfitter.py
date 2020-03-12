@@ -94,53 +94,33 @@ def FILTERS_settings():
     filters['filterset'] = 'filterset_default' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
     
-    filters['SPIRE500'] = True
-    filters['SPIRE350'] = True
-    filters['SPIRE250'] = True
-    filters['PACS160'] = True
-    filters['PACS100'] = True
-    filters['MIPS160'] = True
-    filters['MIPS70'] = True
-    filters['MIPS24'] = True
-    filters['IRAC4'] = True
-    filters['IRAC3'] = True
-    filters['IRAC2'] = True
-    filters['IRAC1'] = True
-    filters['WISE4'] = True
-    filters['WISE3'] = True
-    filters['WISE2'] = True
-    filters['WISE1'] = True
-    filters['Ks_2mass'] = True
-    filters['H_2mass'] = True
-    filters['J_2mass'] = True
-    filters['H_VISTA'] = True
-    filters['J_VISTA'] = True
-    filters['K_VISTA'] = True
-    filters['Y_VISTA'] = True
-    filters['u_CHFT'] = True
-    filters['g_CHFT'] = True
-    filters['r_CHFT'] = True
-    filters['i_CHFT'] = True
-    filters['z_CHFT'] = True
-    filters['u_SDSS'] = True
-    filters['g_SDSS'] = True
-    filters['r_SDSS'] = True
-    filters['i_SDSS'] = True
-    filters['z_SDSS'] = True
-    filters['g_SUBARU'] = True
-    filters['r_SUBARU'] = True
-    filters['i_SUBARU'] = True
-    filters['z_SUBARU'] = True
-    filters['B_SUBARU'] = True
-    filters['V_SUBARU'] = True
-    filters['GALEX_2500'] = True
-    filters['GALEX_1500'] = True
-    filters['MUSYC_U'] = True
-    filters['MUSYC_B'] = True
-    filters['MUSYC_V'] = True
-    filters['MUSYC_R'] = True
-    filters['MUSYC_I'] = True
-    filters['MUSYC_z'] = True
+    filters['SPIRE500'] = [True, 24]
+    filters['SPIRE350'] = [True, 23]
+    filters['SPIRE250'] = [True, 22]
+    filters['PACS160'] = [True, 21]
+    filters['PACS100'] = [True, 20]
+    filters['MIPS24'] = [True, 19]
+    filters['WISE4'] = [True, 18]
+    filters['WISE3'] = [True, 17]
+    filters['WISE2'] = [True, 16]
+    filters['WISE1'] = [True, 15]
+    filters['IRAC4'] = [True, 14]
+    filters['IRAC3'] = [True, 13]
+    filters['IRAC2'] = [True, 12]
+    filters['IRAC1'] = [True, 11]
+    filters['Ks_NEWFIRM'] = [True, 10]
+    filters['K_NEWFIRM'] = [True, 9]
+    filters['H_NEWFIRM'] = [True, 8]
+    filters['J_NEWFIRM'] = [True, 7]
+    filters['Y_VISTA'] = [True, 6]
+    #filters['z_SUBARU'] = [True, 6]
+    filters['z_CHFT'] = [True, 5]
+    filters['I_NOAO'] = [True, 4]
+    filters['R_NOAO'] = [True, 3]
+    filters['Bw_NOAO'] = [True, 2]
+    filters['U_VIMOS'] = [True, 1]
+    filters['GALEX_2500'] = [True, 0]
+
 
     filters['add_filters']= False # If 'True' please add them below in ADD FILTERS
 
@@ -172,19 +152,20 @@ def MODELS_settings():
     Work in progress
     =================================="""
 
+
     models = dict()
     models['path'] = 'models/' 
     models['modelset'] = 'modelsv1'
 
 
-    models['GALAXY'] = 'BC03'   ### Current options:
+    models['GALAXY'] = 'BC03_metal'   ### Current options:
                                 ### 'BC03' (Bruzual & Charlot 2003)
-
-    models['STARBURST'] = 'S17' ### Current options:
+                                ### 'BC03_metal' (Bruzual & Charlot 2003), with metallicities
+    models['STARBURST'] = 'S17_newmodel' ### Current options:
                                 ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
                                 ### 'S07' (Schreiber et al. 2017 (submitted))
 
-    models['BBB'] ='D12_S' ### Current options:
+    models['BBB'] ='R06' ### Current options:
                          ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
                          ### 'SN12' (Slone&Netzer 2012)
                          ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
@@ -193,7 +174,16 @@ def MODELS_settings():
     models['TORUS'] ='S04' ### Current options:
                            ### 'S04' (Silva et al. 2004)
 
+    models['XRAYS'] = False ### If X-ray data is available and informative for the fit
 
+    models['RADIO'] = False ### If radio data is available and informative for the fit
+
+    models['PRIOR_energy_balance'] = False ### Sets a lower limit to the dust emission luminosity ('starburst' model)
+                                   ### as given by the observed attenuation in the stellar component SED.
+    models['PRIOR_low_AGNfraction'] = False ### Gives lower probability to AGN accretion disk contribution, 
+                                ### if optical luminosity is consistent with the expected emission from the galaxy luminosity function by Morlock+.
+    models['PRIOR_high_AGNfraction'] = True ### Gives higher probability to AGN accretion disk contribution, 
+                                ### optimal for spectroscopically confirmed Type 1 red and blue QSO
     return models
 
 def MCMC_settings():
