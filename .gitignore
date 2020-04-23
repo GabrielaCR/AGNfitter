@@ -69,3 +69,9 @@ Session.vim
 *.iml
 
 
+functions/MOCKSEDS_AGNfitter.py
+data/mockGalSED.dat
+data/mockGalSED.dat
+data/mockGalSED.dat
+example/SETTINGS_MockStellar.py
+example/SETTINGS_MockStellar.py

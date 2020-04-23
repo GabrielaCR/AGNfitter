@@ -89,37 +89,46 @@ def FILTERS_settings():
 
     filters = dict()
 
-    filters['dict_zarray'] =np.array([0.283, 1.58])  # The grid of redshifts needed to fit your catalog
+    filters['dict_zarray'] =np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
     filters['path'] = 'models/FILTERS/' 
     filters['filterset'] = 'filterset_default' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
     
-    filters['SPIRE500'] = [True, 24]
-    filters['SPIRE350'] = [True, 23]
-    filters['SPIRE250'] = [True, 22]
-    filters['PACS160'] = [True, 21]
-    filters['PACS100'] = [True, 20]
-    filters['MIPS24'] = [True, 19]
-    filters['WISE4'] = [True, 18]
-    filters['WISE3'] = [True, 17]
-    filters['WISE2'] = [True, 16]
-    filters['WISE1'] = [True, 15]
-    filters['IRAC4'] = [True, 14]
-    filters['IRAC3'] = [True, 13]
-    filters['IRAC2'] = [True, 12]
-    filters['IRAC1'] = [True, 11]
-    filters['Ks_NEWFIRM'] = [True, 10]
-    filters['K_NEWFIRM'] = [True, 9]
-    filters['H_NEWFIRM'] = [True, 8]
-    filters['J_NEWFIRM'] = [True, 7]
-    filters['Y_VISTA'] = [True, 6]
-    #filters['z_SUBARU'] = [True, 6]
-    filters['z_CHFT'] = [True, 5]
-    filters['I_NOAO'] = [True, 4]
-    filters['R_NOAO'] = [True, 3]
-    filters['Bw_NOAO'] = [True, 2]
-    filters['U_VIMOS'] = [True, 1]
-    filters['GALEX_2500'] = [True, 0]
+    filters['SPIRE500'] = [True, 29]
+    filters['SPIRE350'] = [True, 28]
+    filters['SPIRE250'] = [True, 27]
+    filters['PACS160'] = [True, 26]
+    filters['PACS100'] = [True, 25]
+
+    filters['WISE4'] = [True, 24]
+    filters['WISE3'] = [True, 23]
+    filters['WISE2'] = [True, 22]
+    filters['WISE1'] = [True, 21]
+
+    filters['K_UKIDSS'] = [True, 20]
+    filters['H_UKIDSS'] = [True, 19]
+    filters['J_UKIDSS'] = [True, 18]
+    filters['Y_UKIDSS'] = [True, 17]
+
+    filters['Ks_VISTA'] = [True, 16]
+    filters['H_VISTA'] = [True, 15]
+    filters['J_VISTA'] = [True, 14]
+    filters['Y_VISTA'] = [True, 13]
+    filters['Z_VISTA'] = [True, 12]
+
+    filters['g_PS1'] = [True, 7]
+    filters['r_PS1'] = [True, 8]
+    filters['i_PS1'] = [True, 9]
+    filters['z_PS1'] = [True, 10]
+    filters['y_PS1_good'] = [True, 11]
+
+    filters['z_SDSS'] = [True, 6]
+    filters['i_SDSS'] = [True, 5]
+    filters['r_SDSS'] = [True, 4]
+    filters['g_SDSS'] = [True, 3]
+    filters['u_SDSS'] = [True, 2]
+    filters['GALEX_2500'] = [True, 1]
+    filters['GALEX_1500'] = [True, 0]
 
 
     filters['add_filters']= False # If 'True' please add them below in ADD FILTERS
@@ -230,8 +239,9 @@ def OUTPUT_settings():
     out['writepar_meanwitherrors'] = True ##Write output values for all parameters in a file.
     out['plot_posteriortriangle'] = False ##Plot triangle with all parameters' PDFs?
 
-    #INTEGRATED LUMINOSITIES
+   #INTEGRATED LUMINOSITIES
     out['calc_intlum'] = True  
+    out['save_posterior_luminosities']= False
     out['realizations2int'] = 100 #This process is very time consuming.
                                 #Around 100-1000 is recomendend for computational reasons.
                                 #If you want to plot posterior triangles of 
