@@ -96,8 +96,12 @@ def main(data, models, P, out, models_settings):
         np.savetxt(data.output_folder + str(data.name)+'/parameter_outvalues_'+str(data.name)+'.txt' , outputvalues, delimiter = " ",fmt= "%1.4f" ,header= outputvalues_header, comments =comments_ouput)
 
     if out['plotSEDrealizations']:
-        fig = output.plot_manyrealizations_SED()
+        fig, save_SEDS = output.plot_manyrealizations_SED()
         fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
+        n_rp=out['realizations2plot']
+        SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
+        np.savetxt(data.output_folder + str(data.name)+'/output_SEDs_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
+        
         plt.close(fig)
 
 
@@ -213,10 +217,13 @@ class OUTPUT:
 
         SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
 
+        save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
+
         #plotting settings
         fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
         SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
+
 
         for i in range(Nrealizations):
 
@@ -239,7 +246,7 @@ class OUTPUT:
         ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print( ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
-        return fig
+        return fig, save_SEDs
 
 
 
@@ -523,7 +530,7 @@ class FLUXES_ARRAYS:
             lumfactor = (4. * math.pi * distance**2.)
             self.filtered_modelpoints_nuLnu = (filtered_modelpoints *lumfactor* 10**(data.nus))
         #Only if calculating integrated luminosities:    
-        elif self.output_type == 'int_lums':
+        if self.output_type == 'int_lums':
             #Convert Fluxes to nuLnu
             self.int_lums= np.log10(self.integrated_luminosities(self.out ,self.all_nus_rest, self.nuLnus4plotting))
         # elif self.output_type == 'best_fit':
@@ -593,16 +600,15 @@ class FLUXES_ARRAYS:
                  Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
                  Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
                  AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
-                 int_lums.append(AGNfrac)
-
-                 return np.array(int_lums)
-
-        
-            index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
-            all_nus_rest_int = 10**(all_nus_rest[index])
-            Lnu = nuLnu[:,index] / all_nus_rest_int
-            Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
-            int_lums.append(Lnu_int)
+                 
+            if out['intlum_models'][m] != 'AGNfrac': 
+                index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                all_nus_rest_int = 10**(all_nus_rest[index])
+                Lnu = nuLnu[:,index] / all_nus_rest_int
+                Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
+                int_lums.append(Lnu_int)
+            else:
+                int_lums.append(AGNfrac)
 
         return np.array(int_lums)
 

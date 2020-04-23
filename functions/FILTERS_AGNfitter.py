@@ -168,7 +168,7 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 				'ERROR in adding new filter: "'+ ADDfilters_dict['names'][i] + '" is already recorded.'	
 
 	## Save the info of all filters, including new added ones in a table ALL_FILTERS_info.dat.
-	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.3f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()]))) ,\
+	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.4f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()]))) ,\
 					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') )
 	filters_table_sorted =filters_table.sort('central nu (log Hz)')
 	ascii.write(filters_table, path + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter ='|', overwrite=True)

@@ -339,6 +339,7 @@ class DATA():
         self.name = catalog.name[line]
         self.z =catalog.z[line]
         self.dlum = catalog.dlum[line]
+        self.lumfactor = 4. * pi * catalog.dlum[line] **2.
 
         self.cat = catalog.cat
         #self.sourceline = sourceline

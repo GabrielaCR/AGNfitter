@@ -51,7 +51,7 @@ def Pdict (data, models):
     if len(bb.par_names)==1:
        ## With tor but correct 
         [par_mins.append(i) for i in [-10,-10.,-10,-10.]]
-        [par_maxs.append(i)for i in [10.,10,10,10]]
+        [par_maxs.append(i)for i in [10,10,10,10]]
         #[par_maxs.append(i)for i in [10.,10,10,-9]]
         normpars=['GA','SB','TO','BB'] 
 
@@ -73,8 +73,8 @@ def Pdict (data, models):
             P['max'][i] =np.log10(priors.maximal_age(data.z))
         if P['names'][i]=='tau':
             P['max'][i] =np.log10(priors.maximal_age(data.z))
-        if P['names'][i]=='EBVbbb':####!!!
-            P['max'][i] =0.4
+        if P['names'][i]=='EBVgal':####
+           P['min'][i] =0.05 ### can be generally assumed for galaxies with log M*> 9.5
 
     P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
@@ -86,7 +86,6 @@ PRIOR, LIKELIHOOD, POSTERIOR
 
 
 def ln_prior(data, models, P, *pars):
-###!!! def ln_prior(dictkey_arrays, dict_modelfluxes, P, pars):
 
     """Calculates the prior probability on the parameters.
 
@@ -95,13 +94,14 @@ def ln_prior(data, models, P, *pars):
          from the galaxy luminosity function as a maximum of the prior.
 
     """
+    t1= time.time()
     for i,p in enumerate(pars):
         if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
             return -np.inf
 
     prior= priors.PRIORS(data, models, P, *pars)
-    # if prior!=0 :
-    #     print prior
+    #if prior!=0 :
+    #   print(prior, time.time()-t1)
     return prior
 
 

@@ -75,7 +75,7 @@ def GALAXY(path, modelsettings):
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
         age_array = BC03dict['age-values']
-        ebvgal_array = np.array(np.arange(0.,200.,10.)/200)
+        ebvgal_array = np.array(np.arange(0.,100.,2.5)/100)
 
         ## produce all combinations of parameter values (indices)
         _, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
@@ -179,7 +179,7 @@ def STARBURST(path, modelsettings):
             sb_nu0, sb_Fnu0 = DH02CE01dict['wavelength'][irlumi], DH02CE01dict['SED'][irlumi].squeeze()
             STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, renorm_template('SB',sb_Fnu0)
             STARBURST_LIRdict[str(DH02CE01dict['irlum-values'][irlumi])] = pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6
-            print (pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6)
+            #print (pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6)
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['irlum']
@@ -326,6 +326,7 @@ def BBB(path, modelsettings):
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
         parameters_names =['EBVbbb']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        #ebvbbb_array = np.array(np.arange(0.,1000.,25)/1000)
 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
         
@@ -674,6 +675,32 @@ def GALAXYred_Calzetti(gal_nu, gal_Fnu,GAebv):
     gal_k= k[::-1] #invert for nus
     gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
     return gal_nu, gal_Fnu_red
+
+
+def GALAXYred_CharlotFall(gal_nu, gal_Fnu,GAebv):
+
+    """
+    This function computes the effect of reddening in the galaxy template (Charlot and Fall +00)
+    ## input:
+    -frequencies in log nu
+    - Fluxes in Fnu
+    - the reddening value E(B-V)_gal
+    ## output:
+
+    """
+    RV = 5.9        
+
+    c =2.998 * 1e8 
+    gal_lambda_m = c / gal_nu * 1e6#in um 
+    wl = gal_lambda_m[::-1]  #invert for lambda
+    k = np.zeros(len(wl))
+
+    kcf = RV * (wl/5500)**(-0.7)
+
+    gal_k= kcf[::-1] #invert for nus
+    gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
+    return gal_nu, gal_Fnu_red
+
 
 
 Angstrom = 1e10

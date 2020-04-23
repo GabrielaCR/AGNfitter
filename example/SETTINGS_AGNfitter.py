@@ -178,12 +178,20 @@ def MODELS_settings():
 
     models['RADIO'] = False ### If radio data is available and informative for the fit
 
-    models['PRIOR_energy_balance'] = False ### Sets a lower limit to the dust emission luminosity ('starburst' model)
-                                   ### as given by the observed attenuation in the stellar component SED.
-    models['PRIOR_low_AGNfraction'] = False ### Gives lower probability to AGN accretion disk contribution, 
-                                ### if optical luminosity is consistent with the expected emission from the galaxy luminosity function by Morlock+.
-    models['PRIOR_high_AGNfraction'] = True ### Gives higher probability to AGN accretion disk contribution, 
-                                ### optimal for spectroscopically confirmed Type 1 red and blue QSO
+    models['PRIOR_energy_balance'] = True ### Default:True
+                                          ### True: Sets a lower limit to the dust emission luminosity ('starburst' model)
+                                          ### as given by the observed attenuation in the stellar component SED.
+    models['PRIOR_AGNfraction'] = True  ### Default: True
+                                        ### True: - *IF* blue/UV bands (around 1500 Angstrom) are 10 times higher than expected by the galaxy luminosity function by Parsa, Dunlop et al. 2014. 
+                                        ###         this option rejects AGN-to-GAL ratios lower than 1 (log =0). It then applies a Gaussian prior probability with log ratio=2, with a sigma of 2.
+                                        ###       - In this cases it also applies a Gaussian prior on the galaxy normalization, i.e. stellar mass (usually unconstrained in these cases) to 
+                                        ###         populate physically expected ranges for QSO hosts -> 10^9 - 10^11. 
+                                        ###       - *ELSE IF* blue/UV bands (around 1500 Angstrom) are below 10 times the expected value by Parsa, Dunlop et al. 2014. 
+                                        ###         this option gives preference to galaxy contribution in the optical UV, with Gaussian prior probability centered on AGN to GALAXY log ratios of -1. 
+                                        ###          and sigma 1, i.e. accretion disk is disfavoured at least the data strongly prefers it.
+                                        ### False:- Non-informative prior
+    models['PRIOR_galaxy_only'] = False ### Default:False 
+                                        ### True: sets all AGN contribution to 0.ß
     return models
 
 def MCMC_settings():

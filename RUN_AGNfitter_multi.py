@@ -186,8 +186,9 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         os.system('rm -rf '+dictz)
         print ( "removing source model dictionary "+dictz )
     
-    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc2.sav'):           
+    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav'):           
         print('Done')
+        
     else:
 
         try:  
@@ -205,8 +206,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                     zdict = pickle.load(f, encoding='latin1')
             Modelsdictz = zdict.MD
 
-            ###!!!data.DICTS(filtersz, Modelsdictz)
-            ###!!!
             models.DICTS(filtersz, Modelsdictz)
 
             P = parspace.Pdict (data, models)   # Dictionary with all parameter space specifications.
@@ -220,7 +219,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                 print ( 'Done already'  )      
             except:
                 print ( 'Not done yet')
-                MCMC_AGNfitter.main(data, models, P, mc)        
+                MCMC_AGNfitter.main(data, models, P, mc) 
                 PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
             print ( '_____________________________________________________')
