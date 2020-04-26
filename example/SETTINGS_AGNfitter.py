@@ -36,7 +36,7 @@ def CATALOG_settings():
     cat['redshift'] = 1             ## If ASCII:  Column index(int) of redshift 
                                      ## If FITS : Column name (str). E.g. z'
 
-    ##FREQUENCIES/WAVELENGTHS 
+   ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
     cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                  
                                         ## If ASCII: List of column indexes (int), 
@@ -75,7 +75,7 @@ def CATALOG_settings():
                                       # Specially needed in order not to alter git original repository
                                       # and when using an external processor.
                                       # Default: cat['path'] (same as AGNfitter code path) 
-                                        
+                                      
     cat['output_folder'] =  cat['workingpath'] +'OUTPUT/' #if no special OUTPUT folder, leave default
 
 
@@ -94,7 +94,7 @@ def FILTERS_settings():
 
     filters['dict_zarray'] =np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
     filters['path'] = 'models/FILTERS/' 
-    filters['filterset'] = 'filterset_default' ## 'filterset_default' (for the test case),
+    filters['filterset'] = 'example_30datapointa' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
 
   
