@@ -42,6 +42,9 @@ def CATALOG_settings():
                                         ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
+
+    cat['use_central_wavelength'] = True # Option to use central wavelength if no wavelengths in table
+
     cat['freq/wl_format'] = 'wavelength' ## Gives your catalog *observed*
                                          ## 'frequency' or 'wavelength'?
     cat['freq/wl_unit'] = u.Angstrom     ## Astropy unit of freq or wavelength
@@ -49,11 +52,11 @@ def CATALOG_settings():
     ##FLUXES 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
     cat['flux_in_magAB'] = False # Option to calculate flux and flux_error from magnitude AB.
-    cat['flux_unit'] = u.Jy     ## Astropy unit of *flux* (astropy-units)
-    cat['flux_list'] = np.arange(2,51,2).tolist()        
+    cat['flux_unit'] = u.Jy * 1e-3            ## Astropy unit of *flux* (astropy-units)
+    cat['flux_list'] = np.arange(2,61,2).tolist()        
                                         ## If ASCII: List of column indexes (int)
     #cat['flux_suffix'] = '_f'          ## If FITS: Common ending of all flux column names (str)    
-    cat['fluxerr_list'] = np.arange(3,52,2).tolist() 
+    cat['fluxerr_list'] = np.arange(3,62,2).tolist() 
                                         ## If ASCII: List of column indexes (int)
     #cat['fluxerr_suffix'] = '_e'       ## If FITS: common ending to fluxerr column names (str)
 
@@ -72,10 +75,8 @@ def CATALOG_settings():
                                       # Specially needed in order not to alter git original repository
                                       # and when using an external processor.
                                       # Default: cat['path'] (same as AGNfitter code path) 
-                                      
-    cat['use_central_wavelength'] = True # Option to use central wavelength if no wavelengths in table
+                                        
     cat['output_folder'] =  cat['workingpath'] +'OUTPUT/' #if no special OUTPUT folder, leave default
-    cat['use_central_wavelength'] = True
 
 
 
@@ -96,32 +97,42 @@ def FILTERS_settings():
     filters['filterset'] = 'filterset_default' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
 
-    filters['SPIRE500'] = [True, 24]
-    filters['SPIRE350'] = [True, 23]
-    filters['SPIRE250'] = [True, 22]
-    filters['PACS160'] = [True, 21]
-    filters['PACS100'] = [True, 20]
-    filters['MIPS24'] = [True, 19]
-    filters['WISE4'] = [True, 18]
-    filters['WISE3'] = [True, 17]
-    filters['WISE2'] = [True, 16]
-    filters['WISE1'] = [True, 15]
-    filters['IRAC4'] = [True, 14]
-    filters['IRAC3'] = [True, 13]
-    filters['IRAC2'] = [True, 12]
-    filters['IRAC1'] = [True, 11]
-    filters['Ks_NEWFIRM'] = [True, 10]
-    filters['K_NEWFIRM'] = [True, 9]
-    filters['H_NEWFIRM'] = [True, 8]
-    filters['J_NEWFIRM'] = [True, 7]
-    filters['Y_VISTA'] = [True, 6]
-    #filters['z_SUBARU'] = [True, 6]
-    filters['z_CHFT'] = [True, 5]
-    filters['I_NOAO'] = [True, 4]
-    filters['R_NOAO'] = [True, 3]
-    filters['Bw_NOAO'] = [True, 2]
-    filters['U_VIMOS'] = [True, 1]
-    filters['GALEX_2500'] = [True, 0]
+  
+    filters['SPIRE500'] = [True, 29]
+    filters['SPIRE350'] = [True, 28]
+    filters['SPIRE250'] = [True, 27]
+    filters['PACS160'] = [True, 26]
+    filters['PACS100'] = [True, 25]
+
+    filters['WISE4'] = [True, 24]
+    filters['WISE3'] = [True, 23]
+    filters['WISE2'] = [True, 22]
+    filters['WISE1'] = [True, 21]
+
+    filters['K_UKIDSS'] = [True, 20]
+    filters['H_UKIDSS'] = [True, 19]
+    filters['J_UKIDSS'] = [True, 18]
+    filters['Y_UKIDSS'] = [True, 17]
+
+    filters['Ks_VISTA'] = [True, 16]
+    filters['H_VISTA'] = [True, 15]
+    filters['J_VISTA'] = [True, 14]
+    filters['Y_VISTA'] = [True, 13]
+    filters['Z_VISTA'] = [True, 12]
+
+    filters['g_PS1'] = [True, 7]
+    filters['r_PS1'] = [True, 8]
+    filters['i_PS1'] = [True, 9]
+    filters['z_PS1'] = [True, 10]
+    filters['y_PS1_good'] = [True, 11]
+
+    filters['z_SDSS'] = [True, 6]
+    filters['i_SDSS'] = [True, 5]
+    filters['r_SDSS'] = [True, 4]
+    filters['g_SDSS'] = [True, 3]
+    filters['u_SDSS'] = [True, 2]
+    filters['GALEX_2500'] = [True, 1]
+    filters['GALEX_1500'] = [True, 0]
 
 
     filters['add_filters']= False # If 'True' please add them below in ADD FILTERS
