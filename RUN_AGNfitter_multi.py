@@ -236,19 +236,15 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     mc = MCMC_settings()
     out = OUTPUT_settings()
     data = DATA(data_obj,line)
-    ###!!!
-    models= MODELS()
+
+    models= MODELS(data.z, models_settings)
     try:
-        ###!!!data.DICTS(filters_settings, Modelsdict)
-        ###!!!
-        models.DICTS(data.z, filters_settings, Modelsdict)
-                #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+        models.DICTS(filters_settings, Modelsdict) 
     except EOFError:
         print ( 'Line ',line,' cannot be fitted.')
 
-    P = parspace.Pdict (data)  # Dictionary with all parameter space especifications.
+    P = parspace.Pdict (data, models)  # Dictionary with all parameter space especifications.
                                 # From PARAMETERSPACE_AGNfitter.py
-
     print ( '')
     print ( '________________________'  )    
     print ( 'Fitting sources from catalog: ', data.catalog )
