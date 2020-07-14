@@ -30,7 +30,7 @@ import astropy.constants as const
 import astropy.units as u
 import itertools
 import functions.DICTIONARIES_AGNfitter as dicts
-                     
+from astropy.cosmology import FlatLambdaCDM       #Cosmology that we assume for estimate luminosity distance                     
 
 """
 ADDING NEW MODELS
@@ -47,7 +47,8 @@ ADDING NEW MODELS
 - Other changes to be done manually (unfortunately):
   (Due to computational time reasons not possible yet to do this automatically)
 
-    (1) Go to fct ymodel in PARAMETERSPACE_AGNfitter.py and set (eg. for the galaxy model)
+
+    (1) Go to fct ymodel in PLOTandWRITE_AGNfitter.py and set (eg. for the galaxy model)
         gal_obj.pick_1D (if your model has one parameter)
         or 
         gal_obj.pick_nD (if your model has more parameters).
@@ -56,14 +57,12 @@ ADDING NEW MODELS
         GALAXYFdict[gal_obj.matched_parkeys] (model of one parameter)
         or
         GALAXYFdict[tuple(gal_obj.matched_parkeys)] (model of more than one parameters
-
 """
                                                          
 
 def GALAXY(path, modelsettings):
 
     if modelsettings['GALAXY']=='BC03':
-
 
         GALAXYFdict_4plot = dict()
         GALAXY_SFRdict = dict()
@@ -101,10 +100,7 @@ def GALAXY(path, modelsettings):
                 gal_Fnu_int = scipy.integrate.trapz(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
                 gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red, x=gal_nu)
                 gal_att_int = gal_Fnu_int- gal_Fnured_int
-                GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
-
-                #print gal_Fnu_int, gal_Fnured_int, gal_att_int
-                #GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] =  gal_att_int      
+                GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int 
       
 
         # ## Name the parameters that compose the keyes of the dictionary: GALAXYFdict_4plot[key]. 
@@ -179,7 +175,7 @@ def STARBURST(path, modelsettings):
             sb_nu0, sb_Fnu0 = DH02CE01dict['wavelength'][irlumi], DH02CE01dict['SED'][irlumi].squeeze()
             STARBURSTFdict_4plot[str(DH02CE01dict['irlum-values'][irlumi])] = sb_nu0, renorm_template('SB',sb_Fnu0)
             STARBURST_LIRdict[str(DH02CE01dict['irlum-values'][irlumi])] = pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6
-            #print (pow(10,DH02CE01dict['irlum-values'][irlumi])*3.826e33*1e-6)
+
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['irlum']
@@ -215,9 +211,6 @@ def STARBURST(path, modelsettings):
 
             sb_nu0 = np.array(Dnu[t,:])[::-1]
             sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
-            # print type(Tdust)#[t]
-            # print (Dnu[t,:])
-            # print np.shape(sb_Fnu0), sb_Fnu0
 
             STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
             STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = Lir[t]
@@ -240,7 +233,6 @@ def STARBURST(path, modelsettings):
         Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
         Tdust = np.array(dusttable['TDUST'])[0] #K
         Lir=  np.array(dusttable['LIR'])[0] *3.826e33 ###!!!*1e-6 #Lsun2ergs ### consider taking away renormalizaion 1e-6
-        #fracPAH = np.arange(0.0, 5.5, 0.05)/100
         fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
 
         idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
@@ -260,9 +252,6 @@ def STARBURST(path, modelsettings):
 
             sb_nu0 = np.array(Dnu[t,:])[::-1]
             sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
-            # print type(Tdust)#[t]
-            # print (Dnu[t,:])
-            # print np.shape(sb_Fnu0), sb_Fnu0
 
             STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
             STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = Lir[t]
@@ -285,7 +274,6 @@ def STARBURST(path, modelsettings):
         Tdust = np.array(dusttable['TDUST'])[0] #K
         LIR=  np.array(dusttable['LIR'])[0]
 
-        #fracPAH = np.arange(0.0, 5.5, 0.05)/100
         fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
         RADexc= np.arange(0, 100, 5)
 
@@ -326,14 +314,24 @@ def BBB(path, modelsettings):
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
         parameters_names =['EBVbbb']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
-        #ebvbbb_array = np.array(np.arange(0.,1000.,25)/1000)
 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
         
         #Construct dictionaries
         for EBV_bbb in ebvbbb_array:
-            bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
-            BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+            
+            if modelsettings['RADIO']==True:
+                for i in range(20):  #20 differents values for the slope between UV-2keV (gaussian scatter)
+                    #bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu, bbb_Fnu) #without a hole between BB template and X-Rays
+                    bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu[bbb_nu < 16.5], bbb_Fnu[bbb_nu < 16.5])
+                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu_x, bbb_Fnu_x, EBV_bbb)
+                    BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+            	
+            else:
+                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
+                BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+
+
         return BBBFdict_4plot, parameters_names
 
 
@@ -345,13 +343,13 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']#SN12dict['parameters']
+        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']
-        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)#np.array(np.arange(0.,100.,5.)/100)
+        ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
         ## produce all combinations of parameter values (indices)
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
@@ -362,9 +360,17 @@ def BBB(path, modelsettings):
                 Mbhi=c[0]
                 EddRi=c[1]
                 ebvi=c[2]
-                bbb_nu, bbb_Fnu_nored =  SN12dict['frequency'],SN12dict['SED'][:,Mbhi,EddRi].squeeze()
-                bbb_nu, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
-                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = np.log10(bbb_nu), bbb_Fnu_red        
+                bbb_nu, bbb_Fnu_nored =  np.log10(SN12dict['frequency']),SN12dict['SED'][:,Mbhi,EddRi].squeeze()
+
+                if modelsettings['RADIO']==True:
+                    for i in range(20):       #20 differents values for the slope between UV-2keV (gaussian scatter)
+                        bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu, bbb_Fnu_nored)
+                        bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu_x, bbb_Fnu_x, ebvbbb_array[ebvi])
+                        BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red
+            	
+                else:
+                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
+                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
         
         return BBBFdict_4plot, parameters_names
 
@@ -373,13 +379,12 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_S.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
+        parameters_names =['logBHmass', 'logEddra']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
         Mbh_array = D12dict['logBHmass-values']
         EddR_array = D12dict['logEddra-values']
-        #ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
         ## produce all combinations of parameter values (indices)
         _, EddRidx,Mbhidx =  np.shape(D12dict['SED'])
@@ -406,7 +411,7 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_K.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra']#D12dict['parameters']
+        parameters_names =['logBHmass', 'logEddra']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -444,14 +449,12 @@ def TORUS(path, modelsettings):
     if modelsettings['TORUS']=='S04':    
 
         TORUSFdict_4plot  = dict()
-
         #Call object containing all torus models     
         S04dict = pickle.load(open(path + 'models/TORUS/S04.pickle', 'rb'), encoding='latin1') 
         parameters_names = ['Nh']
         nhidx=len(S04dict['SED'])
         #Construct dictionaries 
         for nhi in range(nhidx):
-
             tor_nu0, tor_Fnu0 = S04dict['wavelength'][nhi], S04dict['SED'][nhi].squeeze()
             TORUSFdict_4plot[str(S04dict['Nh-values'][nhi])] = tor_nu0, renorm_template('TO',tor_Fnu0)
 
@@ -465,20 +468,106 @@ def TORUS(path, modelsettings):
         
         TORUSFdict_4plot  = dict()
 
-        NK0 = pickle.load(open(path + 'models/TORUS/nenkova_v0.pickle', 'rb'), encoding='latin1')  
-        incl_idx=len(NK0.SED) #nhidx=len(torus_object.SED)
+        NK0dict = pickle.load(open(path + 'models/TORUS/nenkova_v0.pickle', 'rb'), encoding='latin1')  
+        incl_idx=len(NK0dict['SED']) 
         #Construct dictionaries 
-        for incl_i in range(incl_idx): #for nhi in range(nhidx):
+        for incl_i in range(incl_idx): 
 
-            tor_nu0, tor_Fnu0 = NK0.wave[incl_i], NK0.SED[incl_i].squeeze() #tor_nu0, tor_Fnu0 = torus_object.wave[nhi], torus_object.SED[nhi].squeeze()
-            TORUSFdict_4plot[str(NK0.incl[incl_i])] = tor_nu0, renorm_template('TO',tor_Fnu0) #TORUSFdict_4plot[str(torus_object.nh[nhi])] = tor_nu0, tor_Fnu0
+            tor_nu0, tor_Fnu0 = NK0dict['wavelength'][incl_i], NK0dict['SED'][incl_i].squeeze() 
+            TORUSFdict_4plot[str(NK0dict['incl-values'][incl_i])] = tor_nu0, renorm_template('TO',tor_Fnu0) 
 
         parameters_names = ['incl']
 
         return TORUSFdict_4plot, parameters_names   
 
+    elif modelsettings['TORUS']=='SKIRTOR':  #This model has too many parameters --> The code can't find the parameters
+        
+        TORUSFdict_4plot  = dict()
 
-def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, radioexcess):
+        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR.pickle', 'rb'), encoding='latin1')  
+        
+        tv_array = SKIRTORdict['tv-values'].unique()
+        p_array = SKIRTORdict['p-values'].unique()
+        q_array = SKIRTORdict['q-values'].unique()
+        oa_array = SKIRTORdict['oa-values'].unique()
+        r_array = SKIRTORdict['r-values'].unique()
+        mcl_array = SKIRTORdict['mcl-values'].unique()
+        incl_array = SKIRTORdict['incl-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [tv_array, p_array, q_array, oa_array, r_array, mcl_array, incl_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                tvi=c[0]
+                pi=c[1]
+                qi=c[2]
+                oai=c[3]
+                ri=c[4]
+                mcli=c[5]
+                incli=c[6]
+                model = SKIRTORdict[(SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)& (SKIRTORdict['q-values'] == qi)& (SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['r-values'] == ri) & (SKIRTORdict['mcl-values'] == mcli) & (SKIRTORdict['incl-values'] == incli)] 
+                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+                TORUSFdict_4plot[str(tvi),str(pi), str(qi), str(oai), str(ri), str(mcli), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['tv', 'p', 'q', 'oa', 'r', 'mcl', 'incl']
+        return TORUSFdict_4plot, parameters_names
+ 
+    elif modelsettings['TORUS']=='SKIRTORC': 
+        #SKIRTOR model with the parameter values used in X-CIGALE (Yang, Guang, et al. 2020) and inclination as free parameter
+        TORUSFdict_4plot  = dict()
+
+        SKIRTORCdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_CIGALE.pickle', 'rb'), encoding='latin1')  
+        incl_array = SKIRTORCdict['incl-values']
+        #Construct dictionaries 
+        for incl_i in incl_array: 
+
+            tor_nu0, tor_Fnu0 = SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['wavelength'].values.item().to_numpy(), SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['SED'].values.item().to_numpy()
+            TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
+
+        parameters_names = ['incl']
+        return TORUSFdict_4plot, parameters_names  
+
+    elif modelsettings['TORUS']=='SKIRTORM': 
+        # SKIRTOR model with averaged SEDs for each inclination
+        TORUSFdict_4plot  = dict()
+
+        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean.pickle', 'rb'), encoding='latin1')  
+        incl_array = SKIRTORMdict['incl-values']
+        #Construct dictionaries 
+        for incl_i in incl_array: 
+
+            tor_nu0, tor_Fnu0 = SKIRTORMdict[SKIRTORMdict['incl-values'] == incl_i]['wavelength'].values.item().to_numpy(), SKIRTORMdict[SKIRTORMdict['incl-values'] == incl_i]['SED'].values.item().to_numpy()
+            TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
+
+        parameters_names = ['incl']
+        return TORUSFdict_4plot, parameters_names 
+
+    elif modelsettings['TORUS']=='SKIRTORM_2P':
+        # SKIRTOR model with averaged SEDs for each inclination and openning angle
+        TORUSFdict_4plot  = dict()
+
+        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_2p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = SKIRTORdict['oa-values'].unique()
+        incl_array = SKIRTORdict['incl-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                oai=c[0]
+                incli=c[1]
+                model = SKIRTORdict[(SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['incl-values'] == incli)] 
+                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+                TORUSFdict_4plot[str(oai), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl']
+        return TORUSFdict_4plot, parameters_names
+
+
+def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
 
     if modelsettings['RADIO']==True:  
 
@@ -504,35 +593,38 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, radioexcess):
 
         Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_nu2[0])) * L14*(1.-nth_frac)
         Lth_rad= Lth_0* 10**(alpha_th* np.log10(10**radio_nu2/10**radio_nu2[0])) 
-        Lsyn = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad))))
+        Lth = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad)))) 
 
         Lir_rad= Lsb+Lsyn+Lth
-
         return  all_nu, Lir_rad
-
     else:
 
         print ('No radio data included in the fit.')
 
-
-def XRAYS(modelsettings):
+def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
 
     if modelsettings['XRAYS']==True:  
         
-        ###!!! kband = alpha * xrays
-        ###!!! if
-        #gaussian prior on a
-        a = parameter_prior
-        mu = 1#Given by 1 
-        sigma = 1
-        return np.log(1.0/(np.sqrt(2*np.pi)*sigma))-0.5*(a-mu)**2/sigma**2
+        f = interp1d(bbb_nu, bbb_Fnu, kind = 'nearest', bounds_error=False, fill_value=0.) 
+        nu_2500 = (3*1e8)/(2500*1e-10)                               #frequency at 2500 Angstroms
+        L_2500 = f(np.log10(nu_2500))                                # Luminosity at 2500 Angstroms
+        mean_alpha = -0.137*np.log10(L_2500) + 2.638                 #alpha_OX-L_2500 relation
+        sigma_alpha = 0.1                                            #intrinsic dispersion of alpha_OX-L_2500 relation
+        alpha = np.random.normal(mean_alpha, sigma_alpha, 1)         #Scatter in alpha_OX-L_2500
+        #nu_2kev = 4.83598*1e17                                       #frequency at 2 keV
+        #xray_nu = np.logspace(np.log10(nu_2500), np.log10(nu_2kev), 500)
+        xray_nu = np.logspace(17, 18.5, 500)                         #with a hole between BB template and X-Rays
+        xray_Fnu = L_2500*10**(alpha*(np.log10(xray_nu/nu_2500)))
+        #bbb_nu_x = np.concatenate((bbb_nu[bbb_nu < np.log10((3*1e8)/(2500*1e-10))], np.log10(xray_nu)))
+        bbb_nu_x = np.concatenate((bbb_nu, np.log10(xray_nu))) 
+        #bbb_Fnu_x = np.concatenate((bbb_Fnu[bbb_nu < np.log10((3*1e8)/(2500*1e-10))], xray_Fnu))
+        bbb_Fnu_x = np.concatenate((bbb_Fnu, xray_Fnu))
+    
+        return bbb_nu_x, bbb_Fnu_x
 
     else:
 
         print ('No X-ray data included in the fit.')
-
-
-
 
 
 
@@ -576,7 +668,6 @@ Reddening functions
 #         gal_k= k[::-1] #invert for nus
 #         gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
 #         return gal_nu, gal_Fnu_red
-
 #     if modelsettings['bbb_reddening']=='Prevot_SMC': 
 #         """
         
@@ -608,13 +699,15 @@ Reddening functions
 #         return bbb_x, bbb_Lnu_red
 
 
-
 def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
 
     """
-    
-    ## input:
+    This function computes the effect of reddening in the accretion disk template (Prevot law for Small Magellanic Cloud)
 
+    ## input:
+    -frequencies in log nu
+    - Fluxes in Fnu
+    - the reddening value E(B-V)_bb
     ## output:
 
     """
@@ -631,10 +724,9 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
            return y 
 
     bbb_k = function_prevot(redd_x, RV)
-
     bbb_k= bbb_k[::-1]
-
     bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
+    bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
 
     bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
 
@@ -707,34 +799,8 @@ Angstrom = 1e10
 
 def z2Dlum(z):
 
-    """
-    Calculate luminosity distance from redshift.
-    """
-    
-    #Cosmo Constants
-    
-    O_m = 0.266
-    O_r =  0.
-    O_k= 0.
-    O_L = 1. - O_m
-    H_0 = 70. #km/s/Mpc
-    H_sec = H_0 / 3.0857e19 
-    # equation
-
-    a = 1/(1+z)
-    E = O_m * (1+z)**3 + O_r *(1+z)**4 + O_k *(1+z) + O_L
-    integrand = lambda z : 1 / sqrt(O_m * (1+z)**3 + O_r *(1+z)**4 + O_k *(1+z) + O_L)    
-
-    #integration
-
-    z_obs = z
-    z_now = 0
-
-    c_cm = 2.997e10
-
-    
-    integral = scipy.integrate.quad( integrand , z_now, z_obs)    
-    dlum_cm = (1+z)*c_cm/ H_sec * integral[0] 
+    cosmo = FlatLambdaCDM(H0=70 * u.km / u.s / u.Mpc, Tcmb0=2.725 * u.K, Om0=0.266)   
+    dlum_cm = cosmo.luminosity_distance(z).to(u.cm).value
     dlum_Mpc = dlum_cm/3.08567758e24 
 
     return dlum_cm
@@ -811,7 +877,6 @@ def stellar_info_array(chain_flat, data, models, Nthin_compute):
     """
 
     Ns, Npar = np.shape(chain_flat) 
-    #chain_thinned = chain_flat[0:Ns:int(Ns/Nthin_compute),:]
     chain_thinned = chain_flat[0:Ns:int(Ns/Nthin_compute),:]
     
     Mstar, SFR = stellar_info(chain_thinned, data, models)
@@ -863,7 +928,8 @@ def renorm_template(model, Fnu):
         Fnu_norm = Fnu/1e-40
         return Fnu_norm
     elif model== 'BB':
-        Fnu_norm = Fnu/1e60 ## change to 1e64
+        Fnu_norm = Fnu/1e60 ## 1e60 change to 1e64
+
         return Fnu_norm
 
 

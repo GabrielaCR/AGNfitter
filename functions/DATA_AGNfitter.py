@@ -21,8 +21,6 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.io import fits
 import functions.MODEL_AGNfitter as model
-#import functions.DICTIONARIES_AGNfitter as dicts
-#import functions.FILTERS_AGNfitter as filterpy
 
 
 class DATA_all:
@@ -87,8 +85,6 @@ class DATA_all:
                                 list_centralwls.append([ dictionary[list(dictionary.keys())[i]][1], centralwls[j]])
                         except:
                             print (list(dictionary.keys())[i], 'not in list')
-                        #elif names[j] not in dictionary.keys()[i]:
-                            #print 'ERROR: ',str(names[j]) ,' needs to be added.'
 
                 def getkeynumber(item):
                     return item[0]
@@ -197,7 +193,6 @@ class DATA_all:
             self.z = fitstable[self.cat['redshift']].astype(float)
             self.dlum = np.array([model.z2Dlum(z) for z in self.z])
 
-
             if self.cat['use_central_wavelength']:
                 ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
 
@@ -223,8 +218,6 @@ class DATA_all:
                                 list_centralwls.append([ dictionary[dictionary.keys()[i]][1], centralwls[j]])
                         except:
                             print (dictionary.keys()[i], 'not in list')
-                        #elif names[j] not in dictionary.keys()[i]:
-                            #print 'ERROR: ',str(names[j]) ,' needs to be added.'
 
                 def getkeynumber(item):
                     return item[0]
@@ -349,15 +342,3 @@ class DATA():
         self.path = catalog.cat['path']
         self.output_folder = catalog.cat['output_folder']
 
-
-    # def DICTS(self, filters, Modelsdict):
-    #     """
-    #     Helps transporting the dictionary content
-    #     corresponding to the redshift of the source
-    #     """
-
-    #     z_array = np.array(list(Modelsdict.keys()))
-    #     idx = (np.abs(z_array.astype(float)-self.z)).argmin()
-    #     z_key = z_array[idx]
-    #     self.dict_modelfluxes = Modelsdict[z_key]
-    #     self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)

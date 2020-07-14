@@ -204,7 +204,8 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     if len(bbb_obj.par_names)==1:
         GA, SB, TO, BB = par[-4:]
     else:
-        bbb_Fnu = bbb_Fnu/ (dlum)**2
+        bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
+
         GA, SB, TO = par[-3:]
         BB=0
 

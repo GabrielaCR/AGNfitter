@@ -10,22 +10,9 @@ import astropy.units as u
 import itertools
 
 
-# class PRIOR_distributions:
-
-#     def __init__(self):
-#     self.name= 'PRIORS'
-
-#     def Flat_prior():
-#     	return -inf
-#     def Gaussian_prior(par, mu, sigma):
-#     	return 
-
-
 def PRIORS(data, models, P, *pars):
 
     modelsettings= models.settings
-
-
 
     _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
@@ -34,18 +21,9 @@ def PRIORS(data, models, P, *pars):
         GA, SB, TO, BB= pars[-4:]
     else:
         GA, SB, TO = pars[-3:]
+        BB = 0  
 
     all_priors=[]
-
-
-
-    ### Non-nformative priors
-    # for i,p in enumerate(pars):
-    # 	if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
-    #    	 	all_priors.append(-np.inf)
-    #    	else:
-    #    		all_priors.append(0)
-
 
     if modelsettings['PRIOR_energy_balance'] == True:  
         
@@ -64,7 +42,8 @@ def PRIORS(data, models, P, *pars):
         """
         """
         t1= time.time()
-        prior1= prior_AGNfraction(data, GALAXYFdict, gal_obj, GA, BBBFdict, bbb_obj, BB)#models, P, *pars)
+
+        prior1= prior_AGNfraction(data, GALAXYFdict, gal_obj, GA, BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
         all_priors.append(prior1+prior2)
         #print('INTERNAL',prior, time.time()-t1)
@@ -83,9 +62,6 @@ def PRIORS(data, models, P, *pars):
 
 
     return final_prior
-    
-    # else:
-    #     return 0
 
 
 def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB):
@@ -99,7 +75,7 @@ def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,S
         return 0
 
 
-def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
+def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB): 
 
     bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
     bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
@@ -123,7 +99,8 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
                                                                          ### and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts.
 
     """define prior on agnfraction"""
-
+    if BB ==0:
+        bbb_flux_1500Angs = bbb_flux_1500Angs/(4*pi*(data.dlum)**2)   ##BB normalization
     AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs) 
 
     if abs_mag_data > (characteristic_mag-1.): ## if blue fluxes are fainter than 10 times the characteristic flux.
@@ -153,6 +130,7 @@ def prior_stellar_mass(GA):
     prior_GA = Gaussian_prior(mu_GA, sigma_GA, GA)
 
     return prior_GA 
+
 
 # def prior_xrays(data, models, P, *pars):
 
@@ -196,6 +174,7 @@ def prior_stellar_mass(GA):
 #     prior_Xrays= Gaussian_prior(mu, sigma, ratio_alpha0x_data)
 
 #     return prior_Xrays
+
 
 def prior_low_AGNfraction(data, models, P, *pars):
 

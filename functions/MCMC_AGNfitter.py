@@ -16,8 +16,6 @@ import time
 import numpy as np
 import pickle
 from . import PARAMETERSPACE_AGNfitter as parspace
-#from DATA_AGNfitter import DATA
-
 
 
 ###!!!def main(data, P, mc):

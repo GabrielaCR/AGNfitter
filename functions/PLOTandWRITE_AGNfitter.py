@@ -51,8 +51,6 @@ def main(data, models, P, out, models_settings):
     
     """
 
-
-
     chain_burnin = CHAIN(data.output_folder+str(data.name)+ '/samples_burn1-2-3.sav', out)
     chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/samples_mcmc.sav',  out)
     chain_mcmc.props()
@@ -105,8 +103,6 @@ def main(data, models, P, out, models_settings):
         plt.close(fig)
 
 
-
-
 """=========================================================="""
 
 
@@ -151,14 +147,6 @@ class OUTPUT:
         Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.models, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
-
-        # ####################   ERASE   ######################
-        # fig0 = plt.figure(figsize=(9,5))
-        # ax1 = fig0.add_subplot(111)
-        # ax1.plot(self.chain.flatchain_sorted[:,0],self.chain.flatchain_sorted[:,1], '.', alpha=0.1)
-        # fig0.savefig('/Users/Gabriela/Desktop/AGNfitter/OUTPUT/COSMOS/plot_dummy')####
-        # plt.close(fig0)
-        # #####################################################
   
         if self.out['calc_intlum']:            
 
@@ -242,13 +230,10 @@ class OUTPUT:
             upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=2, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=2, color="black", alpha = 1)
 
-
         ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print( ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
         return fig, save_SEDs
-
-
 
 
 """=========================================================="""
@@ -349,7 +334,6 @@ class CHAIN:
 """=========================================================="""
 
 
-
 class FLUXES_ARRAYS:
 
     """
@@ -424,8 +408,17 @@ class FLUXES_ARRAYS:
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
             ## Use pick_nD if model has more than one parameter,
             ## and pick_1D if it has only one.
-            gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]])  
-            tor_obj.pick_1D(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
+
+            gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
+            #tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
+
+            if len(tor_obj.par_names)==1:
+                tor_obj.pick_1D(par[g][self.P['idxs'][2]:self.P['idxs'][3]])
+                all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]                 
+            else:
+                tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])      
+                all_tor_nus, tor_Fnus= TORUSFdict[tuple(tor_obj.matched_parkeys)]
+
 
             if len(sb_obj.par_names)==1:
                 sb_obj.pick_1D(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
@@ -464,7 +457,8 @@ class FLUXES_ARRAYS:
             else:
                 all_bbb_Fnus_deredd = all_bbb_Fnus
 
-            all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
+            #all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
+
             TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
             all_tor_Fnus[self.all_nus_rest>16]= 0
@@ -489,7 +483,8 @@ class FLUXES_ARRAYS:
             if len(bbb_obj.par_names)==1:
                 BBFnu = all_bbb_Fnus * 10**float(BB) 
             else:
-                BBFnu = (all_bbb_Fnus /(data.dlum)**2) * 10**float(BB) 
+                BBFnu = (all_bbb_Fnus /(4*math.pi*data.dlum**2)) * 10**float(BB) 
+
             GAFnu =   all_gal_Fnus * 10**float(GA) 
             TOFnu =   all_tor_Fnus * 10**float(TO)
             BBFnu_deredd = all_bbb_Fnus_deredd * 10**float(BB)

@@ -28,6 +28,7 @@ def CATALOG_settings():
 
 
     ##GENERAL
+
     cat['path'] ='/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
     cat['filename'] = cat['path']+'data/catalog_example.txt'
     cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
@@ -38,8 +39,7 @@ def CATALOG_settings():
 
    ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                  
-                                        ## If ASCII: List of column indexes (int), 
+    cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                                                          ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
 
@@ -177,15 +177,22 @@ def MODELS_settings():
     models['STARBURST'] = 'S17_newmodel' ### Current options:
                                 ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
                                 ### 'S07' (Schreiber et al. 2017 (submitted))
-
+                                ### 'S17_newmodel'
+                                ### 'S17_newmodel_radio'
     models['BBB'] ='R06' ### Current options:
+
                          ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
                          ### 'SN12' (Slone&Netzer 2012)
                          ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
                          ### 'D12_K' (Done et al. 2012) for Kerr BH, with x-ray predictions
 
-    models['TORUS'] ='S04' ### Current options:
+    models['TORUS'] ='SKIRTORM' ### Current options:
                            ### 'S04' (Silva et al. 2004)
+                           ### 'NK0' (Nenkova et al. 2008)
+                           ### 'SKIRTOR' (Stalevski et al. 2016)
+                           ### 'SKIRTORC' with parameter values used in X-CIGALE
+                           ### 'SKIRTORM' SKIRTOR model with averaged SEDs for each inclination
+                           ### 'SKIRTORM_2P' SKIRTOR model with averaged SEDs for each inclination and openning angle
 
     models['XRAYS'] = False ### If X-ray data is available and informative for the fit
 
