@@ -14,13 +14,13 @@ import emcee #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import sys,os
 import time
 import numpy as np
-import cPickle
-import PARAMETERSPACE_AGNfitter as parspace
-from DATA_AGNfitter import DATA
+import pickle
+from . import PARAMETERSPACE_AGNfitter as parspace
 
 
 
-def main(data, P, mc):
+###!!!def main(data, P, mc):
+def main(data, models, P, mc):
 
     """
     Main function for the MCMC sampling.
@@ -35,20 +35,19 @@ def main(data, P, mc):
 
     path = os.path.abspath(__file__).rsplit('/', 1)[0]
 
-    print '......................................................'
-    print 'model parameters', P.names
-    print 'minimum values', P.min
-    print 'maximum values', P.max
-    print '......................................................'
-    print mc['Nwalkers'], 'walkers'
+    print( '......................................................')
+    print( 'model parameters', P['names'])
+    print( 'minimum values', ['{0:.2f}'.format(k) for k in P['min']])
+    print( 'maximum values', ['{0:.2f}'.format(k) for k in P['max']])
+    print( '......................................................')
+    print ( mc['Nwalkers'], 'walkers')
 
-    Npar = len(P.names)
-
+    Npar = len(P['names'])
 
     sampler = emcee.EnsembleSampler(
             mc['Nwalkers'], Npar, parspace.ln_probab,
-            args=[data, P],  daemon= True)
-
+            ###!!!args=[data,  P],  daemon= True)
+            args=[data, models, P],  daemon= True)
 
     ## BURN-IN SETS ##
     if mc['Nburn'] > 0:
@@ -64,7 +63,7 @@ def main(data, P, mc):
             p_maxlike, state = run_burn_in(sampler, mc, p_maxlike, data.name, data.output_folder, i)
             savedfile = data.output_folder+str(data.name)+'/samples_burn1-2-3.sav'
             p_maxlike = parspace.get_best_position(savedfile, mc['Nwalkers'], P)
-        print '%.2g min elapsed' % ((time.time() - t1)/60.)
+        print( '%.2g min elapsed' % ((time.time() - t1)/60.))
 
 
     ## MCMC SAMPLING ##
@@ -72,7 +71,7 @@ def main(data, P, mc):
 
         t2 = time.time()
         run_mcmc(sampler, p_maxlike, data.name,data.output_folder, mc)
-        print '%.2g min elapsed' % ((time.time() - t2)/60.)
+        print( '%.2g min elapsed' % ((time.time() - t2)/60.))
     del sampler.pool    
 
 
@@ -89,7 +88,7 @@ if __name__ == 'main':
 def run_burn_in(sampler, mc, p0, sourcename, folder, setnr):
     """ Run and save a set of burn-in iterations."""
 
-    print 'Running burn-in nr. '+ str(setnr)+' with %i steps' % mc['Nburn']
+    print( 'Running burn-in nr. '+ str(setnr)+' with %i steps' % mc['Nburn'])
     
     iprint = mc['iprint']
 
@@ -97,7 +96,7 @@ def run_burn_in(sampler, mc, p0, sourcename, folder, setnr):
     for i,(pos, lnprob, state) in enumerate(sampler.sample(p0, iterations=mc['Nburn'])):
         i += 1
         if not i % iprint:
-            print i
+            print( i )
         
     save_chains(folder+str(sourcename)+'/samples_burn1-2-3.sav', sampler, pos, state)
 
@@ -112,12 +111,12 @@ def run_mcmc(sampler, pburn, sourcename, folder, mc):
     sampler.reset()
 
     iprint = mc['iprint']
-    print "Running MCMC with %i steps" % mc['Nmcmc']
+    print( "Running MCMC with %i steps" % mc['Nmcmc'])
 
     for i,(pos, lnprob, state) in enumerate(sampler.sample(pburn, iterations=mc['Nmcmc'])): 
         i += 1
         if not i % iprint:
-            print i
+            print( i)
             
     save_chains(folder+str(sourcename)+'/samples_mcmc.sav', sampler, pos, state)   
 
@@ -133,7 +132,7 @@ def save_chains(filename, sampler, pos, state):
     into .sav files, using cPickle.
     """
     f = open(filename, 'wb')
-    cPickle.dump(dict(
+    pickle.dump(dict(
         chain=sampler.chain, accept=sampler.acceptance_fraction,
         lnprob=sampler.lnprobability, final_pos=pos, state=state, acor=sampler.acor), f, protocol=2)
     f.close()

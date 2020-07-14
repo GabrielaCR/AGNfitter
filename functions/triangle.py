@@ -163,7 +163,7 @@ def corner(xs, weights=None, labels=None, extents=None, truths=None,
                 ax.axvline(q, ls="dashed", color=kwargs.get("color", "k"))
             if verbose:
                 print("Quantiles:")
-                print(zip(quantiles, qvalues))
+                print(list(zip(quantiles, qvalues)))
 
         # Set up the axes.
         ax.set_xlim(extents[i])

@@ -23,6 +23,7 @@ except ImportError:
     acor = None
 
 from emcee.sampler import Sampler
+from emcee.autocorr import integrated_time
 
 
 class EnsembleSampler(Sampler):
@@ -78,9 +79,9 @@ class EnsembleSampler(Sampler):
                  threads=1, daemon = True ,pool=None, live_dangerously=False):
         self.k = nwalkers
         self.a = a
-	self.daemon = True
+        self.daemon = True
         self.threads = threads
-	self.pool = pool
+        self.pool = pool
 	
 
         if postargs is not None:
@@ -100,7 +101,7 @@ class EnsembleSampler(Sampler):
 
         if self.threads > 1 and self.pool is None:
             self.pool = multiprocessing.Pool(self.threads)
-	    self.daemon = daemon	
+            self.daemon = daemon	
     def reset(self):
         """
         Clear the ``chain`` and ``lnprobability`` array. Also reset the
@@ -446,7 +447,7 @@ class EnsembleSampler(Sampler):
         s = self.dim
         t = np.zeros(s)
         for i in range(s):
-            t[i] = acor.acor(self.chain[:, :, i])[0]
+            t[i] = integrated_time(self.chain[:, :, i])#[0]
         return t
 
 
