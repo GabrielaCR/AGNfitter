@@ -193,7 +193,6 @@ class DATA_all:
             self.z = fitstable[self.cat['redshift']].astype(float)
             self.dlum = np.array([model.z2Dlum(z) for z in self.z])
 
-
             if self.cat['use_central_wavelength']:
                 ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
 
@@ -342,5 +341,4 @@ class DATA():
             print ('Catalog does not exist under this name.')
         self.path = catalog.cat['path']
         self.output_folder = catalog.cat['output_folder']
-
 

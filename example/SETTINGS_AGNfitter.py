@@ -28,7 +28,8 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] = '/home/laura-pc/PCLaura/Materias/Astrofisica_extragalactica/Proyecto-Gabriela/AGNfitter_2.0/AGNfitter/' #'/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
+
+    cat['path'] ='/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
     cat['filename'] = cat['path']+'data/catalog_example.txt'
     cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
     cat['name'] = 0                 ## If ASCII: Column index (int) of source IDs
@@ -38,8 +39,7 @@ def CATALOG_settings():
 
    ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(1,60,2).tolist() #np.arange(5,48,2).tolist()                                  
-                                        ## If ASCII: List of column indexes (int), 
+    cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                                                          ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
 
@@ -92,7 +92,7 @@ def FILTERS_settings():
 
     filters = dict()
 
-    filters['dict_zarray'] = np.array([0.894, 2.43, 0.731]) #np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
+    filters['dict_zarray'] =np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
     filters['path'] = 'models/FILTERS/' 
     filters['filterset'] = 'example_30datapointa' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
@@ -176,11 +176,11 @@ def MODELS_settings():
                                 ### 'BC03_metal' (Bruzual & Charlot 2003), with metallicities
     models['STARBURST'] = 'S17_newmodel' ### Current options:
                                 ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
-                                ### 'S17' (Schreiber et al. 2017 (submitted))
+                                ### 'S07' (Schreiber et al. 2017 (submitted))
                                 ### 'S17_newmodel'
                                 ### 'S17_newmodel_radio'
+    models['BBB'] ='R06' ### Current options:
 
-    models['BBB'] ='SN12' ### Current options:
                          ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
                          ### 'SN12' (Slone&Netzer 2012)
                          ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions

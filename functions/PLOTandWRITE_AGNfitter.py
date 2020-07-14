@@ -258,7 +258,6 @@ class OUTPUT:
             upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=2, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=2, color="black", alpha = 1)
 
-
         ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 250), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print( ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
@@ -437,6 +436,7 @@ class FLUXES_ARRAYS:
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
             ## Use pick_nD if model has more than one parameter,
             ## and pick_1D if it has only one.
+
             gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
             #tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
 
@@ -446,6 +446,7 @@ class FLUXES_ARRAYS:
             else:
                 tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])      
                 all_tor_nus, tor_Fnus= TORUSFdict[tuple(tor_obj.matched_parkeys)]
+
 
             if len(sb_obj.par_names)==1:
                 sb_obj.pick_1D(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
@@ -485,6 +486,7 @@ class FLUXES_ARRAYS:
                 all_bbb_Fnus_deredd = all_bbb_Fnus
 
             #all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
+
             TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
             all_tor_Fnus[self.all_nus_rest>16]= 0
@@ -494,6 +496,15 @@ class FLUXES_ARRAYS:
                 ###!!!filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
                 filtered_modelpoints, _ = parspace.ymodel(data.nus,data.z, data.dlum, models.dictkey_arrays, models.dict_modelfluxes, self.P, *par2)
                 
+            # #Using the costumized normalization 
+            # SBFnu =   (all_sb_Fnus /1e20) *10**float(SB) 
+            # if len(bbb_obj.par_names)==1:
+            #     BBFnu = (all_bbb_Fnus / 1e60) * 10**float(BB) 
+            # else:
+            #     BBFnu = (all_bbb_Fnus /(data.dlum)**2) * 10**float(BB) 
+            # GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA) 
+            # TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO)
+            # BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB)
 
             #Using the costumized normalization 
             SBFnu =   all_sb_Fnus *10**float(SB) 
@@ -501,6 +512,7 @@ class FLUXES_ARRAYS:
                 BBFnu = all_bbb_Fnus * 10**float(BB) 
             else:
                 BBFnu = (all_bbb_Fnus /(4*math.pi*data.dlum**2)) * 10**float(BB) 
+
             GAFnu =   all_gal_Fnus * 10**float(GA) 
             TOFnu =   all_tor_Fnus * 10**float(TO)
             BBFnu_deredd = all_bbb_Fnus_deredd * 10**float(BB)
