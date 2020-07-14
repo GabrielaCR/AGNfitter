@@ -88,18 +88,23 @@ def main(data, models, P, out, models_settings):
         int_lums_array =output.save_realizations()
         np.savetxt(data.output_folder+str(data.name)+'/posterior_intlums_'+str(data.name)+'.txt', int_lums_array.T, fmt= "%1.4f" ,header= str(out['intlum_names']))
 
+    if out['save_posteriors']: 
+        posteriors,posteriors_header = output.save_posteriors(P)
+        np.savetxt(data.output_folder + str(data.name)+'/posteriors_'+str(data.name)+'.txt' , posteriors, delimiter = " ",fmt= "%1.4f" ,header= posteriors_header)
+
     if out['writepar_meanwitherrors']:
         outputvalues, outputvalues_header = output.write_parameters_outputvalues(P)
         comments_ouput= ' # Output for source ' +str(data.name) + '\n' +' Rows are: 2.5, 16, 50, 84, 97.5 percentiles # '+'\n'+ '-----------------------------------------------------'+'\n' 
         np.savetxt(data.output_folder + str(data.name)+'/parameter_outvalues_'+str(data.name)+'.txt' , outputvalues, delimiter = " ",fmt= "%1.4f" ,header= outputvalues_header, comments =comments_ouput)
 
-    if out['plotSEDrealizations']:
+    if ((out['saveSEDrealizations']) or (out['plotSEDrealizations'])):
         fig, save_SEDS = output.plot_manyrealizations_SED()
-        fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
         n_rp=out['realizations2plot']
         SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
-        np.savetxt(data.output_folder + str(data.name)+'/output_SEDs_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
-        
+        if out['saveSEDrealizations']:
+            np.savetxt(data.output_folder + str(data.name)+'/output_SEDs100_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
+        if out['plotSEDrealizations']:
+            fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
         plt.close(fig)
 
 
@@ -136,7 +141,7 @@ class OUTPUT:
             self.allnus = fluxobj_withintlums.all_nus_rest
             self.int_lums = fluxobj_withintlums.int_lums
 
-        if self.out['plotSEDrealizations']:
+        if ((self.out['plotSEDrealizations']) or (self.out['saveSEDrealizations'])):
             fluxobj_4SEDplots.fluxes(self.data, self.models)
             self.nuLnus = fluxobj_4SEDplots.nuLnus4plotting
             self.filtered_modelpoints_nuLnu = fluxobj_4SEDplots.filtered_modelpoints_nuLnu
@@ -144,12 +149,12 @@ class OUTPUT:
 
     def write_parameters_outputvalues(self, P):        
 
-        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.models, self.out['realizations2int'])
+        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain, self.data, self.models, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
-        chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
-  
-        if self.out['calc_intlum']:            
+        chain_pars = np.column_stack((self.chain.flatchain, Mstar, SFR_opt))        
 
+
+        if self.out['calc_intlum']:            
 
             SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
 
@@ -157,16 +162,39 @@ class OUTPUT:
             outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
                                             np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
                                             np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
-
-
-    
+   
             outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
-
         else:
-            #outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
             outputvalues = np.column_stack(([(v[1], v[2]-v[1], v[1]-v[0]) for v in zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))])) 
             outputvalues_header=' '.join( [ i for i in P['names']] )
+
         return outputvalues, outputvalues_header
+
+    def save_posteriors(self, P):        
+        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain, self.data, self.models, self.out['realizations2int'])
+        column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
+        chain_pars = np.column_stack((self.chain.flatchain, Mstar, SFR_opt))        
+        
+        if self.out['calc_intlum']:            
+
+            SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
+
+            chain_others =np.column_stack((self.int_lums.T, SFR_IR))
+            outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
+                                            np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
+                                            np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
+   
+            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+
+            if self.out['save_posteriors']:  
+                nsample, npar = self.chain.flatchain.shape
+
+                posteriors = np.column_stack((chain_pars[np.random.choice(nsample, (self.out['realizations2int'])),:], chain_others)) 
+                posteriors_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+                
+                return posteriors,posteriors_header
+        else:
+            print('Error: save_posteriors=True requires calc_intlum=True.')
 
     def save_realizations(self):        
         return self.int_lums

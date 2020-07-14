@@ -268,7 +268,7 @@ def OUTPUT_settings():
 
     #SED PLOTTING
     out['realizations2plot'] = 10
-
     out['plotSEDrealizations'] = True
+    out['saveSEDrealizations'] = False
 
     return out

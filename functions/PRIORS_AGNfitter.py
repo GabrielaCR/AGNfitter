@@ -171,7 +171,7 @@ def prior_low_AGNfraction(data, models, P, *pars):
     data_lum_1500Angs = lumfactor*data_flux_1500Angs
     abs_mag_data = 51.6 - 2.5 *np.log10(data_lum_1500Angs)
 
-    """ Expected UV magnitude from Parsa, Dunlop et al. 2014.
+    """ Expected UV magnitude from Parsa, Dunlop et al. 2016.
     These calculations are based on Hubble Ultra Deep Field (HUDF), CANDELS/GOODS-South,
     and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts."""
     characteristic_mag = -35.4 * (1+data.z)**0.524/(1+(1+data.z)**0.678)

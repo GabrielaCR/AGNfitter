@@ -74,7 +74,7 @@ def Pdict (data, models):
         if P['names'][i]=='tau':
             P['max'][i] =np.log10(priors.maximal_age(data.z))
         if P['names'][i]=='EBVgal':####
-           P['min'][i] =0.05 ### can be generally assumed for galaxies with log M*> 9.5
+           P['min'][i] =0.05 ### 0.05 can be generally assumed for galaxies with log M*> 9.5
 
     P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
