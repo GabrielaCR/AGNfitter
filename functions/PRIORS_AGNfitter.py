@@ -42,6 +42,7 @@ def PRIORS(data, models, P, *pars):
         """
         """
         t1= time.time()
+
         prior1= prior_AGNfraction(data, GALAXYFdict, gal_obj, GA, BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
         all_priors.append(prior1+prior2)
@@ -61,7 +62,6 @@ def PRIORS(data, models, P, *pars):
 
 
     return final_prior
-    
 
 
 def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB):
@@ -79,6 +79,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
 
     bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
     bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
+
     gal_flux= gal_Fnu* 10**(GA)
     bbb_flux= bbb_Fnu* 10**(BB)
 
@@ -98,7 +99,6 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
                                                                          ### and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts.
 
     """define prior on agnfraction"""
-
     if BB ==0:
         bbb_flux_1500Angs = bbb_flux_1500Angs/(4*pi*(data.dlum)**2)   ##BB normalization
     AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs) 
@@ -108,7 +108,6 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
         mu = -2.
         sigma = 2.
         prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-        #print('Data are 10 times less bright than expected, GA dominates')
 
     else:                                      ## if blue fluxes are equal or brighter than 10 times the characteristic flux.
                                                ## asume BBB is at least equal to galaxy or dominates.
@@ -119,7 +118,6 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
             mu = 2
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-            #print('Data are bright, BB dominates')
 
     return prior_AGNfrac
 
@@ -132,6 +130,50 @@ def prior_stellar_mass(GA):
     prior_GA = Gaussian_prior(mu_GA, sigma_GA, GA)
 
     return prior_GA 
+
+
+# def prior_xrays(data, models, P, *pars):
+
+# 	def alpha_OX(log_L2kev):
+# 		""" Relation between accretion disk intrinsic luminosity at 2500 Angstrom 
+# 			and X-rays at 2 keV .
+# 			Lusso&Risaliti +16 gives beta=[0.6-0.65], gamma=[7-8]"""
+# 		beta= 0.6 
+# 		gamma= 7.5 
+# 		log_L2500A_alphaox= (log_L2kev-beta)/gamma
+
+# 		return log_L2500A_alphaox
+
+#     _ , BBBFdict, _, _,_,_,_,_, _, _, _, _ = models.dict_modelfluxes
+
+#     if len(bbb_obj.par_names)==1:
+#         GA, SB, TO, BB= pars[-4:]
+#     else:
+#         GA, SB, TO = pars[-3:]
+
+# 	all_bbb_nus, bbb_Fnus_dered = BBBFdict['0.0']
+#     bbb_flux_dered= bbb_Fnus_dered* 10**(BB)
+
+#     """Calculate 2kev (10**17.684 Hz) and 2500 Angstrom (10**15.06 Hz) magnitude in the data and model"""
+
+#     flux_2kev = data.fluxes[( 17.60 < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 17.75 )]
+
+#     bbb_flux_dered_2500Angs = data.fluxes[(15.04< (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.15 )]
+#     if len(bbb_flux_dered_2500Angs)>1:
+#         bbb_flux_dered_2500Angs = bbb_flux_dered_2500Angs[0]
+#     lumfactor = (4. * pi * data.dlum**2.)
+#     log_L2500A_data_dered = np.log10(lumfactor*bbb_flux_dered_2500Angs)
+
+#     log_L2500A_model= alpha_OX(log_L2kev)
+
+#     ratio_alpha0x_data= log_L2500A_data_dered - log_L2500A_model
+
+#     """Define prior"""
+#     mu= 0
+#     sigma= 0.4
+#     prior_Xrays= Gaussian_prior(mu, sigma, ratio_alpha0x_data)
+
+#     return prior_Xrays
 
 
 def prior_low_AGNfraction(data, models, P, *pars):

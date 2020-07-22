@@ -48,6 +48,7 @@ ADDING NEW MODELS
 - Other changes to be done manually (unfortunately):
   (Due to computational time reasons not possible yet to do this automatically)
 
+
     (1) Go to fct ymodel in PLOTandWRITE_AGNfitter.py and set (eg. for the galaxy model)
         gal_obj.pick_1D (if your model has one parameter)
         or 
@@ -57,14 +58,12 @@ ADDING NEW MODELS
         GALAXYFdict[gal_obj.matched_parkeys] (model of one parameter)
         or
         GALAXYFdict[tuple(gal_obj.matched_parkeys)] (model of more than one parameters
-
 """
                                                          
 
 def GALAXY(path, modelsettings):
 
     if modelsettings['GALAXY']=='BC03':
-
 
         GALAXYFdict_4plot = dict()
         GALAXY_SFRdict = dict()
@@ -452,14 +451,12 @@ def TORUS(path, modelsettings):
     if modelsettings['TORUS']=='S04':    
 
         TORUSFdict_4plot  = dict()
-
         #Call object containing all torus models     
         S04dict = pickle.load(open(path + 'models/TORUS/S04.pickle', 'rb'), encoding='latin1') 
         parameters_names = ['Nh']
         nhidx=len(S04dict['SED'])
         #Construct dictionaries 
         for nhi in range(nhidx):
-
             tor_nu0, tor_Fnu0 = S04dict['wavelength'][nhi], S04dict['SED'][nhi].squeeze()
             TORUSFdict_4plot[str(S04dict['Nh-values'][nhi])] = tor_nu0, renorm_template('TO',tor_Fnu0)
 
@@ -653,13 +650,10 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
         Lth = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad)))) 
 
         Lir_rad= Lsb+Lsyn+Lth
-
         return  all_nu, Lir_rad
-
     else:
 
         print ('No radio data included in the fit.')
-
 
 def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
 
@@ -692,10 +686,75 @@ def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
 
 
 
-
 """===================================================
 Reddening functions    
 ==================================================="""
+
+# def REDDENING(modelsettings):
+
+#     if modelsettings['gal_reddening']=='Calzetti': 
+
+#         """
+#         This function computes the effect of reddening in the galaxy template (Calzetti law)
+
+#         ## input:
+#         -frequencies in log nu
+#         - Fluxes in Fnu
+#         - the reddening value E(B-V)_gal
+#         ## output:
+
+#         """
+#         RV = 4.05        
+
+#         c =2.998 * 1e8 
+#         gal_lambda_m = c / gal_nu * 1e6#in um 
+#         wl = gal_lambda_m[::-1]  #invert for lambda
+#         k = np.zeros(len(wl))
+
+#         w0 = tuple([wl <= 0.12])
+#         w1 = tuple([wl < 0.63])
+#         w2 = tuple([wl >= 0.63])
+
+#         x1 = np.argmin(np.abs(wl - 0.12))
+#         x2 = np.argmin(np.abs(wl - 0.125))
+
+#         k[w2] = 2.659 * (-1.857 + 1.040 /wl[w2])+RV
+#         k[w1] = 2.659 * (-2.156 + (1.509/wl[w1]) - (0.198/wl[w1]**2) + (0.011/wl[w1]**3))+RV
+#         k[w0] = k[x1] + ((wl[w0] - 0.12) * (k[x1] - k[x2]) / (wl[x1] - wl[x2])) +RV
+
+
+#         gal_k= k[::-1] #invert for nus
+#         gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
+#         return gal_nu, gal_Fnu_red
+#     if modelsettings['bbb_reddening']=='Prevot_SMC': 
+#         """
+        
+#         ## input:
+
+#         ## output:
+
+#         """
+#         #Application of reddening - reading E(B-V) from MCMC sampler
+#         RV= 2.72
+
+#         #converting freq to wavelength, to be able to use prevots function instead on simple linear interpolation 
+#         redd_x =  2.998 * 1e10 / (10**(bbb_x)* 1e-8)
+#         redd_x= redd_x[::-1]
+
+#         #    Define prevots function for the reddening law redd_k    
+#         def function_prevot(x, RV):
+#                y=1.39*pow((pow(10.,-4.)*x),-1.2)-0.38 ;
+#                return y 
+
+#         bbb_k = function_prevot(redd_x, RV)
+
+#         bbb_k= bbb_k[::-1]
+
+#         bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
+
+#         bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
+
+#         return bbb_x, bbb_Lnu_red
 
 
 def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
@@ -725,6 +784,8 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
     bbb_k = function_prevot(redd_x, RV)
     bbb_k= bbb_k[::-1]
     bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
+    bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
+
     bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
 
     return bbb_x, bbb_Lnu_red
@@ -796,10 +857,6 @@ Angstrom = 1e10
 
 def z2Dlum(z):
 
-    """
-    Calculate luminosity distance from redshift.
-    """
-    #Cosmo Constants
     cosmo = FlatLambdaCDM(H0=70 * u.km / u.s / u.Mpc, Tcmb0=2.725 * u.K, Om0=0.266)   
     dlum_cm = cosmo.luminosity_distance(z).to(u.cm).value
     dlum_Mpc = dlum_cm/3.08567758e24 
@@ -930,6 +987,7 @@ def renorm_template(model, Fnu):
         return Fnu_norm
     elif model== 'BB':
         Fnu_norm = Fnu/1e60 ## 1e60 change to 1e64
+
         return Fnu_norm
 
 

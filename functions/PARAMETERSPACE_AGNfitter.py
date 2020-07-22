@@ -205,6 +205,7 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
         GA, SB, TO, BB = par[-4:]
     else:
         bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
+
         GA, SB, TO = par[-3:]
         BB=0
 
