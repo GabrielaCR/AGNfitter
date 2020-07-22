@@ -18,10 +18,7 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4492169512|MIPS70|693933|12.6354|description_dummy
 5026304720|IRAS60|614850|12.6879|description_dummy
 5025851984|IRAS25|238775|13.0987|description_dummy
-<<<<<<< HEAD
-=======
 139659304201424|M1|235123|13.1054|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4492169440|MIPS24|233569|13.1083|description_dummy
 4492168152|WISE4|222532|13.1293|description_dummy
 4500677696|16Spitzer_spec|155833|13.2840|description_dummy
@@ -39,13 +36,8 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4492169728|Ks_2mass|21641|14.1414|description_dummy
 139692380474256|wircam_Ks|21590|14.1424|description_dummy
 139987222619704|ISAACKs|21576|14.1427|description_dummy
-<<<<<<< HEAD
-5030906896|Ks_VISTA|21540|14.1434|description_dummy
-4531450368|K_VISTA|21540|14.1434|description_dummy
-=======
 4531450368|K_VISTA|21540|14.1434|description_dummy
 5030906896|Ks_VISTA|21540|14.1434|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4499558200|Ks_Wircam|21497|14.1443|description_dummy
 140385974658472|HAWKI_K|21484|14.1446|description_dummy
 103425273080|K_NEWFIRM|21452|14.1452|description_dummy
@@ -57,28 +49,17 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 139987222621072|ISAACH|16429|14.2611|description_dummy
 4936000016|H_UKIDSS|16377|14.2624|description_dummy
 103425369080|H_NEWFIRM|16319|14.2640|description_dummy
-<<<<<<< HEAD
-139692380459880|wircam_H|16311|14.2642|description_dummy
-4499602752|H_Wircam|16310|14.2642|description_dummy
-=======
 4499602752|H_Wircam|16310|14.2642|description_dummy
 139692380459880|wircam_H|16311|14.2642|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 139692385213544|F160W|15348|14.2906|description_dummy
 139692385212968|F140W|13877|14.3344|description_dummy
 140385974611408|ISPI_J|12612|14.3759|description_dummy
 4499599232|HAWKI_J|12584|14.3769|description_dummy
 4499632280|TENIS_J|12545|14.3782|description_dummy
 4531450152|J_VISTA|12535|14.3786|description_dummy
-<<<<<<< HEAD
-103425368504|J_NEWFIRM|12512|14.3794|description_dummy
-4933536848|J_UKIDSS|12510|14.3794|description_dummy
-4499526000|J_UKIRT|12510|14.3794|description_dummy
-=======
 4499526000|J_UKIRT|12510|14.3794|description_dummy
 4933536848|J_UKIDSS|12510|14.3794|description_dummy
 103425368504|J_NEWFIRM|12512|14.3794|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 139987222387816|ISAACJ|12494|14.3800|description_dummy
 4492169800|J_2mass|12495|14.3800|description_dummy
 139692380459376|J_wfcam|12491|14.3801|description_dummy
@@ -90,61 +71,34 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4375775640|F098M|9850|14.4832|description_dummy
 139987217633864|I845|9756|14.4874|description_dummy
 4942145104|y_PS1_good|9633|14.4929|description_dummy
-<<<<<<< HEAD
-=======
 139659303761936|SKY_z|9236|14.5112|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 139987222621864|F850LPcool|9161|14.5147|description_dummy
 139692380327016|F850LP|9154|14.5151|description_dummy
 4531451160|z_SUBARU|9037|14.5207|description_dummy
 4524341368|MUSYC_z|9034|14.5208|description_dummy
-<<<<<<< HEAD
-=======
 139659303759184|z|8961|14.5243|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4531450800|z_SDSS|8855|14.5295|description_dummy
 4933835344|Z_UKIDSS|8831|14.5307|description_dummy
 4531450296|z_CHFT|8828|14.5308|description_dummy
 5030858512|Z_VISTA|8798|14.5323|description_dummy
-<<<<<<< HEAD
-5030858320|y_PS1|8679|14.5382|description_dummy
-5030906576|z_PS1|8679|14.5382|description_dummy
-4524341152|MUSYC_I|8338|14.5556|description_dummy
-103425363768|I_NOAO|8084|14.5691|description_dummy
-139987222387240|F814Wcool|7996|14.5738|description_dummy
-=======
 5030858320|y_PS1|8679|14.5382|description_dummy 	#8679-9622  14.5382-14.4939
 5030906576|z_PS1|8679|14.5382|description_dummy 	#8669
 4524341152|MUSYC_I|8338|14.5556|description_dummy
 103425363768|I_NOAO|8084|14.5691|description_dummy
 139987222387240|F814Wcool|7996|14.5738|description_dummy
 139659303760400|SKY_i|7702|14.5901|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4531451016|i_SUBARU|7641|14.5936|description_dummy
 139692385459808|F775W|7635|14.5939|description_dummy
 4531450080|i_CHFT|7618|14.5949|description_dummy
 5030856016|i_PS1|7545|14.5991|description_dummy
 4531450584|i_SDSS|7523|14.6003|description_dummy
-<<<<<<< HEAD
-=======
 139659303893840|i|7500|14.6016|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 139692380537920|R_s|6907|14.6374|description_dummy
 103425272576|R_NOAO|6589|14.6578|description_dummy
 139987217611160|Rc844|6533|14.6616|description_dummy
 4524340936|MUSYC_R|6511|14.6630|description_dummy
 139987217610656|R_VIMOS|6450|14.6671|description_dummy
 4531451088|r_SUBARU|6295|14.6777|description_dummy
-<<<<<<< HEAD
-4531450944|r_CHFT|6231|14.6822|description_dummy
-5028719824|r_PS1|6215|14.6833|description_dummy
-4531450440|r_SDSS|6213|14.6834|description_dummy
-139987217634296|F606Wcool|5926|14.7039|description_dummy
-139692380324136|F606W|5850|14.7095|description_dummy
-4531451304|V_SUBARU|5484|14.7376|description_dummy
-4524340720|MUSYC_V|5380|14.7459|description_dummy
-139987217610512|V843|5378|14.7460|description_dummy
-=======
 139659303760208|SKY_r|6294|14.6778|description_dummy
 4531450944|r_CHFT|6231|14.6822|description_dummy
 5028719824|r_PS1|6215|14.6833|description_dummy
@@ -157,18 +111,10 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4524340720|MUSYC_V|5380|14.7459|description_dummy
 139987217610512|V843|5378|14.7460|description_dummy
 139659303739152|SKY_g|4930|14.7838|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4531450728|g_CHFT|4877|14.7885|description_dummy
 5030840656|g_PS1|4866|14.7895|description_dummy
 4531450872|g_SUBARU|4780|14.7973|description_dummy
 4531450224|g_SDSS|4723|14.8025|description_dummy
-<<<<<<< HEAD
-4524340504|MUSYC_B|4600|14.8140|description_dummy
-139987217611016|B842|4571|14.8167|description_dummy
-4531451232|B_SUBARU|4460|14.8274|description_dummy
-139692380329960|F435W|4322|14.8410|description_dummy
-103425272072|Bw_NOAO|4180|14.8555|description_dummy
-=======
 139659304225872|g|4719|14.8028|description_dummy
 4524340504|MUSYC_B|4600|14.8140|description_dummy
 139987217611016|B842|4571|14.8167|description_dummy
@@ -177,16 +123,11 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 139692380329960|F435W|4322|14.8410|description_dummy
 103425272072|Bw_NOAO|4180|14.8555|description_dummy
 139659304240592|SKY_v|3825|14.8940|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4531450656|u_CHFT|3823|14.8942|description_dummy
 4499607704|CTIO_U|3735|14.9044|description_dummy
 139987217610080|U_VIMOS|3720|14.9061|description_dummy
 139987217610800|U38|3633|14.9164|description_dummy
 4531450008|u_SDSS|3591|14.9214|description_dummy
-<<<<<<< HEAD
-4531668104|MUSYC_U|3506|14.9319|description_dummy
-4531451376|GALEX_2500|2304|15.1143|description_dummy
-=======
 139659303736272|u|3562|14.9250|description_dummy
 4531668104|MUSYC_U|3506|14.9319|description_dummy
 139659303307856|SKY_u|3480|14.9351|description_dummy
@@ -195,7 +136,6 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4531451376|GALEX_2500|2304|15.1143|description_dummy
 139659303834960|SWIFT_M2|2257|15.1231|description_dummy
 139659303309392|SWIFT_W2|2079|15.1589|description_dummy
->>>>>>> 4cf5484748a771f533ae5dda69b884842dd42475
 4531451520|GALEX_1500|1516|15.2960|description_dummy
 139673514091440|harris_R|656|15.6597|description_dummy
 4507906848|16Spitzer|16|17.2840|description_dummy
