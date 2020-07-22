@@ -30,6 +30,7 @@ import astropy.constants as const
 import astropy.units as u
 import itertools
 import functions.DICTIONARIES_AGNfitter as dicts
+from scipy.interpolate import interp1d
 from astropy.cosmology import FlatLambdaCDM       #Cosmology that we assume for estimate luminosity distance                     
 
 """
@@ -265,6 +266,7 @@ def STARBURST(path, modelsettings):
     elif modelsettings['STARBURST']=='S17_newmodel_radio':
 
         STARBURSTFdict_4plot = dict()
+        STARBURST_LIRdict = dict()
 
         #Call object containing all starburst models     
         dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits')
@@ -273,7 +275,7 @@ def STARBURST(path, modelsettings):
         Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
         Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
         Tdust = np.array(dusttable['TDUST'])[0] #K
-        LIR=  np.array(dusttable['LIR'])[0]
+        LIR=  np.array(dusttable['LIR'])[0]*3.826e33
 
         fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
         RADexc= np.arange(0, 100, 5)
@@ -297,15 +299,15 @@ def STARBURST(path, modelsettings):
             sb_nu0 = np.array(Dnu[t,:])[::-1]
             sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
 
-            rad_sb_nu0 ,rad_sb_Fnu0= RADIO(LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re])
+            rad_sb_nu0 ,rad_sb_Fnu0= RADIO(modelsettings, LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re])
 
             STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, renorm_template('SB',rad_sb_Fnu0)
-
+            STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = LIR[t]
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['Tdust', 'fracPAH', 'RADexc']
 
-        return STARBURSTFdict_4plot, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
 
 def BBB(path, modelsettings):
 
@@ -320,16 +322,16 @@ def BBB(path, modelsettings):
         
         #Construct dictionaries
         for EBV_bbb in ebvbbb_array:
+            bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb)
             
-            if modelsettings['RADIO']==True:
-                for i in range(20):  #20 differents values for the slope between UV-2keV (gaussian scatter)
-                    #bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu, bbb_Fnu) #without a hole between BB template and X-Rays
-                    bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu[bbb_nu < 16.5], bbb_Fnu[bbb_nu < 16.5])
-                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu_x, bbb_Fnu_x, EBV_bbb)
-                    BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+            if modelsettings['XRAYS']==True:
+                #for i in range(20):  #20 differents values for the slope between UV-2keV (gaussian scatter)
+                xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu) 
+                # R06 SED is extended and we need avoid overlapping between BBB template and X-Rays power-law
+                bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0[bbb_nu0 < 17], xray_nu)), np.concatenate((bbb_Fnu_red[bbb_nu0 < 17], xray_Fnu))
+                BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)
             	
             else:
-                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb )
                 BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
 
 
@@ -362,15 +364,15 @@ def BBB(path, modelsettings):
                 EddRi=c[1]
                 ebvi=c[2]
                 bbb_nu, bbb_Fnu_nored =  np.log10(SN12dict['frequency']),SN12dict['SED'][:,Mbhi,EddRi].squeeze()
+                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])  
 
-                if modelsettings['RADIO']==True:
-                    for i in range(20):       #20 differents values for the slope between UV-2keV (gaussian scatter)
-                        bbb_nu_x, bbb_Fnu_x = XRAYS(bbb_nu, bbb_Fnu_nored)
-                        bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu_x, bbb_Fnu_x, ebvbbb_array[ebvi])
-                        BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red
+                if modelsettings['XRAYS']==True:
+                    #for i in range(20):       #20 differents values for the slope between UV-2keV (gaussian scatter)
+                    xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu_nored)
+                    bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0, xray_nu)), np.concatenate((bbb_Fnu_red, xray_Fnu))
+                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0x, bbb_Fnu_redx
             	
-                else:
-                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])                  
+                else:                 
                     BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
         
         return BBBFdict_4plot, parameters_names
@@ -569,6 +571,58 @@ def TORUS(path, modelsettings):
         parameters_names = ['oa', 'incl']
         return TORUSFdict_4plot, parameters_names
 
+    elif modelsettings['TORUS']=='SKIRTORM_3P':
+        # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth
+        TORUSFdict_4plot  = dict()
+
+        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_3p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = SKIRTORdict['oa-values'].unique()
+        incl_array = SKIRTORdict['incl-values'].unique()
+        tv_array = SKIRTORdict['tv-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array, tv_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                oai=c[0]
+                incli=c[1]
+                tvi = c[2]
+                model = SKIRTORdict[(SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['incl-values'] == incli) & (SKIRTORdict['tv-values'] == tvi)] 
+                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+                TORUSFdict_4plot[str(oai), str(incli), str(tvi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl', 'tv']
+        return TORUSFdict_4plot, parameters_names
+
+    elif modelsettings['TORUS']=='SKIRTORM_4P':
+        # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth
+        TORUSFdict_4plot  = dict()
+
+        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_4p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = SKIRTORdict['oa-values'].unique()
+        incl_array = SKIRTORdict['incl-values'].unique()
+        tv_array = SKIRTORdict['tv-values'].unique()
+        p_array = SKIRTORdict['p-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array, tv_array, p_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+                oai=c[0]
+                incli=c[1]
+                tvi = c[2]
+                pi = c[3]
+                model = SKIRTORdict[(SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['incl-values'] == incli) & (SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)] 
+                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+                TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(pi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl', 'tv', 'p']
+        return TORUSFdict_4plot, parameters_names
+
 
 def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
 
@@ -612,21 +666,25 @@ def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
     if modelsettings['XRAYS']==True:  
         
         f = interp1d(bbb_nu, bbb_Fnu, kind = 'nearest', bounds_error=False, fill_value=0.) 
-        nu_2500 = (3*1e8)/(2500*1e-10)                               #frequency at 2500 Angstroms
+        nu_2500 = (3*1e8)/(2500*1e-10)                               # frequency at 2500 Angstroms
         L_2500 = f(np.log10(nu_2500))                                # Luminosity at 2500 Angstroms
-        mean_alpha = -0.137*np.log10(L_2500) + 2.638                 #alpha_OX-L_2500 relation
-        sigma_alpha = 0.1                                            #intrinsic dispersion of alpha_OX-L_2500 relation
-        alpha = np.random.normal(mean_alpha, sigma_alpha, 1)         #Scatter in alpha_OX-L_2500
-        #nu_2kev = 4.83598*1e17                                       #frequency at 2 keV
-        #xray_nu = np.logspace(np.log10(nu_2500), np.log10(nu_2kev), 500)
+        mean_alpha = -0.137*np.log10(L_2500) + 2.638                 # alpha_OX-L_2500 relation
+        sigma_alpha = 0.1                                            # intrinsic dispersion of alpha_OX-L_2500 relation
+        alpha = np.random.normal(mean_alpha, sigma_alpha, 1)         # Scatter in alpha_OX-L_2500
+
+        nu_2kev = 4.83598*1e17                                       # frequency at 2 keV
+        Fnu_2kev = L_2500*10**(alpha*(np.log10(nu_2kev/nu_2500)))    # Luminosity at 2keV
+
+        #Proportionality constant a to scale x-ray power-law in 2keV to the value found with alpha_OX-L_2500
+        h = 4.135667731*1e-15*1e-3                                   #eV/Hz --> keV/Hz
+        Gamma = 1.8
+        a = Fnu_2kev/((h*nu_2kev)**(-Gamma+1)*np.e**(-nu_2kev/(7.2540*1e19)))
+
         xray_nu = np.logspace(17, 18.5, 500)                         #with a hole between BB template and X-Rays
-        xray_Fnu = L_2500*10**(alpha*(np.log10(xray_nu/nu_2500)))
-        #bbb_nu_x = np.concatenate((bbb_nu[bbb_nu < np.log10((3*1e8)/(2500*1e-10))], np.log10(xray_nu)))
-        bbb_nu_x = np.concatenate((bbb_nu, np.log10(xray_nu))) 
-        #bbb_Fnu_x = np.concatenate((bbb_Fnu[bbb_nu < np.log10((3*1e8)/(2500*1e-10))], xray_Fnu))
-        bbb_Fnu_x = np.concatenate((bbb_Fnu, xray_Fnu))
+        #xray_Fnu = L_2500*10**(alpha*(np.log10(xray_nu/nu_2500)))
+        xray_Fnu = a*(h*xray_nu)**(-Gamma+1)*np.e**(-xray_nu/(7.2540*1e19))
     
-        return bbb_nu_x, bbb_Fnu_x
+        return np.log10(xray_nu), xray_Fnu
 
     else:
 
