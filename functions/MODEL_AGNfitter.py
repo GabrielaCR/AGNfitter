@@ -887,10 +887,9 @@ def stellar_info(chain, data, models):
         tau_mcmc = chain[:,0]  
         age_mcmc = chain[:,1] 
     elif len(gal_obj.par_names)==4:
-        metal_mcmc = chain[:,0]  
+        metal_mcmc = chain[:,0] 
         tau_mcmc = chain[:,1]     
         age_mcmc = chain[:,2] 
-
     GA = chain[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
                             ## in order to have comparable NORMfactors    
     z = data.z
@@ -933,10 +932,10 @@ def stellar_info_array(chain_flat, data, models, Nthin_compute):
     """
     computes arrays of stellar masses and SFRs
     """
-
+    import random
     Ns, Npar = np.shape(chain_flat) 
-    chain_thinned = chain_flat[0:Ns:int(Ns/Nthin_compute),:]
-    
+    chain_thinned = chain_flat[random.sample(list(np.arange(Ns)), Nthin_compute),:]
+
     Mstar, SFR = stellar_info(chain_thinned, data, models)
     Mstar_list = []
     SFR_list = []
