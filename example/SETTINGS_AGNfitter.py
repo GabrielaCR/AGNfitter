@@ -193,6 +193,8 @@ def MODELS_settings():
                            ### 'SKIRTORC' with parameter values used in X-CIGALE
                            ### 'SKIRTORM' SKIRTOR model with averaged SEDs for each inclination
                            ### 'SKIRTORM_2P' SKIRTOR model with averaged SEDs for each inclination and openning angle
+                           ### 'SKIRTORM_3P'
+                           ### 'SKIRTORM_4P'
 
     models['XRAYS'] = False ### If X-ray data is available and informative for the fit
 
@@ -268,6 +270,7 @@ def OUTPUT_settings():
 
     #SED PLOTTING
     out['realizations2plot'] = 10
+    out['plot_residuals']= True
     out['plotSEDrealizations'] = True
     out['saveSEDrealizations'] = False
 
