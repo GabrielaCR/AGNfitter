@@ -180,9 +180,9 @@ def dictkey_arrays(MODELSdict):
                         self.matched_parkeys.append(matched_parkey)
                     self.matched_parkeys=tuple(self.matched_parkeys)
 
-            def pick_1D(self, *pars_mcmc): 
-                matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
-                self.matched_parkeys = self.pars_modelkeys[matched_idx]
+            # def pick_1D(self, *pars_mcmc): 
+            #     matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
+            #     self.matched_parkeys = self.pars_modelkeys[matched_idx]
 
     galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = all_parnames
     gal_obj =pick_obj(galaxy_parnames,galaxy_parkeys)

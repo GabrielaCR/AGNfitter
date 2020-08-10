@@ -97,12 +97,16 @@ def main(data, models, P, out, models_settings):
         comments_ouput= ' # Output for source ' +str(data.name) + '\n' +' Rows are: 2.5, 16, 50, 84, 97.5 percentiles # '+'\n'+ '-----------------------------------------------------'+'\n' 
         np.savetxt(data.output_folder + str(data.name)+'/parameter_outvalues_'+str(data.name)+'.txt' , outputvalues, delimiter = " ",fmt= "%1.4f" ,header= outputvalues_header, comments =comments_ouput)
 
-    if ((out['saveSEDrealizations']) or (out['plotSEDrealizations'])):
-        fig, save_SEDS = output.plot_manyrealizations_SED(plot_residuals=out['plot_residuals'])
+    if ((out['saveSEDrealizations']) or (out['plotSEDrealizations']) or (out['saveSEDresiduals'])):
+        fig, save_SEDS, save_residuals = output.plot_manyrealizations_SED(plot_residuals=out['plot_residuals'])
         n_rp=out['realizations2plot']
         SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
         if out['saveSEDrealizations']:
             np.savetxt(data.output_folder + str(data.name)+'/output_SEDs100_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
+        if out['saveSEDresiduals']:
+            #res_header = '#freq '+' '.join(['res'+str(i) for i in range(n_rp)]) 
+            res_header = '#freq res'
+            np.savetxt(data.output_folder + str(data.name)+'/output_residuals100_'+str(data.name)+'.txt' , save_residuals, delimiter = " ",fmt= "%1.4f" ,header= res_header, comments='')
         if out['plotSEDrealizations']:
             fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
         plt.close(fig)
@@ -136,14 +140,13 @@ class OUTPUT:
         fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums', self.models_settings)
         fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot', self.models_settings)
 
-        if self.out['calc_intlum']:
-            fluxobj_withintlums.fluxes( self.data, self.models)
-            self.nuLnus = fluxobj_withintlums.nuLnus4plotting
-            self.allnus = fluxobj_withintlums.all_nus_rest
-            self.int_lums = fluxobj_withintlums.int_lums
-            self.int_lums_best = fluxobj_withintlums.int_lums_best
+        fluxobj_withintlums.fluxes( self.data, self.models)
+        self.nuLnus = fluxobj_withintlums.nuLnus4plotting
+        self.allnus = fluxobj_withintlums.all_nus_rest
+        self.int_lums = fluxobj_withintlums.int_lums
+        self.int_lums_best = fluxobj_withintlums.int_lums_best
 
-        if ((self.out['plotSEDrealizations']) or (self.out['saveSEDrealizations'])):
+        if ((self.out['plotSEDrealizations']) or (self.out['saveSEDrealizations']) or (self.out['saveSEDresiduals'])):
             fluxobj_4SEDplots.fluxes(self.data, self.models)
             self.nuLnus = fluxobj_4SEDplots.nuLnus4plotting
             self.filtered_modelpoints_nuLnu = fluxobj_4SEDplots.filtered_modelpoints_nuLnu
@@ -265,7 +268,7 @@ class OUTPUT:
                 alp = 1
                 lw = 2
                 mec='k'
-
+                save_residuals= np.column_stack((data_nus, np.array(data_nuLnu_rest-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.])/data_errors_rest))
 
             #Settings for model lines
             p2=ax1.plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma", color= SBcolor, alpha = alp)
@@ -278,8 +281,10 @@ class OUTPUT:
             upp = [yndflags==0]
             
             p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
+            
             if plot_residuals:
                 p6r = axr.plot(data_nus[tuple(det)], (data_nuLnu_rest[tuple(det)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det)])/data_errors_rest[tuple(det)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
+            
             upplimits = ax1.errorbar(data_nus[tuple(upp)], 2.*data_nuLnu_rest[tuple(upp)], yerr= data_errors_rest[tuple(upp)]/2, uplims = True, linestyle='',  markersize=5, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
 
@@ -290,7 +295,7 @@ class OUTPUT:
         #ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z)+'max log-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print(' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
-        return fig, save_SEDs
+        return fig, save_SEDs, save_residuals
 
 """=========================================================="""
 
@@ -631,26 +636,39 @@ class FLUXES_ARRAYS:
             elif out['intlum_models'][m] == 'tor':    
                  nuLnu=TOnuLnu
             elif out['intlum_models'][m] == 'AGNfrac':    
-                 nuLnuto=TOnuLnu
-                 nuLnusb=SBnuLnu
-                 nuLnuga=GAnuLnu
+                nuLnuto=TOnuLnu
+                nuLnusb=SBnuLnu
+                nuLnuga=GAnuLnu
 
-                 index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
-                 all_nus_rest_int = 10**(all_nus_rest[index])
-                 Lnuto = nuLnuto[:,index] / all_nus_rest_int
-                 Lnusb = nuLnusb[:,index] / all_nus_rest_int
-                 Lnuga = nuLnuga[:,index] / all_nus_rest_int
-                 Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
-                 Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
-                 Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
-                 AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
-                 
+                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
+                    index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()
+                    Lnuto = nuLnuto[:,index].ravel() 
+                    Lnusb = nuLnusb[:,index].ravel()
+                    Lnuga = nuLnuga[:,index].ravel()
+                    AGNfrac = Lnuto/(Lnuto+Lnusb+Lnuga)
+                else:
+                    index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                    all_nus_rest_int = 10**(all_nus_rest[index])
+                    Lnuto = nuLnuto[:,index] / all_nus_rest_int
+                    Lnusb = nuLnusb[:,index] / all_nus_rest_int
+                    Lnuga = nuLnuga[:,index] / all_nus_rest_int
+                    Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
+                    Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
+                    Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
+                    AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
+                             
             if out['intlum_models'][m] != 'AGNfrac': 
-                index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
-                all_nus_rest_int = 10**(all_nus_rest[index])
-                Lnu = nuLnu[:,index] / all_nus_rest_int
-                Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
-                int_lums.append(Lnu_int)
+
+                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
+                    index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()   
+                    Lnu_mono = nuLnu[:,index].ravel()
+                    int_lums.append(Lnu_mono)
+                else:
+                    index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                    all_nus_rest_int = 10**(all_nus_rest[index])
+                    Lnu = nuLnu[:,index] / all_nus_rest_int
+                    Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
+                    int_lums.append(Lnu_int)
             else:
                 int_lums.append(AGNfrac)
 

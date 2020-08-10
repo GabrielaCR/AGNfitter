@@ -176,7 +176,7 @@ def MODELS_settings():
                                 ### 'BC03_metal' (Bruzual & Charlot 2003), with metallicities
     models['STARBURST'] = 'S17_newmodel' ### Current options:
                                 ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
-                                ### 'S07' (Schreiber et al. 2017 (submitted))
+                                ### 'S17' (Schreiber et al. 2017 (submitted))
                                 ### 'S17_newmodel'
                                 ### 'S17_newmodel_radio'
     models['BBB'] ='R06' ### Current options:
