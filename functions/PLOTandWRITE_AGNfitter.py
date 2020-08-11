@@ -398,11 +398,19 @@ class FLUXES_ARRAYS:
         elif self.output_type == 'best_fit':
             par= self.best_fit_pars
 
-        if self.models_settings['BBB'] =='D12_S' or self.models_settings['BBB'] =='D12_K':
+        if self.models_settings['BBB'] =='D12_S' or self.models_settings['BBB'] =='D12_K' or self.models_settings['XRAYS']==True:
             ### extend SED to X-rays
-            self.all_nus_rest = np.arange(11.5, 19, 0.001) 
+            lognu_max = 19
         else:
-            self.all_nus_rest = np.arange(11.5, 16.2, 0.001) 
+            lognu_max = 16.2
+
+        if self.models_settings['RADIO']==True:
+            ## extend SED to radio
+            lognu_min = 9
+        else:
+            lognu_min = 11.5
+
+        self.all_nus_rest = np.arange(lognu_min, lognu_max, 0.001) 
         
         for g in range(realization_nr):
 
@@ -445,11 +453,18 @@ class FLUXES_ARRAYS:
             SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
 
-            BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
-            all_bbb_Fnus = BBinterp(self.all_nus_rest)
+            #BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
+            #all_bbb_Fnus = BBinterp(self.all_nus_rest)
+            if (self.models_settings['BBB'] =='SN12' or self.models_settings['BBB'] =='R06') and self.models_settings['XRAYS']==True:
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 17], bbb_Fnus[all_bbb_nus < 17], bounds_error=False, fill_value=0.) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 17], bbb_Fnus[all_bbb_nus >= 17],  bounds_error=False, fill_value=0.) 
+                all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 17]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 17])))
+            else:
+                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
+                all_bbb_Fnus = BBinterp(self.all_nus_rest)
 
             ### Plot dereddened
-            if len(bbb_obj.par_names)==1:
+            if len(bbb_obj.par_names)==1:     #if BB =! 0:
                 all_bbb_nus, bbb_Fnus_deredd = BBBFdict['0.0']
                 BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
                 all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
@@ -460,6 +475,7 @@ class FLUXES_ARRAYS:
             TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
             all_tor_Fnus[self.all_nus_rest>16]= 0
+            all_tor_Fnus[self.all_nus_rest<11.7]= 0
 
             if self.output_type == 'plot':
                 par2= par[g]
@@ -635,16 +651,15 @@ def SED_plotting_settings(x, ydata, modeldata):
 
 
     mediandata = np.median(ydata)
-    ax1.set_ylim(1e33,1e46)
-    ax1.set_ylim(mediandata /90.,mediandata * 50.)
-    ax1.set_xlim(min(modeldata), max(modeldata))
+    ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*2) #ax1.set_ylim(6*1e37, 1e47) # mediandata /90., mediandata * 50.
+    ax1.set_xlim(min(np.log10(x)), max(np.log10(x))) #min(np.log10(x)), max(np.log10(x)) 9,19
+    #ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.set_ylim( mediandata /90., mediandata * 50.)
-    #ax2.set_ylim(1e33,1e46)
 
-    ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+
+    #ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
     ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5)
     ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5)
 
@@ -652,7 +667,7 @@ def SED_plotting_settings(x, ydata, modeldata):
 
     ax2.plot(x2, np.ones(len(x2)), alpha=0)
     ax2.invert_xaxis()
-    ax2.set_xticks([100., 10.,1., 0.1]) 
+    #ax2.set_xticks([1e3, 100., 10.,1., 0.1, 0.01]) 
 
 
     return fig, ax1, ax2

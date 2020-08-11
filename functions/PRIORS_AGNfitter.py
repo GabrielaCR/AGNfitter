@@ -50,7 +50,8 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['XRAYS']==True:  
 
-        prior=  prior_xrays(data, models, P, *pars)
+        #prior=  prior_xrays(data, models, P, *pars)
+        a=0 
         all_priors.append(a)
 
     if modelsettings['RADIO']==True:  
@@ -67,7 +68,7 @@ def PRIORS(data, models, P, *pars):
 def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB):
 
     Lgal_att = GALAXYatt_dict[gal_obj.matched_parkeys] * 10**(GA)
-    Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB)
+    Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys[0:2]] * 10**(SB)
 
     if Lsb_emit < Lgal_att:
         return -np.inf
@@ -101,7 +102,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
 
     if BB ==0:
         bbb_flux_1500Angs = bbb_flux_1500Angs/(4*pi*(data.dlum)**2)   ##BB normalization
-    AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs) 
+    AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs)
 
     if abs_mag_data > (characteristic_mag-1.): ## if blue fluxes are fainter than 10 times the characteristic flux.
                                                ## asume galaxy dominates, unless data strongly prefers so.
@@ -109,6 +110,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
         sigma = 2.
         prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
         #print('Data are 10 times less bright than expected, GA dominates')
+        #print(data.z, AGNfrac1500, prior_AGNfrac)
 
     else:                                      ## if blue fluxes are equal or brighter than 10 times the characteristic flux.
                                                ## asume BBB is at least equal to galaxy or dominates.
@@ -120,6 +122,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
             #print('Data are bright, BB dominates')
+            #print(data.z, AGNfrac1500, prior_AGNfrac)
 
     return prior_AGNfrac
 

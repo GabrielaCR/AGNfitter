@@ -277,16 +277,16 @@ def STARBURST(path, modelsettings):
         Tdust = np.array(dusttable['TDUST'])[0] #K
         LIR=  np.array(dusttable['LIR'])[0]*3.826e33
 
-        fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.01)/100.),(np.arange(0.1, 5.5, 0.1)/100.)))
-        RADexc= np.arange(0, 100, 5)
+        fracPAH = np.concatenate(((np.arange(0.0, 0.1, 0.02)/100.),(np.arange(0.1, 5.5, 0.2)/100.)))
+        RADexc= np.logspace(-1, 3, 10) #np.arange(-1.5, 0.9, 0.4)  #np.arange(0, 100, 5) / np.logspace(-1, 3, 10) /np.arange(-0.5, 0.26, 0.152) 
 
         idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH)),np.arange(len(RADexc))]
         par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-        conv_factor=1e-6
+        conv_factor= 3.826e-33 #1e-6
         Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
         Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
-        DLnu= np.array(DnuLnu[0])/Dnu *conv_factor #* u.Lsun.to(u.W)
-        PLnu=np.array(PnuLnu[0])/Pnu *conv_factor#* u.Lsun.to(u.W)
+        DLnu= np.array(DnuLnu[0])/Dnu #*conv_factor #* u.Lsun.to(u.W)
+        PLnu=np.array(PnuLnu[0])/Pnu #*conv_factor#* u.Lsun.to(u.W)
 
 
         #Construct dictionaries 
@@ -299,9 +299,9 @@ def STARBURST(path, modelsettings):
             sb_nu0 = np.array(Dnu[t,:])[::-1]
             sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
 
-            rad_sb_nu0 ,rad_sb_Fnu0= RADIO(modelsettings, LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re])
+            rad_sb_nu0 ,rad_sb_Fnu0= RADIO(modelsettings, LIR[t], conv_factor, sb_nu0, sb_Fnu0, RADexc[re]) 
 
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, renorm_template('SB',rad_sb_Fnu0)
+            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp]), str(RADexc[re])] = rad_sb_nu0, renorm_template('SB',rad_sb_Fnu0) 
             STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = LIR[t]
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
@@ -309,31 +309,40 @@ def STARBURST(path, modelsettings):
 
         return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
 
+
 def BBB(path, modelsettings):
 
     if modelsettings['BBB']=='R06':
 
         BBBFdict_4plot = dict()
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
-        parameters_names =['EBVbbb']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
         
         #Construct dictionaries
-        for EBV_bbb in ebvbbb_array:
-            bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb)
-            
-            if modelsettings['XRAYS']==True:
+        if modelsettings['XRAYS']==True:
+            alpha_scat =  np.arange(-0.2, 0.55, 0.1)
+            parameters_names =['EBVbbb', 'alphaScat']  
+            idxs = [np.arange(len(ebvbbb_array)), np.arange(len(alpha_scat))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                ebvi=c[0]
+                alpha_scati=c[1]
+                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, ebvi)      
+
                 #for i in range(20):  #20 differents values for the slope between UV-2keV (gaussian scatter)
-                xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu) 
+                xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu, alpha_scat[alpha_scati]) 
                 # R06 SED is extended and we need avoid overlapping between BBB template and X-Rays power-law
                 bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0[bbb_nu0 < 17], xray_nu)), np.concatenate((bbb_Fnu_red[bbb_nu0 < 17], xray_Fnu))
-                BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)
-            	
-            else:
-                BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+                BBBFdict_4plot[str(EBV_bbb[ebvi]), str(alpha_scat[alpha_scati])] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+        else:
+            parameters_names =['EBVbbb']
 
+            for EBV_bbb in ebvbbb_array:
+                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb) 
+                BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
 
         return BBBFdict_4plot, parameters_names
 
@@ -346,36 +355,54 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
-
-        ## produce all combinations of parameter values (indices)
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
-        idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array))]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
-        for c in par_idxs_combinations:
-                Mbhi=c[0]
-                EddRi=c[1]
-                ebvi=c[2]
-                bbb_nu, bbb_Fnu_nored =  np.log10(SN12dict['frequency']),SN12dict['SED'][:,Mbhi,EddRi].squeeze()
-                bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])  
+        if modelsettings['XRAYS']==True:
+            alpha_scat =  np.arange(-0.2, 0.55, 0.1) 
+            parameters_names =['logBHmass', 'logEddra', 'EBVbbb', 'alphaScat']   
+    
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array)), np.arange(len(alpha_scat))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))   
 
-                if modelsettings['XRAYS']==True:
-                    #for i in range(20):       #20 differents values for the slope between UV-2keV (gaussian scatter)
-                    xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu_nored)
+            for c in par_idxs_combinations:
+                    Mbhi=c[0]
+                    EddRi=c[1]
+                    ebvi=c[2]
+                    alpha_scati = c[3]
+
+                    bbb_nu, bbb_Fnu_nored =  np.log10(SN12dict['frequency']),SN12dict['SED'][:,Mbhi,EddRi].squeeze()
+                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])  
+
+                    #20 differents values for the slope between UV-2keV (scatter)
+                    xray_nu, xray_Fnu = XRAYS(modelsettings, bbb_nu, bbb_Fnu_nored, alpha_scat[alpha_scati])
                     bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0, xray_nu)), np.concatenate((bbb_Fnu_red, xray_Fnu))
-                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0x, bbb_Fnu_redx
-            	
-                else:                 
-                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
-        
+                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi]), str(alpha_scat[alpha_scati])] = bbb_nu0x, bbb_Fnu_redx
+
+        else:
+            parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(Mbhidx), np.arange(EddRidx), np.arange(len(ebvbbb_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                    Mbhi=c[0]
+                    EddRi=c[1]
+                    ebvi=c[2]
+
+                    bbb_nu, bbb_Fnu_nored =  np.log10(SN12dict['frequency']),SN12dict['SED'][:,Mbhi,EddRi].squeeze()
+                    bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])  
+                    BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red
+            	      
         return BBBFdict_4plot, parameters_names
+
 
     elif modelsettings['BBB']=='D12_S':
 
@@ -517,6 +544,7 @@ def TORUS(path, modelsettings):
 
         parameters_names = ['tv', 'p', 'q', 'oa', 'r', 'mcl', 'incl']
         return TORUSFdict_4plot, parameters_names
+
  
     elif modelsettings['TORUS']=='SKIRTORC': 
         #SKIRTOR model with the parameter values used in X-CIGALE (Yang, Guang, et al. 2020) and inclination as free parameter
@@ -533,6 +561,7 @@ def TORUS(path, modelsettings):
         parameters_names = ['incl']
         return TORUSFdict_4plot, parameters_names  
 
+
     elif modelsettings['TORUS']=='SKIRTORM': 
         # SKIRTOR model with averaged SEDs for each inclination
         TORUSFdict_4plot  = dict()
@@ -547,6 +576,7 @@ def TORUS(path, modelsettings):
 
         parameters_names = ['incl']
         return TORUSFdict_4plot, parameters_names 
+
 
     elif modelsettings['TORUS']=='SKIRTORM_2P':
         # SKIRTOR model with averaged SEDs for each inclination and openning angle
@@ -570,6 +600,7 @@ def TORUS(path, modelsettings):
 
         parameters_names = ['oa', 'incl']
         return TORUSFdict_4plot, parameters_names
+
 
     elif modelsettings['TORUS']=='SKIRTORM_3P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth
@@ -624,11 +655,12 @@ def TORUS(path, modelsettings):
         return TORUSFdict_4plot, parameters_names
 
 
-def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
+def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, RAD_excess):
 
     if modelsettings['RADIO']==True:  
 
-        q_IR_r14 = np.random.normal(2.64, 0.26,1)
+        #q_IR_r14 = np.random.normal(2.64, 0.26,1)
+        q_IR_r14 = 2.64 
         alpha_syn  = -0.75
         alpha_th = -0.1
         nth_frac =0.9
@@ -639,29 +671,41 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
         radio_nu14= np.log10(1.4e9)
 
         radio_nu = np.arange(np.log10(sb_nu0)[0]- nu_spacing*int(radio_points),np.log10(sb_nu0)[0], nu_spacing)
-        radio_nu2 = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
-        all_nu=  np.concatenate((radio_nu, np.log10(sb_nu0)))
+        #radio_nu2 = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
+        radio_SB_nu = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
+        #all_nu=  np.concatenate((radio_nu, np.log10(sb_nu0)))
+        optical_nu = np.arange(np.log10(sb_nu0)[-1], 16, nu_spacing)
+        radio_opt_nu = np.concatenate((radio_nu, np.log10(sb_nu0), optical_nu))
 
-        Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(all_nu)-len(sb_Fnu0)),sb_Fnu0))
 
-        Lsyn_0 = 10**(-1*alpha_syn* np.log10(1.4e9/10**radio_nu2[0])) * L14*(nth_frac)* rad_excess
-        Lsyn_rad = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_nu2/10**radio_nu2[0])) 
-        Lsyn = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad))))
+        #Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(radio_nu)),sb_Fnu0))
+        Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(radio_nu)),sb_Fnu0, sb_Fnu0[-1]*1e-4*np.ones(len(optical_nu))))
 
-        Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_nu2[0])) * L14*(1.-nth_frac)
-        Lth_rad= Lth_0* 10**(alpha_th* np.log10(10**radio_nu2/10**radio_nu2[0])) 
-        Lth = np.concatenate((Lsyn_rad, Lsyn_rad[-1]*1e-4*np.ones(len(all_nu)-len(Lsyn_rad)))) 
+        Lsyn_0 = 10**(-1*alpha_syn* np.log10(1.4e9/10**radio_SB_nu[0])) * L14*(nth_frac)
+        #Lsyn_rad = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_nu_th/10**radio_nu_th[0])) 
+        #Lsyn = np.concatenate((Lsyn_rad, 0*np.ones(len(all_nu)-len(Lsyn_rad))))
+        Lsyn_SB = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_SB_nu/10**radio_SB_nu[0])) 
+        Lsyn = np.concatenate((Lsyn_SB, 0*np.ones(len(radio_opt_nu)-len(Lsyn_SB))))
 
-        Lir_rad= Lsb+Lsyn+Lth
+        #Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_nu2[0])) * L14*(1.-nth_frac)
+        Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_SB_nu[0])) * L14*(1.-nth_frac)
+        Lth_SB= Lth_0* 10**(alpha_th* np.log10(10**radio_SB_nu/10**radio_SB_nu[0]))  
+        #Lth_rad= Lth_0* 10**(alpha_th* np.log10(10**radio_nu2/10**radio_nu2[0])) 
+        #Lth = np.concatenate((Lth_rad, 0*np.ones(len(all_nu)-len(Lth_rad))))
+        Lth = np.concatenate((Lth_SB, 0*np.ones(len(radio_opt_nu)-len(Lth_SB))))
 
-        return  all_nu, Lir_rad
+        Lsyn_AGN = RAD_excess*L14*10**(alpha_syn* np.log10(10**radio_opt_nu/10**radio_opt_nu[0]))
+
+        Lir_rad= Lsb+Lsyn+Lth+Lsyn_AGN
+
+        return  radio_opt_nu, Lir_rad #radio_nu_syn, Lir_rad   all_nu, Lir_rad
 
     else:
 
         print ('No radio data included in the fit.')
 
 
-def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
+def XRAYS(modelsettings, bbb_nu, bbb_Fnu, scatter):
 
     if modelsettings['XRAYS']==True:  
         
@@ -669,8 +713,7 @@ def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
         nu_2500 = (3*1e8)/(2500*1e-10)                               # frequency at 2500 Angstroms
         L_2500 = f(np.log10(nu_2500))                                # Luminosity at 2500 Angstroms
         mean_alpha = -0.137*np.log10(L_2500) + 2.638                 # alpha_OX-L_2500 relation
-        sigma_alpha = 0.1                                            # intrinsic dispersion of alpha_OX-L_2500 relation
-        alpha = np.random.normal(mean_alpha, sigma_alpha, 1)         # Scatter in alpha_OX-L_2500
+        alpha = mean_alpha + scatter                                 # Scatter in alpha_OX-L_2500 (-2sigma, 2sigma)
 
         nu_2kev = 4.83598*1e17                                       # frequency at 2 keV
         Fnu_2kev = L_2500*10**(alpha*(np.log10(nu_2kev/nu_2500)))    # Luminosity at 2keV
@@ -680,8 +723,7 @@ def XRAYS(modelsettings, bbb_nu, bbb_Fnu):
         Gamma = 1.8
         a = Fnu_2kev/((h*nu_2kev)**(-Gamma+1)*np.e**(-nu_2kev/(7.2540*1e19)))
 
-        xray_nu = np.logspace(17, 18.5, 500)                         #with a hole between BB template and X-Rays
-        #xray_Fnu = L_2500*10**(alpha*(np.log10(xray_nu/nu_2500)))
+        xray_nu = np.logspace(17, 19, 1000)                         #with a hole between BB template and X-Rays
         xray_Fnu = a*(h*xray_nu)**(-Gamma+1)*np.e**(-xray_nu/(7.2540*1e19))
     
         return np.log10(xray_nu), xray_Fnu
