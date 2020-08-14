@@ -186,7 +186,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         os.system('rm -rf '+dictz)
         print ( "removing source model dictionary "+dictz )
     
-    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav'):           
+    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc2.sav'):           
         print('Done')
         
     else:
@@ -212,16 +212,16 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                                         # From PARAMETERSPACE_AGNfitter.py
 
             t1= time.time()
-            #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+            MCMC_AGNfitter.main(data, models, P, mc)
+            PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
-            try:            
-                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
-                print ( 'Done already'  )      
-            except:
-                print ( 'Not done yet')
-                MCMC_AGNfitter.main(data, models, P, mc) 
-                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+            # try:            
+            #     PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+            #     print ( 'Done already'  )      
+            # except:
+            #     print ( 'Not done yet')
+            #     MCMC_AGNfitter.main(data, models, P, mc) 
+            #     PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
             print ( '_____________________________________________________')
             print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -254,16 +254,16 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
 
     t1= time.time()
     #MCMC_AGNfitter.main(data, P, mc)        
-    #PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
+    PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
 
 
-    try:
-        PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
-        print ( 'Done already'   )     
-    except:
-        print ( 'Not done yet')
-        MCMC_AGNfitter.main(data, models, P, mc)        
-        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+    # try:
+    #     PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
+    #     print ( 'Done already'   )     
+    # except:
+    #     print ( 'Not done yet')
+    #     MCMC_AGNfitter.main(data, models, P, mc)        
+    #     PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
     print ( '_____________________________________________________')
     print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
