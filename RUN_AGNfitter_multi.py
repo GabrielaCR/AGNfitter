@@ -149,6 +149,7 @@ def MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobb
                 'They do NOT need to be sorted in the same order.')
         
     return Modelsdict
+#    return mydict
 
 
 def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settings, clobbermodel=False):
@@ -368,16 +369,17 @@ if __name__ == "__main__":
             for i in range(0, 110, 1):
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
             
-        
     else:
-        # make/read the model dictionary
-        Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
+        print 'Not independent wont exist any longer'
+    # else:
+    #     # make/read the model dictionary
+    #     Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
 
-        # a single source is specified
-        if args.sourcenumber >= 0 and args.independent==False:
-            RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
-        else:
-            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
+    #     # a single source is specified
+    #     if args.sourcenumber >= 0 and args.independent==False:
+    #         RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
+    #     else:
+    #         RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
         
         
     print ( '======= : =======')

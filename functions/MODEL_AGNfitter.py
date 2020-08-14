@@ -1007,7 +1007,7 @@ def renorm_template(model, Fnu):
         return Fnu_norm
 
 
-class MODELS:
+class MODELS: #is this used somewhere else?
 
     def __init__(self, z, models_settings):
         self.name= 'models'
@@ -1019,8 +1019,11 @@ class MODELS:
         Helps transporting the dictionary content
         corresponding to the redshift of the source
         """
-        z_array = np.array(list(Modelsdict.keys()))
-        idx = (np.abs(z_array.astype(float)-self.z)).argmin()
-        z_key = z_array[idx]
+        z_array = np.array(list(Modelsdict.keys()))###erase
+        idx = (np.abs(z_array.astype(float)-self.z)).argmin()###erase
+        z_key = z_array[idx]###erase
         self.dict_modelfluxes = Modelsdict[z_key]
+        #self.dict_modelfluxes = Modelsdict
         self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
+        #self.dictkey_arrays = dicts.dictkey_arrays(self.dict_modelfluxes)
+

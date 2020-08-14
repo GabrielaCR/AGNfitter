@@ -182,7 +182,7 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
 
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
+    #STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
 
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
@@ -197,12 +197,11 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
-
     try: 
-        bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
-        _, sb_Fnu= STARBURSTFdict[sb_obj.matched_parkeys] 
-        _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]  
-        _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
+        bands, gal_Fnu=  gal_obj.get_fluxes(gal_obj.matched_parkeys)#GALAXYFdict[gal_obj.matched_parkeys]
+        _, sb_Fnu= sb_obj.get_fluxes(gal_obj.matched_parkeys)#STARBURSTFdict[sb_obj.matched_parkeys] 
+        _, bbb_Fnu = tor_obj.get_fluxes(gal_obj.matched_parkeys)#BBBFdict[bbb_obj.matched_parkeys]  
+        _, tor_Fnu= bbb_obj.get_fluxes(gal_obj.matched_parkeys)#TORUSFdict[tor_obj.matched_parkeys] 
     except ValueError:
         print ('Error: Dictionary does not contain some values')
 
