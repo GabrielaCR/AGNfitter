@@ -107,8 +107,9 @@ def GALAXY(path, modelsettings):
         # ## Name the parameters that compose the keyes of the dictionary: GALAXYFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['tau', 'age','EBVgal']
+        parameters_types =['grid', 'grid','grid']
 
-        return GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names
+        return GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types
 
 
     elif modelsettings['GALAXY']=='BC03_metal':
@@ -156,8 +157,9 @@ def GALAXY(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['metal','tau', 'age','EBVgal']
+        parameters_types =['grid','grid', 'grid','grid']
 
-        return  GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names
+        return  GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types
 
 
 def STARBURST(path, modelsettings):
@@ -180,8 +182,9 @@ def STARBURST(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['irlum']
+        parameters_types =['grid']
 
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types
 
     elif modelsettings['STARBURST']=='S17':
 
@@ -219,8 +222,9 @@ def STARBURST(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['Tdust', 'fracPAH']
+        parameters_types =['grid', 'grid']
 
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types
 
     elif modelsettings['STARBURST']=='S17_newmodel':
 
@@ -259,8 +263,9 @@ def STARBURST(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['Tdust', 'fracPAH']
+        parameters_types =['grid', 'grid']
 
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types
 
     elif modelsettings['STARBURST']=='S17_newmodel_radio':
 
@@ -305,8 +310,9 @@ def STARBURST(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.    
         parameters_names =['Tdust', 'fracPAH', 'RADexc']
+        parameters_types =['grid', 'grid', 'free']
 
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types
 
 def BBB(path, modelsettings):
 
@@ -315,6 +321,7 @@ def BBB(path, modelsettings):
         BBBFdict_4plot = dict()
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
         parameters_names =['EBVbbb']
+        parameters_types =['grid']
         ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
@@ -334,7 +341,7 @@ def BBB(path, modelsettings):
                 BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
 
 
-        return BBBFdict_4plot, parameters_names
+        return BBBFdict_4plot, parameters_names, parameters_types
 
 
     ## Name the parameters that compose the keys of the dictionary: BBFdict_4plot[key]. 
@@ -346,6 +353,7 @@ def BBB(path, modelsettings):
         ## Call file containing all galaxy models     
         SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1')    
         parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
+        parameters_types =['grid', 'grid', 'grid']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -374,7 +382,7 @@ def BBB(path, modelsettings):
                 else:                 
                     BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
         
-        return BBBFdict_4plot, parameters_names
+        return BBBFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['BBB']=='D12_S':
 
@@ -382,6 +390,7 @@ def BBB(path, modelsettings):
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_S.pickle', 'rb'), encoding='latin1')    
         parameters_names =['logBHmass', 'logEddra']
+        parameters_types =['grid', 'grid']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -406,7 +415,7 @@ def BBB(path, modelsettings):
                 
                 BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
 
-        return BBBFdict_4plot, parameters_names
+        return BBBFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['BBB']=='D12_K':
 
@@ -414,6 +423,7 @@ def BBB(path, modelsettings):
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_K.pickle', 'rb'), encoding='latin1')    
         parameters_names =['logBHmass', 'logEddra']
+        parameters_types =['grid', 'grid']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -439,7 +449,7 @@ def BBB(path, modelsettings):
                 
                 BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
 
-        return BBBFdict_4plot, parameters_names
+        return BBBFdict_4plot, parameters_names, parameters_types
 
     else:
         print (' ')
@@ -453,7 +463,6 @@ def TORUS(path, modelsettings):
         TORUSFdict_4plot  = dict()
         #Call object containing all torus models     
         S04dict = pickle.load(open(path + 'models/TORUS/S04.pickle', 'rb'), encoding='latin1') 
-        parameters_names = ['Nh']
         nhidx=len(S04dict['SED'])
         #Construct dictionaries 
         for nhi in range(nhidx):
@@ -463,8 +472,9 @@ def TORUS(path, modelsettings):
         ## Name the parameters that compose the keys of the dictionary: TORUSFdict_4plot[key]. 
         ## Add the names in the same order as their values are arranged in the dictionary key above.   
         parameters_names = ['Nh']
+        parameters_types = ['grid']
 
-        return TORUSFdict_4plot, parameters_names
+        return TORUSFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['TORUS']=='NK0': 
         
@@ -479,8 +489,9 @@ def TORUS(path, modelsettings):
             TORUSFdict_4plot[str(NK0dict['incl-values'][incl_i])] = tor_nu0, renorm_template('TO',tor_Fnu0) 
 
         parameters_names = ['incl']
+        parameters_types = ['grid']
 
-        return TORUSFdict_4plot, parameters_names   
+        return TORUSFdict_4plot, parameters_names, parameters_types 
 
     elif modelsettings['TORUS']=='SKIRTOR':  #This model has too many parameters --> The code can't find the parameters
         
@@ -513,7 +524,8 @@ def TORUS(path, modelsettings):
                 TORUSFdict_4plot[str(tvi),str(pi), str(qi), str(oai), str(ri), str(mcli), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
 
         parameters_names = ['tv', 'p', 'q', 'oa', 'r', 'mcl', 'incl']
-        return TORUSFdict_4plot, parameters_names
+        parameters_types = ['grid', 'grid', 'grid', 'grid', 'grid', 'grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types
  
     elif modelsettings['TORUS']=='SKIRTORC': 
         #SKIRTOR model with the parameter values used in X-CIGALE (Yang, Guang, et al. 2020) and inclination as free parameter
@@ -528,7 +540,7 @@ def TORUS(path, modelsettings):
             TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
 
         parameters_names = ['incl']
-        return TORUSFdict_4plot, parameters_names  
+        return TORUSFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['TORUS']=='SKIRTORM': 
         # SKIRTOR model with averaged SEDs for each inclination
@@ -543,7 +555,7 @@ def TORUS(path, modelsettings):
             TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
 
         parameters_names = ['incl']
-        return TORUSFdict_4plot, parameters_names 
+        return TORUSFdict_4plot, parameters_names, parameters_types 
 
     elif modelsettings['TORUS']=='SKIRTORM_2P':
         # SKIRTOR model with averaged SEDs for each inclination and openning angle
@@ -566,7 +578,8 @@ def TORUS(path, modelsettings):
                 TORUSFdict_4plot[str(oai), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
 
         parameters_names = ['oa', 'incl']
-        return TORUSFdict_4plot, parameters_names
+        parameters_types = ['grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['TORUS']=='SKIRTORM_3P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth
@@ -591,7 +604,8 @@ def TORUS(path, modelsettings):
                 TORUSFdict_4plot[str(oai), str(incli), str(tvi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
 
         parameters_names = ['oa', 'incl', 'tv']
-        return TORUSFdict_4plot, parameters_names
+        parameters_types = ['grid', 'grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types
 
     elif modelsettings['TORUS']=='SKIRTORM_4P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth
@@ -618,7 +632,8 @@ def TORUS(path, modelsettings):
                 TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(pi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
 
         parameters_names = ['oa', 'incl', 'tv', 'p']
-        return TORUSFdict_4plot, parameters_names
+        parameters_types = ['grid', 'grid', 'grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types
 
 
 def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, rad_excess):
@@ -881,7 +896,7 @@ def stellar_info(chain, data, models):
     """
 
     gal_obj,_,_,_ = models.dictkey_arrays
-    _,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
+    _,_,_,_,_,_,_,_,SFRdict,_,_,_,_= models.dict_modelfluxes
 
     if len(gal_obj.par_names)==3:
         tau_mcmc = chain[:,0]  
@@ -907,10 +922,12 @@ def stellar_info(chain, data, models):
         N = renorm_template('GA', N)
 
         if len(gal_obj.par_names)==3:
+###!        gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
             gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
             tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
             SFR_mcmc =SFRdict[tau_dct, age_dct]
         elif len(gal_obj.par_names)==4:
+###!        gal_obj.pick_nD(tuple([metal_mcmc[i], tau_mcmc[i], age_mcmc[i], 0.]))
             gal_obj.pick_nD(tuple([metal_mcmc[i], tau_mcmc[i], age_mcmc[i], 0.]))
             metal_dct,tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
             SFR_mcmc =SFRdict[metal_dct,tau_dct, age_dct]

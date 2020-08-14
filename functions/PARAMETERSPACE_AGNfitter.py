@@ -40,7 +40,6 @@ def Pdict (data, models):
     - data object
     """
     P = dict()
-    ###!!!ga,sb,to,bb= data.dictkey_arrays
     ga,sb,to,bb= models.dictkey_arrays
     par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
@@ -65,7 +64,7 @@ def Pdict (data, models):
 
     P['names'] = all_pars
     Npar = len(P['names'])
-    P['priortype'] = np.array(['non-info']*Npar)
+    P['priortype'] = [ga.par_types,sb.par_types, to.par_types, bb.par_types, ['free']*len(normpars)]  ###!np.array(['non-info']*Npar)
     P['min'] = par_mins
     P['max'] = par_maxs    
     for i,ps in enumerate(P['names']): ### Maximum age is the age of the Universe
@@ -98,12 +97,11 @@ def ln_prior(data, models, P, *pars):
     """
     t1= time.time()
     for i,p in enumerate(pars):
-        if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
+        ###! if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
+        if not (P['min'][i] < p < P['max'][i]):
             return -np.inf
 
     prior= priors.PRIORS(data, models, P, *pars)
-    #if prior!=0 :
-    #   print(prior, time.time()-t1)
     return prior
 
 
@@ -184,15 +182,21 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
 
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_ = dict_modelfluxes
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
 
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
     par = par[0:len(par)]
+    # gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
+    # sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
+    # tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
+    # bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
+
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
     tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
+
 
     try: 
         bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]

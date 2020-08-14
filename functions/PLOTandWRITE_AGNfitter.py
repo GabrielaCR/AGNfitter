@@ -158,27 +158,20 @@ class OUTPUT:
         Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain, self.data, self.models, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
         #chain_pars_best = np.hstack((self.chain.best_fit_pars, Mstar0, SFR_opt0))
-        chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
+        chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))              
 
+        SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
+        #SFR_IR_best = model.sfr_IR(np.array([self.int_lums_best[0]])) #check that ['intlum_names'][0] is always L_IR(8-100)         
 
-        if self.out['calc_intlum']:            
+        chain_others =np.column_stack((self.int_lums.T, SFR_IR))
+        #chain_others_best =np.hstack((self.int_lums_best.T, SFR_IR_best))            
+        outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
+                                        np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
+                                        np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
 
-            SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
-            #SFR_IR_best = model.sfr_IR(np.array([self.int_lums_best[0]])) #check that ['intlum_names'][0] is always L_IR(8-100)         
-
-            chain_others =np.column_stack((self.int_lums.T, SFR_IR))
-            #chain_others_best =np.hstack((self.int_lums_best.T, SFR_IR_best))            
-            outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
-                                            np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
-                                            np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
-   
-            #outputvalues_best = np.hstack( (chain_pars_best, chain_others_best, np.max(self.chain.lnprob_flat)) )
-            #outputvalues = np.vstack((outputvalues, outputvalues_best))
-
-            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
-        else:
-            outputvalues = np.column_stack(([(v[1], v[2]-v[1], v[1]-v[0]) for v in zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))])) 
-            outputvalues_header=' '.join( [ i for i in P['names']] )
+        #outputvalues_best = np.hstack( (chain_pars_best, chain_others_best, np.max(self.chain.lnprob_flat)) )
+        #outputvalues = np.vstack((outputvalues, outputvalues_best))
+        outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
 
         return outputvalues, outputvalues_header
 
@@ -437,7 +430,7 @@ class FLUXES_ARRAYS:
         gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
         # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_= models.dict_modelfluxes
+        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_= models.dict_modelfluxes
 
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name

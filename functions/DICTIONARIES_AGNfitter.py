@@ -109,36 +109,42 @@ def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
     BBBFdict_filtered = dict()
     TORUSFdict_filtered = dict()
 
-    GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames  = model.GALAXY(path, modelsettings)
+###!    GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames  = model.GALAXY(path, modelsettings)
+    GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames, galaxy_partypes  = model.GALAXY(path, modelsettings)
     for c in GALAXYFdict_4plot.keys():
                 gal_nu, gal_Fnu=GALAXYFdict_4plot[c]               
                 bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
                 GALAXYFdict_filtered[c] = bands, gal_Fnu_filtered
 
-    STARBURSTFdict_4plot, STARBURST_LIRdict, starburst_parnames  = model.STARBURST(path, modelsettings)
+###!    STARBURSTFdict_4plot, STARBURST_LIRdict, starburst_parnames  = model.STARBURST(path, modelsettings)
+    STARBURSTFdict_4plot, STARBURST_LIRdict, starburst_parnames, starburst_partypes  = model.STARBURST(path, modelsettings)
     for c in STARBURSTFdict_4plot.keys():
                 sb_nu, sb_Fnu=STARBURSTFdict_4plot[c]               
                 bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
                 STARBURSTFdict_filtered[c] = bands, sb_Fnu_filtered
 
-    BBBFdict_4plot, bbb_parnames = model.BBB(path, modelsettings)
+###!    BBBFdict_4plot, bbb_parnames = model.BBB(path, modelsettings)
+    BBBFdict_4plot, bbb_parnames, bbb_partypes = model.BBB(path, modelsettings)
     for c in BBBFdict_4plot.keys():
                 bbb_nu, bbb_Fnu=BBBFdict_4plot[c]               
                 bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
                 BBBFdict_filtered[c] = bands, bbb_Fnu_filtered
 
-    TORUSFdict_4plot, torus_parnames  = model.TORUS(path, modelsettings)
+###!   TORUSFdict_4plot, torus_parnames  = model.TORUS(path, modelsettings)
+    TORUSFdict_4plot, torus_parnames, torus_partypes  = model.TORUS(path, modelsettings)
     for c in TORUSFdict_4plot.keys():
                 tor_nu, tor_Fnu=TORUSFdict_4plot[c]               
                 bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
                 TORUSFdict_filtered[c] = bands, tor_Fnu_filtered
 
     norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
+    norm_partypes = ['free', 'free', 'free', 'free' ]
     all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
+    all_partypes = [galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes]
 
     return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, \
            STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,\
-           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
+           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames, all_partypes
            
 
 def dictkey_arrays(MODELSdict):
@@ -152,7 +158,7 @@ def dictkey_arrays(MODELSdict):
     ##output:
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
+    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames, all_partypes= MODELSdict
 
     galaxy_parkeys= np.array(list(GALAXYFdict.keys()))
     starburst_parkeys = np.array(list(STARBURSTFdict.keys()))
@@ -160,11 +166,27 @@ def dictkey_arrays(MODELSdict):
     bbb_parkeys = np.array(list(BBBFdict.keys()))
 
     class pick_obj:
-            def __init__(self, par_names,pars_modelkeys):
+            def __init__(self, par_names, par_types,pars_modelkeys):
 
                 self.pars_modelkeys=pars_modelkeys.T
                 self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
                 self.par_names = par_names
+                self.par_types = par_types
+
+
+            # def pick_nD(self, pars_mcmc): 
+            #     self.matched_parkeys = []
+            #     if len(pars_mcmc)==1:
+            #         for i in range(len(pars_mcmc)):   
+            #             matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+            #             matched_parkey = self.pars_modelkeys[matched_idx]
+            #             self.matched_parkeys =matched_parkey
+            #     else:
+            #         for i in range(len(pars_mcmc)):   
+            #             matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+            #             matched_parkey = self.pars_modelkeys[i][matched_idx]
+            #             self.matched_parkeys.append(matched_parkey)
+            #         self.matched_parkeys=tuple(self.matched_parkeys)
 
             def pick_nD(self, pars_mcmc): 
                 self.matched_parkeys = []
@@ -174,21 +196,26 @@ def dictkey_arrays(MODELSdict):
                         matched_parkey = self.pars_modelkeys[matched_idx]
                         self.matched_parkeys =matched_parkey
                 else:
-                    for i in range(len(pars_mcmc)):   
-                        matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
-                        matched_parkey = self.pars_modelkeys[i][matched_idx]
-                        self.matched_parkeys.append(matched_parkey)
+                    for i in range(len(pars_mcmc)):
+                        if self.par_types == 'free': #if not 'grid'
+                            self.matched_parkeys.append(pars_mcmc[i])
+                        else:   
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                            matched_parkey = self.pars_modelkeys[i][matched_idx]
+                            self.matched_parkeys.append(matched_parkey)
                     self.matched_parkeys=tuple(self.matched_parkeys)
 
-            # def pick_1D(self, *pars_mcmc): 
-            #     matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
-            #     self.matched_parkeys = self.pars_modelkeys[matched_idx]
+            def pick_1D(self, *pars_mcmc): 
+                matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
+                self.matched_parkeys = self.pars_modelkeys[matched_idx]
 
     galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = all_parnames
-    gal_obj =pick_obj(galaxy_parnames,galaxy_parkeys)
-    sb_obj =pick_obj(starburst_parnames,starburst_parkeys)
-    tor_obj=pick_obj(torus_parnames,torus_parkeys)
-    bbb_obj=pick_obj(bbb_parnames,bbb_parkeys)
+    galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = all_partypes
+
+    gal_obj =pick_obj(galaxy_parnames,galaxy_partypes,galaxy_parkeys)
+    sb_obj =pick_obj(starburst_parnames,starburst_partypes,starburst_parkeys)
+    tor_obj=pick_obj(torus_parnames,torus_partypes,torus_parkeys)
+    bbb_obj=pick_obj(bbb_parnames,bbb_partypes,bbb_parkeys)
 
     return gal_obj,sb_obj,tor_obj, bbb_obj 
 

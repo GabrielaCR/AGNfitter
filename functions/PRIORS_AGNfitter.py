@@ -14,7 +14,7 @@ def PRIORS(data, models, P, *pars):
 
     modelsettings= models.settings
 
-    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
+    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _,_ = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
     if len(bbb_obj.par_names)==1:
