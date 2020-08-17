@@ -23,6 +23,7 @@ from math import exp,pi, sqrt
 import matplotlib.pyplot as plt
 import time
 import pickle
+import zipfile
 from astropy.table import Table
 from astropy.io import fits, ascii
 import scipy
@@ -308,6 +309,52 @@ def STARBURST(path, modelsettings):
         parameters_names =['Tdust', 'fracPAH', 'RADexc']
 
         return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+
+    elif modelsettings['STARBURST']=='S17_radio':
+
+        STARBURSTFdict_4plot = dict()
+        STARBURST_LIRdict = dict()
+
+        #Call object containing all starburst models 
+        z = zipfile.ZipFile('models/STARBURST/S17_radio.zip')
+        z.extractall('models/STARBURST/')
+        z.close()    
+        S17_RADdict = pickle.load(open(path + 'models/STARBURST/S17_radio.pickle', 'rb'), encoding='latin1')  
+
+        Tdust_array = S17_RADdict['Tdust-values'].unique()
+        fracPAH_array = S17_RADdict['fracPAH-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [Tdust_array, fracPAH_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+            t=c[0]
+            fp=c[1]
+            model = S17_RADdict[(S17_RADdict['Tdust-values'] == t) & (S17_RADdict['fracPAH-values'] == fp)] 
+            rad_sb_nu0 ,rad_sb_Fnu0 =  model['frequency'].values.item(), model['SED'].values.item() 
+            STARBURSTFdict_4plot[str(t), str(fp)] = rad_sb_nu0, renorm_template('SB',rad_sb_Fnu0) 
+            STARBURST_LIRdict[str(t), str(fp)] = model['LIR'].values.item()
+
+        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['Tdust', 'fracPAH']
+
+        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names
+
+def AGN_RAD(path, modelsettings):
+
+    if modelsettings['RADIO']== True:
+
+        AGN_RADFdict_4plot = dict()
+
+        alpha_syn  = -0.75
+        agnrad_nu0 = np.arange(9, 16, 0.02)
+        agnrad_Fnu = 10**(alpha_syn* np.log10(10**agnrad_nu0/10**agnrad_nu0[0]))
+
+        AGN_RADFdict_4plot['AGN-syn'] = agnrad_nu0, renorm_template('AGN_RAD', agnrad_Fnu)
+
+        return AGN_RADFdict_4plot
 
 
 def BBB(path, modelsettings):
@@ -659,8 +706,7 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, RAD_excess):
 
     if modelsettings['RADIO']==True:  
 
-        #q_IR_r14 = np.random.normal(2.64, 0.26,1)
-        q_IR_r14 = 2.64 
+        q_IR_r14 = 2.64  #q_IR_r14 = np.random.normal(2.64, 0.26,1)
         alpha_syn  = -0.75
         alpha_th = -0.1
         nth_frac =0.9
@@ -671,27 +717,18 @@ def RADIO(modelsettings, LIR, conv_factor, sb_nu0, sb_Fnu0, RAD_excess):
         radio_nu14= np.log10(1.4e9)
 
         radio_nu = np.arange(np.log10(sb_nu0)[0]- nu_spacing*int(radio_points),np.log10(sb_nu0)[0], nu_spacing)
-        #radio_nu2 = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
         radio_SB_nu = np.concatenate((radio_nu, np.log10(sb_nu0)[:np.argmax(sb_Fnu0)]))
-        #all_nu=  np.concatenate((radio_nu, np.log10(sb_nu0)))
         optical_nu = np.arange(np.log10(sb_nu0)[-1], 16, nu_spacing)
         radio_opt_nu = np.concatenate((radio_nu, np.log10(sb_nu0), optical_nu))
 
-
-        #Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(radio_nu)),sb_Fnu0))
         Lsb = np.concatenate((sb_Fnu0[0]*1e-4*np.ones(len(radio_nu)),sb_Fnu0, sb_Fnu0[-1]*1e-4*np.ones(len(optical_nu))))
 
         Lsyn_0 = 10**(-1*alpha_syn* np.log10(1.4e9/10**radio_SB_nu[0])) * L14*(nth_frac)
-        #Lsyn_rad = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_nu_th/10**radio_nu_th[0])) 
-        #Lsyn = np.concatenate((Lsyn_rad, 0*np.ones(len(all_nu)-len(Lsyn_rad))))
         Lsyn_SB = Lsyn_0 * 10**(alpha_syn* np.log10(10**radio_SB_nu/10**radio_SB_nu[0])) 
         Lsyn = np.concatenate((Lsyn_SB, 0*np.ones(len(radio_opt_nu)-len(Lsyn_SB))))
 
-        #Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_nu2[0])) * L14*(1.-nth_frac)
         Lth_0 = 10**(-1*alpha_th* np.log10(1.4e9/10**radio_SB_nu[0])) * L14*(1.-nth_frac)
         Lth_SB= Lth_0* 10**(alpha_th* np.log10(10**radio_SB_nu/10**radio_SB_nu[0]))  
-        #Lth_rad= Lth_0* 10**(alpha_th* np.log10(10**radio_nu2/10**radio_nu2[0])) 
-        #Lth = np.concatenate((Lth_rad, 0*np.ones(len(all_nu)-len(Lth_rad))))
         Lth = np.concatenate((Lth_SB, 0*np.ones(len(radio_opt_nu)-len(Lth_SB))))
 
         Lsyn_AGN = RAD_excess*L14*10**(alpha_syn* np.log10(10**radio_opt_nu/10**radio_opt_nu[0]))
@@ -866,7 +903,7 @@ def stellar_info(chain, data, models):
     """
 
     gal_obj,_,_,_ = models.dictkey_arrays
-    _,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
+    _,_,_,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
 
     if len(gal_obj.par_names)==3:
         tau_mcmc = chain[:,0]  
@@ -972,6 +1009,9 @@ def renorm_template(model, Fnu):
         return Fnu_norm
     elif model== 'BB':
         Fnu_norm = Fnu/1e60 ## 1e60 change to 1e64
+        return Fnu_norm
+    elif model == 'AGN_RAD':
+        Fnu_norm = Fnu*1e-30
         return Fnu_norm
 
 

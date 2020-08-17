@@ -45,12 +45,12 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4492170016|H_2mass|16467|14.2601|description_dummy
 4531449936|H_VISTA|16453|14.2604|description_dummy
 4500015872|MUSYC_H|16443|14.2607|description_dummy
-140385974658256|SOFI_H|16429|14.2611|description_dummy
 139987222621072|ISAACH|16429|14.2611|description_dummy
+140385974658256|SOFI_H|16429|14.2611|description_dummy
 4936000016|H_UKIDSS|16377|14.2624|description_dummy
 103425369080|H_NEWFIRM|16319|14.2640|description_dummy
-4499602752|H_Wircam|16310|14.2642|description_dummy
 139692380459880|wircam_H|16311|14.2642|description_dummy
+4499602752|H_Wircam|16310|14.2642|description_dummy
 139692385213544|F160W|15348|14.2906|description_dummy
 139692385212968|F140W|13877|14.3344|description_dummy
 140385974611408|ISPI_J|12612|14.3759|description_dummy
@@ -81,8 +81,8 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4933835344|Z_UKIDSS|8831|14.5307|description_dummy
 4531450296|z_CHFT|8828|14.5308|description_dummy
 5030858512|Z_VISTA|8798|14.5323|description_dummy
-5030858320|y_PS1|8679|14.5382|description_dummy 	#8679-9622  14.5382-14.4939
-5030906576|z_PS1|8679|14.5382|description_dummy 	#8669
+5030858320|y_PS1|8679|14.5382|description_dummy
+5030906576|z_PS1|8679|14.5382|description_dummy
 4524341152|MUSYC_I|8338|14.5556|description_dummy
 103425363768|I_NOAO|8084|14.5691|description_dummy
 139987222387240|F814Wcool|7996|14.5738|description_dummy
@@ -139,4 +139,9 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 4531451520|GALEX_1500|1516|15.2960|description_dummy
 139673514091440|harris_R|656|15.6597|description_dummy
 4507906848|16Spitzer|16|17.2840|description_dummy
+140397159451920|XR_10|10|17.4661|description_dummy
+140397159406160|XR_16E-1|2|18.2718|description_dummy
+139896972867984|XR_14-195|0|18.8006|description_dummy
 140080709130648|La_Boca870|1031291424237|6.4633|description_dummy
+140397158753744|RAD_21E8|2142856988|9.1457|description_dummy
+140397159290640|RAD_6E8|600000000|9.6985|description_dummy

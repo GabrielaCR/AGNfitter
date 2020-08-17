@@ -97,7 +97,8 @@ def main(data, models, P, out, models_settings):
         fig, save_SEDS = output.plot_manyrealizations_SED()
         fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
         n_rp=out['realizations2plot']
-        SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
+        #SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
+        SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['RADnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
         np.savetxt(data.output_folder + str(data.name)+'/output_SEDs_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
         
         plt.close(fig)
@@ -203,13 +204,13 @@ class OUTPUT:
         data_nuLnu_rest = ydata* data_nus_obs *lumfactor
         data_errors_rest= yerror * data_nus_obs * lumfactor
 
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
+        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
 
-        save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
+        save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, RADnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
 
         #plotting settings
         fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
-        SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
+        SBcolor, BBcolor, GAcolor, TOcolor, RADcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
 
 
@@ -220,9 +221,10 @@ class OUTPUT:
             p3=ax1.plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma",color= BBcolor, alpha = 0.5)
             p4=ax1.plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="1 /sigma",color=GAcolor, alpha = 0.5)
             p5=ax1.plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = 0.5)
+            p6=ax1.plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= RADcolor ,alpha = 0.5)
             p1= ax1.plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= 0.5)
 
-            p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=2, color="red", alpha =0.7)
+            p7 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=2, color="red", alpha =0.7)
 
             det = tuple([yndflags==1])
             upp = tuple([yndflags==0])
@@ -370,6 +372,7 @@ class FLUXES_ARRAYS:
         BBFnu_list = []
         GAFnu_list= []
         TOFnu_list = []
+        RADFnu_list = []
         TOTALFnu_list = []
         BBFnu_deredd_list = []
         if self.output_type == 'plot':
@@ -382,7 +385,7 @@ class FLUXES_ARRAYS:
         # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
         ###!!!_,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_= data.dict_modelfluxes
         ###!!!
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_= models.dict_modelfluxes
+        _,_,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,AGN_RADFdict,_,_,_,_= models.dict_modelfluxes
 
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name
@@ -435,11 +438,11 @@ class FLUXES_ARRAYS:
                 all_sb_nus, sb_Fnus= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
 
             if len(bbb_obj.par_names)==1:
-                GA, SB, TO, BB = par[g][-4:]
+                GA, SB, TO, BB, RAD = par[g][-5:]
                 bbb_obj.pick_1D(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
                 all_bbb_nus, bbb_Fnus = BBBFdict[bbb_obj.matched_parkeys] 
             else:
-                GA, SB, TO = par[g][-3:]
+                GA, SB, TO, RAD = par[g][-4:]
                 BB = 0.
                 bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
                 all_bbb_nus, bbb_Fnus = BBBFdict[tuple(bbb_obj.matched_parkeys)] 
@@ -449,6 +452,10 @@ class FLUXES_ARRAYS:
             all_gal_nus, gal_Fnus = GALAXYFdict[tuple(gal_obj.matched_parkeys)] 
             GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus, bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
+
+            all_agnrad_nus, agnrad_Fnus = AGN_RADFdict[[i for i in AGN_RADFdict.keys()][0]] 
+            RADinterp = scipy.interpolate.interp1d(all_agnrad_nus, agnrad_Fnus, bounds_error=False, fill_value=0.)
+            all_agnrad_Fnus = RADinterp(self.all_nus_rest)
 
             SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
@@ -491,16 +498,18 @@ class FLUXES_ARRAYS:
                 BBFnu = (all_bbb_Fnus /(4*math.pi*data.dlum**2)) * 10**float(BB) 
             GAFnu =   all_gal_Fnus * 10**float(GA) 
             TOFnu =   all_tor_Fnus * 10**float(TO)
+            RADFnu =   all_agnrad_Fnus * 10**float(RAD)
             BBFnu_deredd = all_bbb_Fnus_deredd * 10**float(BB)
 
 
-            TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu
+            TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu + RADFnu
             
             #Append to the list for all realizations
             SBFnu_list.append(SBFnu)
             BBFnu_list.append(BBFnu)
             GAFnu_list.append(GAFnu)
             TOFnu_list.append(TOFnu)
+            RADFnu_list.append(RADFnu)
             TOTALFnu_list.append(TOTALFnu)
             BBFnu_deredd_list.append(BBFnu_deredd)
             #Only if SED plotting: do the same with the  modelled flux values at each data point 
@@ -513,11 +522,12 @@ class FLUXES_ARRAYS:
         BBFnu_array = np.array(BBFnu_list)
         GAFnu_array = np.array(GAFnu_list)
         TOFnu_array = np.array(TOFnu_list)
+        RADFnu_array = np.array(RADFnu_list)
         TOTALFnu_array = np.array(TOTALFnu_list)
         BBFnu_array_deredd = np.array(BBFnu_deredd_list)    
 
         #Put them all together to transport
-        FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, TOTALFnu_array,BBFnu_array_deredd)
+        FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, RADFnu_array, TOTALFnu_array,BBFnu_array_deredd)
 
         #Convert Fluxes to nuLnu
         self.nuLnus4plotting = self.FLUXES2nuLnu_4plotting(self.all_nus_rest, FLUXES4plotting, data.z)
@@ -551,9 +561,9 @@ class FLUXES_ARRAYS:
         all_nus_obs = 10**all_nus_rest /(1+z) 
         distance= model.z2Dlum(z)
         lumfactor = (4. * math.pi * distance**2.)
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = [ f *lumfactor*all_nus_obs for f in FLUXES4plotting]
+        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd = [ f *lumfactor*all_nus_obs for f in FLUXES4plotting]
 
-        return SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd
+        return SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd
 
 
     def integrated_luminosities(self,out ,all_nus_rest, nuLnus4plotting):
@@ -570,7 +580,7 @@ class FLUXES_ARRAYS:
                             to each element of the total chain
         """
 
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd =nuLnus4plotting
+        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd =nuLnus4plotting
         out['intlum_freqranges'] = (out['intlum_freqranges']*out['intlum_freqranges_unit']).to(u.Hz, equivalencies=u.spectral())
         int_lums = []
         for m in range(len(out['intlum_models'])):
@@ -585,6 +595,8 @@ class FLUXES_ARRAYS:
                  nuLnu=GAnuLnu
             elif out['intlum_models'][m] == 'tor':    
                  nuLnu=TOnuLnu
+            elif out['intlum_models'][m] == 'agn_rad':    
+                 nuLnu=RADnuLnu
             elif out['intlum_models'][m] == 'AGNfrac':    
                  nuLnuto=TOnuLnu
                  nuLnusb=SBnuLnu
@@ -681,6 +693,7 @@ def SED_colors(combination = 'a'):
         seagreen = '#2E8B57'    
         lila = '#68228B'
         darkblue='#123281'
+        
 
-    return seagreen, darkblue, 'orange', lila, 'red'
+    return seagreen, darkblue, 'orange', lila, darkcyan, 'red'
 

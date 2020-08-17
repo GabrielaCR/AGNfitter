@@ -14,13 +14,13 @@ def PRIORS(data, models, P, *pars):
 
     modelsettings= models.settings
 
-    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
+    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
     if len(bbb_obj.par_names)==1:
-        GA, SB, TO, BB= pars[-4:]
+        GA, SB, TO, BB, RAD= pars[-5:]
     else:
-        GA, SB, TO = pars[-3:]
+        GA, SB, TO, RAD = pars[-4:]
         BB = 0  
 
     all_priors=[]
@@ -139,13 +139,13 @@ def prior_stellar_mass(GA):
 
 def prior_low_AGNfraction(data, models, P, *pars):
 
-    _ , BBBFdict, GALAXYFdict, _,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
+    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
     gal_obj,_,_, bbb_obj = models.dictkey_arrays
 
     if len(bbb_obj.par_names)==1:
-        GA, SB, TO, BB= pars[-4:]
+        GA, SB, TO, BB, RAD= pars[-5:]
     else:
-        GA, SB, TO = pars[-3:]
+        GA, SB, TO, RAD = pars[-4:]
 
     bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
     bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
