@@ -22,6 +22,8 @@ This script includes:
 import matplotlib.pyplot as plt
 from matplotlib import rc, ticker
 #matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 import sys, os
 import math 
 import numpy as np
@@ -238,7 +240,6 @@ class OUTPUT:
         data_errors_rest= yerror * data_nus_obs * lumfactor
 
         SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
-
         save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
 
         #plotting settings
@@ -427,11 +428,10 @@ class FLUXES_ARRAYS:
         if self.output_type == 'plot':
             filtered_modelpoints_list = []
 
-        gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
+        gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays_4plot
 
         # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_= models.dict_modelfluxes
-
+        MD= models.dict_modelfluxes
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name
 
@@ -466,78 +466,58 @@ class FLUXES_ARRAYS:
         self.all_nus_rest = np.arange(lognu_min, lognu_max, 0.001) 
         
         for g in range(realization_nr):
-
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
-            ## Use pick_nD if model has more than one parameter,
-            ## and pick_1D if it has only one.
-
             gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
-            #tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])            
 
-            if len(tor_obj.par_names)==1:
-                tor_obj.pick_1D(par[g][self.P['idxs'][2]:self.P['idxs'][3]])
-                all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]                 
-            else:
-                tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])      
-                all_tor_nus, tor_Fnus= TORUSFdict[tuple(tor_obj.matched_parkeys)]
+            tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])     
+            all_tor_nus, tor_Fnus= tor_obj.get_fluxes(tor_obj.matched_parkeys)
 
-
-            if len(sb_obj.par_names)==1:
-                sb_obj.pick_1D(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
-                all_sb_nus, sb_Fnus= STARBURSTFdict[sb_obj.matched_parkeys] 
-            else:
-                sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])
-                all_sb_nus, sb_Fnus= STARBURSTFdict[tuple(sb_obj.matched_parkeys)] 
+            sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])               
+            all_sb_nus, sb_Fnus= sb_obj.get_fluxes(sb_obj.matched_parkeys) 
 
             if len(bbb_obj.par_names)==1:
-                GA, SB, TO, BB = par[g][-4:]
-                bbb_obj.pick_1D(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
-                all_bbb_nus, bbb_Fnus = BBBFdict[bbb_obj.matched_parkeys] 
+                GA, SB, TO, BB = par[g][-4:]   
+                bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+                all_bbb_nus, bbb_Fnus = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
             else:
                 GA, SB, TO = par[g][-3:]
                 BB = 0.
                 bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
-                all_bbb_nus, bbb_Fnus = BBBFdict[tuple(bbb_obj.matched_parkeys)] 
+                all_bbb_nus, bbb_Fnus = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
 
 
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
-            all_gal_nus, gal_Fnus = GALAXYFdict[tuple(gal_obj.matched_parkeys)] 
-            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus, bounds_error=False, fill_value=0.)
+            all_gal_nus, gal_Fnus = gal_obj.get_fluxes(gal_obj.matched_parkeys)
+            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(), bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
 
-            SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
+            SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus.flatten(), bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
 
-            #BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
-            #all_bbb_Fnus = BBinterp(self.all_nus_rest)
             if (self.models_settings['BBB'] =='SN12' or self.models_settings['BBB'] =='R06') and self.models_settings['XRAYS']==True:
                 BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 17], bbb_Fnus[all_bbb_nus < 17], bounds_error=False, fill_value=0.) ##
                 BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 17], bbb_Fnus[all_bbb_nus >= 17],  bounds_error=False, fill_value=0.) 
                 all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 17]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 17])))
             else:
-                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
+                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus.flatten(), bounds_error=False, fill_value=0.)
                 all_bbb_Fnus = BBinterp(self.all_nus_rest)
 
             ### Plot dereddened
             if len(bbb_obj.par_names)==1:     #if BB =! 0:
-                all_bbb_nus, bbb_Fnus_deredd = BBBFdict['0.0']
-                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
+                all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot['0.0']
+                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
                 all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
             else:
                 all_bbb_Fnus_deredd = all_bbb_Fnus
 
-            #all_tor_nus, tor_Fnus= TORUSFdict[tor_obj.matched_parkeys]
-
-            TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
+            TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus).flatten(), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
             all_tor_Fnus[self.all_nus_rest>16]= 0
             all_tor_Fnus[self.all_nus_rest<11.7]= 0
 
             if self.output_type == 'plot':
                 par2= par[g]
-                ###!!!filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, self.P, *par2)
                 filtered_modelpoints, _ = parspace.ymodel(data.nus,data.z, data.dlum, models.dictkey_arrays, models.dict_modelfluxes, self.P, *par2)
-                
             #Using the costumized normalization 
             SBFnu =   all_sb_Fnus *10**float(SB) 
             if len(bbb_obj.par_names)==1:
@@ -562,8 +542,7 @@ class FLUXES_ARRAYS:
             #Only if SED plotting: do the same with the  modelled flux values at each data point 
             if self.output_type == 'plot':
                 filtered_modelpoints_list.append(filtered_modelpoints)
-
-
+              
         #Convert lists into Numpy arrays
         SBFnu_array = np.array(SBFnu_list)
         BBFnu_array = np.array(BBFnu_list)

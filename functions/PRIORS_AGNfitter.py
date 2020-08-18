@@ -13,8 +13,7 @@ import itertools
 def PRIORS(data, models, P, *pars):
 
     modelsettings= models.settings
-
-    _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _,_ = models.dict_modelfluxes
+    MD = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
     if len(bbb_obj.par_names)==1:
@@ -27,7 +26,7 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['PRIOR_energy_balance'] == True:  
         
-        prior= prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB)
+        prior= prior_energy_balance(MD.GALAXYatt_dict, gal_obj, GA, MD.STARBURST_LIRdict,sb_obj,SB)
         all_priors.append(prior)
 
     ### Informative priors to be added
@@ -43,7 +42,7 @@ def PRIORS(data, models, P, *pars):
         """
         t1= time.time()
 
-        prior1= prior_AGNfraction(data, GALAXYFdict, gal_obj, GA, BBBFdict, bbb_obj, BB)
+        prior1= prior_AGNfraction(data, MD.GALAXYFdict, gal_obj, GA, MD.BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
         all_priors.append(prior1+prior2)
         #print('INTERNAL',prior, time.time()-t1)
@@ -79,7 +78,7 @@ def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,S
 def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB): 
 
     bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
-    bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
+    bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys_grid] 
 
     gal_flux= gal_Fnu* 10**(GA)
     bbb_flux= bbb_Fnu* 10**(BB)
@@ -120,7 +119,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
             mu = 2
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-            
+
     return prior_AGNfrac
 
 

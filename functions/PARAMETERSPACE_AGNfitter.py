@@ -16,6 +16,9 @@ from __future__ import division
 import pylab as pl
 import numpy as np
 from math import pi
+# import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('TkAgg')
 import time
 from collections import Iterable
 import itertools
@@ -30,7 +33,6 @@ def flatten(lis):
          else:        
              yield item
 
-###!!!def Pdict (data):
 def Pdict (data, models):
 
     """Constructs a dictionary P with the name of all model parameters as keys. 
@@ -105,7 +107,6 @@ def ln_prior(data, models, P, *pars):
     return prior
 
 
-
 def ln_likelihood(x, y, ysigma, z, ymodel):
 
     """Calculates the likelihood function.
@@ -128,7 +129,6 @@ def ln_likelihood(x, y, ysigma, z, ymodel):
     return -0.5 * np.dot(resid, resid)
 
 
-###!!!def ln_probab(pars, data, P):
 def ln_probab(pars, data, models, P):
 
     """Calculates the posterior probability as Ppos= Pprior + Pdata
@@ -143,15 +143,8 @@ def ln_probab(pars, data, models, P):
     ## dependencies:
     - MCMC_AGNfitter.py"""
 
-    ###!!!y_model, bands, gal_Fnu = ymodel(data.nus, data.z, data.dlum, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
-    ###!!!    
     y_model, bands  = ymodel(data.nus, data.z, data.dlum, models.dictkey_arrays, models.dict_modelfluxes, P, *pars)
-
-    ###!!!lnp = ln_prior(data.z, data.dlum, bands, gal_Fnu, data.dictkey_arrays, data.dict_modelfluxes, P, *pars)
-    ###!!!    
     lnp = ln_prior(data, models, P, *pars)
-    ###!!! lnp = ln_prior(data.z, data.dlum, bands, models.priors, P, pars)
-
 
     if np.isfinite(lnp):    
         posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model)     
@@ -187,10 +180,6 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
     par = par[0:len(par)]
-    # gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
-    # sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
-    # tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
-    # bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
@@ -198,19 +187,18 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
 
     try: 
-        bands, gal_Fnu=  gal_obj.get_fluxes(gal_obj.matched_parkeys)#GALAXYFdict[gal_obj.matched_parkeys]
-        _, sb_Fnu= sb_obj.get_fluxes(gal_obj.matched_parkeys)#STARBURSTFdict[sb_obj.matched_parkeys] 
-        _, bbb_Fnu = tor_obj.get_fluxes(gal_obj.matched_parkeys)#BBBFdict[bbb_obj.matched_parkeys]  
-        _, tor_Fnu= bbb_obj.get_fluxes(gal_obj.matched_parkeys)#TORUSFdict[tor_obj.matched_parkeys] 
-    except ValueError:
-        print ('Error: Dictionary does not contain some values')
+        bands, gal_Fnu=  gal_obj.get_fluxes(gal_obj.matched_parkeys)
+        _, sb_Fnu= sb_obj.get_fluxes(sb_obj.matched_parkeys)
+        _, bbb_Fnu = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
+        _, tor_Fnu= tor_obj.get_fluxes(tor_obj.matched_parkeys)
 
-    ### Normalization is not a free parameter for M_bh-dependent models
+    except ValueError:
+         print ('Error: Dictionary does not contain some values')
+
     if len(bbb_obj.par_names)==1:
         GA, SB, TO, BB = par[-4:]
     else:
         bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
-
         GA, SB, TO = par[-3:]
         BB=0
 
@@ -220,9 +208,8 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
           + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu
     #--------------------------------------------------------------------    
     lum = lum.reshape((np.size(lum),))
-
-    return lum, bands###, 10**(GA)*gal_Fnu ###!!!10**(GA)*gal_abs_Fnu_int, 10**(SB)*LIR 
-
+    
+    return lum, bands
 
 
 """--------------------------------------

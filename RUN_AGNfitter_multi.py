@@ -148,8 +148,7 @@ def MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobb
                 'This will produce a mismatched fitting. Make sure the filterset contains only/all the photometric bands corresponding your catalog.\n'+ \
                 'They do NOT need to be sorted in the same order.')
         
-    return Modelsdict
-#    return mydict
+    return mydict
 
 
 def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settings, clobbermodel=False):
@@ -160,7 +159,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     mc = MCMC_settings()
     out = OUTPUT_settings()
     data = DATA(data_obj,line)
-    ###!!!
     models = MODELS(data.z, models_settings)
 
     print ( '')
@@ -205,7 +203,8 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                 dictz = str.encode(dictz)
                 with open(dictz, 'rb') as f:
                     zdict = pickle.load(f, encoding='latin1')
-            Modelsdictz = zdict.MD
+            
+            Modelsdictz = zdict
 
             models.DICTS(filtersz, Modelsdictz)
 
@@ -254,7 +253,7 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     print ( '- Sourcename: ', data.name)
 
     t1= time.time()
-    #MCMC_AGNfitter.main(data, P, mc)        
+    MCMC_AGNfitter.main(data, P, mc)        
     PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
 
 
@@ -370,7 +369,18 @@ if __name__ == "__main__":
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
             
     else:
-        print 'Not independent wont exist any longer'
+        print('Option of one single dictionary for a whole catalogue is deprecated. Running "independent, -i" option.')
+
+        if args.ncpu>1.:
+            
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, indep_bool=True, filters=filters_settings)
+
+        elif args.sourcenumber >= 0:
+            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+        else:
+            for i in range(0, 110, 1):
+                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+       
     # else:
     #     # make/read the model dictionary
     #     Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
