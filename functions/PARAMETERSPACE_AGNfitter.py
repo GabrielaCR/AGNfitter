@@ -49,16 +49,27 @@ def Pdict (data, models):
     
     ## Add normalization parameters:
     if len(bb.par_names)==1:
-       ## With tor but correct 
-        [par_mins.append(i) for i in [-10,-10.,-10,-10.,-10.]]
-        [par_maxs.append(i)for i in [10,10,10,10,10]]
-        #[par_maxs.append(i)for i in [10.,10,10,-9]]
-        normpars=['GA','SB','TO','BB', 'RAD'] 
+       ## With tor but correct    
+        if models.settings['RADIO'] == True:
+            [par_mins.append(i) for i in [-10,-10.,-10,-10.,-10.]]
+            [par_maxs.append(i)for i in [10,10,10,10,10]]
+            normpars=['GA','SB','TO','BB', 'RAD'] 
 
-    else:
-        [par_mins.append(i) for i in [-10.,-10.,-10.,-10]]
-        [par_maxs.append(i)for i in [10.,10.,10.,10]]           
-        normpars=['GA','SB','TO', 'RAD'] 
+        elif models.settings['RADIO'] == False:
+            [par_mins.append(i) for i in [-10,-10.,-10,-10.]]
+            [par_maxs.append(i)for i in [10,10,10,10]]
+            normpars=['GA','SB','TO','BB'] 
+
+    else:   
+        if models.settings['RADIO'] == True:
+            [par_mins.append(i) for i in [-10.,-10.,-10.,-10]]
+            [par_maxs.append(i)for i in [10.,10.,10.,10]]           
+            normpars=['GA','SB','TO', 'RAD'] 
+
+        elif models.settings['RADIO'] == False:
+            [par_mins.append(i) for i in [-10.,-10.,-10.]]
+            [par_maxs.append(i)for i in [10.,10.,10.]]           
+            normpars=['GA','SB','TO'] 
 
     all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
     npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(normpars)]  
@@ -181,8 +192,10 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
     (2)in scriptPLOTandWRITE.
 
     """
-
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, AGN_RADFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
+    if len(dict_modelfluxes) == 14:
+        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, AGN_RADFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
+    elif len(dict_modelfluxes) == 12:
+        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_ = dict_modelfluxes
 
     gal_obj,sb_obj,tor_obj, bbb_obj = dictkey_arrays
 
@@ -197,22 +210,36 @@ def ymodel(data_nus, z, dlum, dictkey_arrays, dict_modelfluxes, P, *par):
         _, sb_Fnu= STARBURSTFdict[sb_obj.matched_parkeys] 
         _, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys]  
         _, tor_Fnu= TORUSFdict[tor_obj.matched_parkeys] 
-        _, agnrad_Fnu= AGN_RADFdict[[i for i in AGN_RADFdict.keys()][0]] 
+        if len(dict_modelfluxes) == 14:
+            _, agnrad_Fnu= AGN_RADFdict[[i for i in AGN_RADFdict.keys()][0]] 
+
     except ValueError:
         print ('Error: Dictionary does not contain some values')
 
     ### Normalization is not a free parameter for M_bh-dependent models
     if len(bbb_obj.par_names)==1:
-        GA, SB, TO, BB, RAD = par[-5:]
+        if len(dict_modelfluxes) == 14:
+            GA, SB, TO, BB, RAD = par[-5:]
+        elif len(dict_modelfluxes) == 12:
+            GA, SB, TO, BB = par[-4:]
+
     else:
         bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
-        GA, SB, TO, RAD = par[-4:]
         BB=0
+        if len(dict_modelfluxes) == 14:
+            GA, SB, TO, RAD = par[-4:]
+        elif len(dict_modelfluxes) == 12:
+            GA, SB, TO = par[-3:]
+
 
     # Total SED sum
     #--------------------------------------------------------------------
-    lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
+    if len(dict_modelfluxes) == 14:
+        lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
           + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu + 10**(RAD)*agnrad_Fnu
+    elif len(dict_modelfluxes) == 12:
+        lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
+          + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu
     #--------------------------------------------------------------------    
     lum = lum.reshape((np.size(lum),))
 

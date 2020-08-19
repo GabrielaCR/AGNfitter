@@ -108,7 +108,6 @@ def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
     STARBURSTFdict_filtered = dict()        
     BBBFdict_filtered = dict()
     TORUSFdict_filtered = dict()
-    AGN_RADFdict_filtered = dict()
 
     GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames  = model.GALAXY(path, modelsettings)
     for c in GALAXYFdict_4plot.keys():
@@ -134,17 +133,27 @@ def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
                 bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
                 TORUSFdict_filtered[c] = bands, tor_Fnu_filtered
 
-    AGN_RADFdict_4plot  = model.AGN_RAD(path, modelsettings)
-    for c in AGN_RADFdict_4plot.keys():
+    if modelsettings['RADIO']== True:
+        AGN_RADFdict_filtered = dict()
+        AGN_RADFdict_4plot  = model.AGN_RAD(path, modelsettings)
+        for c in AGN_RADFdict_4plot.keys():
                 agnrad_nu, agnrad_Fnu=AGN_RADFdict_4plot[c]               
                 bands, agnrad_Fnu_filtered  =  filtering_models(agnrad_nu, agnrad_Fnu, filterdict, z)            
                 AGN_RADFdict_filtered[c] = bands, agnrad_Fnu_filtered
 
-    norm_parnames = ['GA', 'SB', 'BB', 'TO', 'RAD']
-    all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
+        norm_parnames = ['GA', 'SB', 'BB', 'TO', 'RAD']
+        all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
 
-    return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, AGN_RADFdict_filtered,\
+        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, AGN_RADFdict_filtered,\
            STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot, AGN_RADFdict_4plot,\
+           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
+   
+    else: 
+        norm_parnames = ['GA', 'SB', 'BB', 'TO']
+        all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
+
+        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered,\
+           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,\
            GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
            
 
@@ -159,7 +168,11 @@ def dictkey_arrays(MODELSdict):
     ##output:
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, AGN_RADFdict,_,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
+    if len(MODELSdict) == 14:
+        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, AGN_RADFdict,_,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
+
+    elif len(MODELSdict) == 12:
+        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
 
     galaxy_parkeys= np.array(list(GALAXYFdict.keys()))
     starburst_parkeys = np.array(list(STARBURSTFdict.keys()))

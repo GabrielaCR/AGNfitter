@@ -903,7 +903,11 @@ def stellar_info(chain, data, models):
     """
 
     gal_obj,_,_,_ = models.dictkey_arrays
-    _,_,_,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
+
+    if models.settings['RADIO'] == True:
+        _,_,_,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
+    elif models.settings['RADIO'] == False:
+        _,_,_,_,_,_,_,_,SFRdict,_,_,_= models.dict_modelfluxes
 
     if len(gal_obj.par_names)==3:
         tau_mcmc = chain[:,0]  
