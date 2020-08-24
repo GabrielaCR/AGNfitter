@@ -78,6 +78,62 @@ class MODELSDICT:
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
 
+    def construct_dictionaryarray_filtered(self, z, filterdict):
+
+        """
+        Construct the dictionaries of fluxes at bands (to compare to data), 
+        and dictionaries of fluxes over the whole spectrum, for plotting.
+        All calculations are done at one given redshift.
+        """
+
+        self.GALAXYFdict = dict()
+        self.STARBURSTFdict = dict()        
+        self.BBBFdict = dict()
+        self.TORUSFdict = dict()
+        self.z= z
+        self.filterdict= filterdict
+        self.GALAXYFdict_4plot, self.GALAXY_SFRdict, self.GALAXYatt_dict, galaxy_parnames, galaxy_partypes,self.GALAXYfunctions  = model.GALAXY(self.path, self.modelsettings)
+        for c in self.GALAXYFdict_4plot.keys():
+                    gal_nu, gal_Fnu=self.GALAXYFdict_4plot[c]               
+                    bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
+                    self.GALAXYFdict[c] = bands, gal_Fnu_filtered.flatten()
+
+        self.STARBURSTFdict_4plot, self.STARBURST_LIRdict, starburst_parnames, starburst_partypes ,self.STARBURSTfunctions = model.STARBURST(self.path, self.modelsettings)
+        for c in self.STARBURSTFdict_4plot.keys():
+                    sb_nu, sb_Fnu=self.STARBURSTFdict_4plot[c]               
+                    bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
+                    self.STARBURSTFdict[c] = bands, sb_Fnu_filtered.flatten()
+
+        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings)
+        for c in self.BBBFdict_4plot.keys():
+                    bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]               
+                    bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
+                    self.BBBFdict[c] = bands, bbb_Fnu_filtered.flatten()
+
+        self.TORUSFdict_4plot, torus_parnames, torus_partypes ,self.TORUSfunctions = model.TORUS(self.path, self.modelsettings)
+        for c in self.TORUSFdict_4plot.keys():
+                    tor_nu, tor_Fnu=self.TORUSFdict_4plot[c]               
+                    bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
+                    self.TORUSFdict[c] = bands, tor_Fnu_filtered.flatten()
+
+        if self.modelsettings['RADIO']== True:
+            self.AGN_RADFdict = dict()
+            self.AGN_RADFdict_4plot, self.AGN_RADfunctions  = model.AGN_RAD(self.path, self.modelsettings)
+            for c in self.AGN_RADFdict_4plot.keys():
+                agnrad_nu, agnrad_Fnu = self.AGN_RADFdict_4plot[c]               
+                bands, agnrad_Fnu_filtered  =  filtering_models(agnrad_nu, agnrad_Fnu, filterdict, z)            
+                self.AGN_RADFdict[c] = bands, agnrad_Fnu_filtered.flatten()
+            norm_parnames = ['GA', 'SB', 'BB', 'TO', 'RAD']
+            norm_partypes = ['free', 'free', 'free', 'free', 'free']
+
+        else:
+            norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
+            norm_partypes = ['free', 'free', 'free', 'free' ]
+
+        self.all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
+        self.all_partypes = [galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes]
+
+
     def build(self):
 
         Modelsdict = dict()
@@ -88,76 +144,14 @@ class MODELSDICT:
         for z in self.z_array:                
             i += 1
             filterdict = [self.fo.central_nu_array, self.fo.lambdas_dict, self.fo.factors_dict]
-            dict_modelsfiltered = construct_dictionaryarray_filtered(z, filterdict, self.path, self.modelsettings)
+            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict)
             Modelsdict[str(z)] = dict_modelsfiltered
             time.sleep(0.01)
             dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
 
         self.MD = Modelsdict
 
-
-def construct_dictionaryarray_filtered( z, filterdict,path, modelsettings):
-
-    """
-    Construct the dictionaries of fluxes at bands (to compare to data), 
-    and dictionaries of fluxes over the whole spectrum, for plotting.
-    All calculations are done at one given redshift.
-    """
-
-    GALAXYFdict_filtered = dict()
-    STARBURSTFdict_filtered = dict()        
-    BBBFdict_filtered = dict()
-    TORUSFdict_filtered = dict()
-
-    GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, galaxy_parnames  = model.GALAXY(path, modelsettings)
-    for c in GALAXYFdict_4plot.keys():
-                gal_nu, gal_Fnu=GALAXYFdict_4plot[c]               
-                bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
-                GALAXYFdict_filtered[c] = bands, gal_Fnu_filtered
-
-    STARBURSTFdict_4plot, STARBURST_LIRdict, starburst_parnames  = model.STARBURST(path, modelsettings)
-    for c in STARBURSTFdict_4plot.keys():
-                sb_nu, sb_Fnu=STARBURSTFdict_4plot[c]               
-                bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
-                STARBURSTFdict_filtered[c] = bands, sb_Fnu_filtered
-
-    BBBFdict_4plot, bbb_parnames = model.BBB(path, modelsettings)
-    for c in BBBFdict_4plot.keys():
-                bbb_nu, bbb_Fnu=BBBFdict_4plot[c]               
-                bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
-                BBBFdict_filtered[c] = bands, bbb_Fnu_filtered
-
-    TORUSFdict_4plot, torus_parnames  = model.TORUS(path, modelsettings)
-    for c in TORUSFdict_4plot.keys():
-                tor_nu, tor_Fnu=TORUSFdict_4plot[c]               
-                bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
-                TORUSFdict_filtered[c] = bands, tor_Fnu_filtered
-
-    if modelsettings['RADIO']== True:
-        AGN_RADFdict_filtered = dict()
-        AGN_RADFdict_4plot  = model.AGN_RAD(path, modelsettings)
-        for c in AGN_RADFdict_4plot.keys():
-                agnrad_nu, agnrad_Fnu=AGN_RADFdict_4plot[c]               
-                bands, agnrad_Fnu_filtered  =  filtering_models(agnrad_nu, agnrad_Fnu, filterdict, z)            
-                AGN_RADFdict_filtered[c] = bands, agnrad_Fnu_filtered
-
-        norm_parnames = ['GA', 'SB', 'BB', 'TO', 'RAD']
-        all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
-
-        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, AGN_RADFdict_filtered,\
-           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot, AGN_RADFdict_4plot,\
-           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
-   
-    else: 
-        norm_parnames = ['GA', 'SB', 'BB', 'TO']
-        all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
-
-        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered,\
-           STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,\
-           GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames
-           
-
-def dictkey_arrays(MODELSdict):
+def dictkey_arrays(MD):
 
     """
     Summarizes the model dictionary keys and does the interpolation to nearest value in grid.
@@ -168,51 +162,220 @@ def dictkey_arrays(MODELSdict):
     ##output:
     """
 
-    if len(MODELSdict) == 14:
-        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, AGN_RADFdict,_,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
+    #STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames, all_partypes= MODELSdict
 
-    elif len(MODELSdict) == 12:
-        STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames= MODELSdict
+    galaxy_parkeys= np.array(list(MD.GALAXYFdict.keys()))
+    starburst_parkeys = np.array(list(MD.STARBURSTFdict.keys()))
+    torus_parkeys = np.array(list(MD.TORUSFdict.keys()))
+    bbb_parkeys = np.array(list(MD.BBBFdict.keys()))
 
-    galaxy_parkeys= np.array(list(GALAXYFdict.keys()))
-    starburst_parkeys = np.array(list(STARBURSTFdict.keys()))
-    torus_parkeys = np.array(list(TORUSFdict.keys()))
-    bbb_parkeys = np.array(list(BBBFdict.keys()))
-
-    class pick_obj:
-            def __init__(self, par_names,pars_modelkeys):
+    class get_model:
+            def __init__(self, par_names, par_types, pars_modelkeys, modelsdict, z, functionidxs, functions):
 
                 self.pars_modelkeys=pars_modelkeys.T
                 self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
                 self.par_names = par_names
+                self.par_types = par_types
+                self.modelsdict = modelsdict
+                self.functions = functions
+                self.functionidxs=functionidxs
+                self.z= z
 
             def pick_nD(self, pars_mcmc): 
                 self.matched_parkeys = []
+                self.matched_parkeys_grid = []
+
                 if len(pars_mcmc)==1:
                     for i in range(len(pars_mcmc)):   
-                        matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
-                        matched_parkey = self.pars_modelkeys[matched_idx]
-                        self.matched_parkeys =matched_parkey
+                        if self.par_types[i] == 'grid':
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+                            matched_parkey = self.pars_modelkeys[matched_idx]
+                            self.matched_parkeys =matched_parkey
+                            self.matched_parkeys_grid=self.matched_parkeys
+                        elif self.par_types[i] == 'free':
+                            #print ('line 206 dic : Free partype')
+                            self.matched_parkeys=pars_mcmc[i]
+                            self.matched_parkeys_grid=self.pars_modelkeys[0]
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
                 else:
-                    for i in range(len(pars_mcmc)):   
-                        matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
-                        matched_parkey = self.pars_modelkeys[i][matched_idx]
-                        self.matched_parkeys.append(matched_parkey)
+                    for i in range(len(pars_mcmc)):
+                        if self.par_types[i] == 'grid': #if not 'grid'  
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                            matched_parkey = self.pars_modelkeys[i][matched_idx]
+                            self.matched_parkeys.append(matched_parkey)
+                            self.matched_parkeys_grid.append(matched_parkey)     #=self.matched_parkeys
+                        elif self.par_types[i] == 'free':
+                            #print ('line 206 dic : Free partype')
+                            self.matched_parkeys.append(pars_mcmc[i])
+                            self.matched_parkeys_grid.append(self.pars_modelkeys[i,0]) #self.pars_modelkeys[0]
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
                     self.matched_parkeys=tuple(self.matched_parkeys)
 
-            def pick_1D(self, *pars_mcmc): 
-                matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc).argmin()
-                self.matched_parkeys = self.pars_modelkeys[matched_idx]
-
-    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = all_parnames
-    gal_obj =pick_obj(galaxy_parnames,galaxy_parkeys)
-    sb_obj =pick_obj(starburst_parnames,starburst_parkeys)
-    tor_obj=pick_obj(torus_parnames,torus_parkeys)
-    bbb_obj=pick_obj(bbb_parnames,bbb_parkeys)
-
-    return gal_obj,sb_obj,tor_obj, bbb_obj 
+            def get_fluxes(self,  matched_parkeys):
+                    
+                    if 'free' not in self.par_types: #if all are 'grid'  
+                        #print(self.par_names, self.modelsdict[matched_parkeys][1])
+                        return self.modelsdict[matched_parkeys]
 
 
+                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
+                        #print(self.pars_modelkeys[0])
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                        rest_bands = bands + np.log10((1+self.z))          #Rest frame frequency
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
+                        bandsf = bandsf - np.log10((1+self.z))             #Come back to frequency corrected by redshift
+
+                        return bandsf, Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        rest_bands = bands + np.log10((1+self.z))          #Rest frame frequency
+                        if self.par_types[-2] == 'free' and self.par_types[-1] == 'free':
+                            bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
+                            bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) - np.log10((1+self.z))
+                            Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+                        elif self.par_types[-2] == 'grid' and self.par_types[-1] == 'free':
+                            bandsf =  bands
+                            Fnuf = np.concatenate((Fnu[rest_bands < 17], Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+
+                        return bandsf, Fnuf
+                    else: 
+                        print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+
+    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+    galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+
+    gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
+    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
+    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict,MD.z, MD.TORUSfunctions, model.TORUSfunctions)
+    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict,MD.z, MD.BBBfunctions ,model.BBBfunctions)
+
+    return gal_obj,sb_obj,tor_obj, bbb_obj
+
+
+def dictkey_arrays_4plot(MD):
+    """
+    Summarizes the model dictionary keys and does the interpolation to nearest value in grid.
+    used to be transporte to data
+
+    ##input:
+
+    ##output:
+    """
+
+    galaxy_parkeys= np.array(list(MD.GALAXYFdict.keys()))
+    starburst_parkeys = np.array(list(MD.STARBURSTFdict.keys()))
+    torus_parkeys = np.array(list(MD.TORUSFdict.keys()))
+    bbb_parkeys = np.array(list(MD.BBBFdict.keys()))
+
+#    class pick_obj:
+    class get_model:
+            def __init__(self, par_names, par_types, pars_modelkeys, modelsdict, z, functionidxs, functions):
+
+                self.pars_modelkeys=pars_modelkeys.T
+                self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
+                self.par_names = par_names
+                self.par_types = par_types
+                self.modelsdict = modelsdict
+                self.functions = functions
+                self.functionidxs=functionidxs
+                self.z= z
+
+            def pick_nD(self, pars_mcmc): 
+                self.matched_parkeys = []
+                self.matched_parkeys_grid = []
+
+                if len(pars_mcmc)==1:
+                    for i in range(len(pars_mcmc)):   
+                        if self.par_types[i] == 'grid':
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+                            matched_parkey = self.pars_modelkeys[matched_idx]
+                            self.matched_parkeys =matched_parkey
+                            self.matched_parkeys_grid=self.matched_parkeys
+                        elif self.par_types[i] == 'free':
+                            #print ('line 206 dic : Free partype')
+                            self.matched_parkeys=pars_mcmc[i]
+                            self.matched_parkeys_grid = self.pars_modelkeys[0]
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                else:
+                    for i in range(len(pars_mcmc)):
+                        if self.par_types[i] == 'grid': #if not 'grid'  
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                            matched_parkey = self.pars_modelkeys[i][matched_idx]
+                            self.matched_parkeys.append(matched_parkey)
+                            self.matched_parkeys_grid.append(matched_parkey)
+                        elif self.par_types[i] == 'free':
+                            #print ('line 206 dic : Free partype')
+                            self.matched_parkeys.append(pars_mcmc[i])
+                            self.matched_parkeys_grid.append(self.pars_modelkeys[i, 0])
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                    self.matched_parkeys=tuple(self.matched_parkeys)
+
+            def get_fluxes(self,  matched_parkeys):
+                    
+                    if 'free' not in self.par_types: #if all are 'grid'  
+                        return self.modelsdict[matched_parkeys]
+
+
+                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
+
+                        return bandsf, Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        if self.par_types[-2] == 'free' and self.par_types[-1] == 'free':
+                            bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
+                            bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) 
+                            Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+                        elif self.par_types[-2] == 'grid' and self.par_types[-1] == 'free':
+                            bandsf =  rest_bands
+                            Fnuf = np.concatenate((Fnu[rest_bands < 17], Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+                        return bandsf, Fnuf
+
+                    #elif 'free' in self.par_types:
+                        #print(self.pars_modelkeys[0])
+                     #   bands, Fnu = self.modelsdict[self.pars_modelkeys[0]]
+                      #  fcts=self.functions()
+                       # idxs=0
+                       # f=fcts[self.functionidxs[idxs]]
+                        #bandsf, Fnuf = f(bands, Fnu, matched_parkeys)
+                        #return bandsf, Fnuf
+                    else: 
+                        print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+
+    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+    galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes
+
+    gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict_4plot, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
+    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict_4plot, MD.z,MD.STARBURSTfunctions, model.STARBURSTfunctions)
+    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict_4plot, MD.z, MD.TORUSfunctions, model.TORUSfunctions)
+    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict_4plot, MD.z, MD.BBBfunctions ,model.BBBfunctions)
+
+    return gal_obj,sb_obj,tor_obj, bbb_obj
 
 
 def filtering_models( model_nus, model_fluxes, filterdict, z ):    

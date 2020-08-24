@@ -148,7 +148,7 @@ def MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobb
                 'This will produce a mismatched fitting. Make sure the filterset contains only/all the photometric bands corresponding your catalog.\n'+ \
                 'They do NOT need to be sorted in the same order.')
         
-    return Modelsdict
+    return mydict
 
 
 def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settings, clobbermodel=False):
@@ -159,7 +159,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     mc = MCMC_settings()
     out = OUTPUT_settings()
     data = DATA(data_obj,line)
-    ###!!!
     models = MODELS(data.z, models_settings)
 
     print ( '')
@@ -188,6 +187,13 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     
     if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav'):           
         print('Done')
+        dictz = str.encode(dictz)  #Added by Laura
+        with open(dictz, 'rb') as f:
+            zdict = pickle.load(f, encoding='latin1')
+        Modelsdictz = zdict
+        models.DICTS(filtersz, Modelsdictz)
+        P = parspace.Pdict (data, models)
+        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
         
     else:
 
@@ -204,7 +210,8 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                 dictz = str.encode(dictz)
                 with open(dictz, 'rb') as f:
                     zdict = pickle.load(f, encoding='latin1')
-            Modelsdictz = zdict.MD
+            
+            Modelsdictz = zdict
 
             models.DICTS(filtersz, Modelsdictz)
 
@@ -212,15 +219,16 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                                         # From PARAMETERSPACE_AGNfitter.py
 
             t1= time.time()
-            #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
-            try:            
-                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
-                print ( 'Done already'  )      
-            except:
-                print ( 'Not done yet')
-                MCMC_AGNfitter.main(data, models, P, mc) 
-                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+            MCMC_AGNfitter.main(data, models, P, mc)
+            PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+
+            # try:            
+            #     PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+            #     print ( 'Done already'  )      
+            # except:
+            #     print ( 'Not done yet')
+            #     MCMC_AGNfitter.main(data, models, P, mc) 
+            #     PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
             print ( '_____________________________________________________')
             print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -252,16 +260,17 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     print ( '- Sourcename: ', data.name)
 
     t1= time.time()
-    #MCMC_AGNfitter.main(data, P, mc)        
-    #PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
+    MCMC_AGNfitter.main(data, P, mc)        
+    PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
 
-    try:
-        PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
-        print ( 'Done already'   )     
-    except:
-        print ( 'Not done yet')
-        MCMC_AGNfitter.main(data, models, P, mc)        
-        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+
+    # try:
+    #     PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
+    #     print ( 'Done already'   )     
+    # except:
+    #     print ( 'Not done yet')
+    #     MCMC_AGNfitter.main(data, models, P, mc)        
+    #     PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
     print ( '_____________________________________________________')
     print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -366,16 +375,28 @@ if __name__ == "__main__":
             for i in range(0, 110, 1):
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
             
-        
     else:
-        # make/read the model dictionary
-        Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
+        print('Option of one single dictionary for a whole catalogue is deprecated. Running "independent, -i" option.')
 
-        # a single source is specified
-        if args.sourcenumber >= 0 and args.independent==False:
-            RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
+        if args.ncpu>1.:
+            
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, indep_bool=True, filters=filters_settings)
+
+        elif args.sourcenumber >= 0:
+            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
         else:
-            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
+            for i in range(0, 110, 1):
+                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+       
+    # else:
+    #     # make/read the model dictionary
+    #     Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
+
+    #     # a single source is specified
+    #     if args.sourcenumber >= 0 and args.independent==False:
+    #         RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
+    #     else:
+    #         RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
         
         
     print ( '======= : =======')

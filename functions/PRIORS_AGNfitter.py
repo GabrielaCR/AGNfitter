@@ -13,30 +13,27 @@ import itertools
 def PRIORS(data, models, P, *pars):
 
     modelsettings= models.settings
-    if modelsettings['RADIO'] == True:
-        _ , BBBFdict, GALAXYFdict, _,_,_,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
-    elif modelsettings['RADIO'] == False:
-        _ , BBBFdict, GALAXYFdict, _,_,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, _ = models.dict_modelfluxes
-
+    MD = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
 
-    if len(bbb_obj.par_names)==1:
-        if modelsettings['RADIO'] == True:
-            GA, SB, TO, BB, RAD= pars[-5:]
-        elif modelsettings['RADIO'] == False:
+    if modelsettings['BBB']=='R06':
+        if models.settings['RADIO'] == True:
+            GA, SB, TO, BB, RAD = par[-5:]
+        else:
             GA, SB, TO, BB= pars[-4:]
     else:
-        if modelsettings['RADIO'] == True:
+        BB = 0 
+        if models.settings['RADIO'] == True:
             GA, SB, TO, RAD = pars[-4:]
-        elif modelsettings['RADIO'] == False:
+        else:
             GA, SB, TO = pars[-3:]
-        BB = 0  
+ 
 
     all_priors=[]
 
     if modelsettings['PRIOR_energy_balance'] == True:  
         
-        prior= prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB)
+        prior= prior_energy_balance(MD.GALAXYatt_dict, gal_obj, GA, MD.STARBURST_LIRdict,sb_obj,SB)
         all_priors.append(prior)
 
     ### Informative priors to be added
@@ -51,7 +48,8 @@ def PRIORS(data, models, P, *pars):
         """
         """
         t1= time.time()
-        prior1= prior_AGNfraction(data, GALAXYFdict, gal_obj, GA, BBBFdict, bbb_obj, BB)
+
+        prior1= prior_AGNfraction(data, MD.GALAXYFdict, gal_obj, GA, MD.BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
         all_priors.append(prior1+prior2)
         #print('INTERNAL',prior, time.time()-t1)
@@ -69,9 +67,7 @@ def PRIORS(data, models, P, *pars):
 
     final_prior= np.sum(np.array(all_priors))
 
-
     return final_prior
-    
 
 
 def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB):
@@ -88,14 +84,20 @@ def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,S
 def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB): 
 
     bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
-    bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
+
+    if type(bbb_obj.matched_parkeys_grid)== list and len(bbb_obj.matched_parkeys_grid) > 1:
+        bands, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys_grid)] 
+    else:
+        bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys_grid] 
+
+
     gal_flux= gal_Fnu* 10**(GA)
     bbb_flux= bbb_Fnu* 10**(BB)
 
     """calculate 1500 Angstrom magnitude in the data and model"""
 
     data_flux_1500Angs = data.fluxes[(14.3 < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.3 )]
-    data_flux_1500Angs=data_flux_1500Angs[data_flux_1500Angs>0][-1]
+    data_flux_1500Angs = data_flux_1500Angs[data_flux_1500Angs>0][-1]
 
     gal_flux_1500Angs = gal_flux[(14.3 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 15.3)][-1]
     bbb_flux_1500Angs = bbb_flux[(14.3 < bands+np.log10(1+data.z)) & (bands+np.log10(1+data.z) < 15.3)][-1]
@@ -108,9 +110,9 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
                                                                          ### and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts.
 
     """define prior on agnfraction"""
-
     if BB ==0:
         bbb_flux_1500Angs = bbb_flux_1500Angs/(4*pi*(data.dlum)**2)   ##BB normalization
+
     AGNfrac1500 = np.log10(bbb_flux_1500Angs/gal_flux_1500Angs)
 
     if abs_mag_data > (characteristic_mag-1.): ## if blue fluxes are fainter than 10 times the characteristic flux.
@@ -118,8 +120,7 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
         mu = -2.
         sigma = 2.
         prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-        #print('Data are 10 times less bright than expected, GA dominates')
-        #print(data.z, AGNfrac1500, prior_AGNfrac)
+
 
     else:                                      ## if blue fluxes are equal or brighter than 10 times the characteristic flux.
                                                ## asume BBB is at least equal to galaxy or dominates.
@@ -130,8 +131,6 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
             mu = 2
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-            #print('Data are bright, BB dominates')
-            #print(data.z, AGNfrac1500, prior_AGNfrac)
 
     return prior_AGNfrac
 
@@ -146,27 +145,69 @@ def prior_stellar_mass(GA):
     return prior_GA 
 
 
+# def prior_xrays(data, models, P, *pars):
+
+# 	def alpha_OX(log_L2kev):
+# 		""" Relation between accretion disk intrinsic luminosity at 2500 Angstrom 
+# 			and X-rays at 2 keV .
+# 			Lusso&Risaliti +16 gives beta=[0.6-0.65], gamma=[7-8]"""
+# 		beta= 0.6 
+# 		gamma= 7.5 
+# 		log_L2500A_alphaox= (log_L2kev-beta)/gamma
+
+# 		return log_L2500A_alphaox
+
+#     _ , BBBFdict, _, _,_,_,_,_, _, _, _, _ = models.dict_modelfluxes
+
+#     if len(bbb_obj.par_names)==1:
+#         GA, SB, TO, BB= pars[-4:]
+#     else:
+#         GA, SB, TO = pars[-3:]
+
+# 	all_bbb_nus, bbb_Fnus_dered = BBBFdict['0.0']
+#     bbb_flux_dered= bbb_Fnus_dered* 10**(BB)
+
+#     """Calculate 2kev (10**17.684 Hz) and 2500 Angstrom (10**15.06 Hz) magnitude in the data and model"""
+
+#     flux_2kev = data.fluxes[( 17.60 < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 17.75 )]
+
+#     bbb_flux_dered_2500Angs = data.fluxes[(15.04< (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 15.15 )]
+#     if len(bbb_flux_dered_2500Angs)>1:
+#         bbb_flux_dered_2500Angs = bbb_flux_dered_2500Angs[0]
+#     lumfactor = (4. * pi * data.dlum**2.)
+#     log_L2500A_data_dered = np.log10(lumfactor*bbb_flux_dered_2500Angs)
+
+#     log_L2500A_model= alpha_OX(log_L2kev)
+
+#     ratio_alpha0x_data= log_L2500A_data_dered - log_L2500A_model
+
+#     """Define prior"""
+#     mu= 0
+#     sigma= 0.4
+#     prior_Xrays= Gaussian_prior(mu, sigma, ratio_alpha0x_data)
+
+#     return prior_Xrays
+
+
 def prior_low_AGNfraction(data, models, P, *pars):
 
-    if models.settings['RADIO'] == True:
-        _ , BBBFdict, GALAXYFdict, _,_,_,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
-    elif models.settings['RADIO'] == False:
-        _ , BBBFdict, GALAXYFdict,_,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
+    #_ , BBBFdict, GALAXYFdict, _,_,_,_,_, _, GALAXYatt_dict, _, _ = models.dict_modelfluxes
+    MD = models.dict_modelfluxes
     gal_obj,_,_, bbb_obj = models.dictkey_arrays
 
-    if len(bbb_obj.par_names)==1:
+    if modelsettings['BBB']=='R06': 
         if models.settings['RADIO'] == True:
-            GA, SB, TO, BB, RAD= pars[-5:]
-        elif models.settings['RADIO'] == False:
+            GA, SB, TO, BB, RAD = par[-5:]
+        else:
             GA, SB, TO, BB= pars[-4:]
     else:
         if models.settings['RADIO'] == True:
-            GA, SB, TO, RAD = pars[-4:]
-        elif models.settings['RADIO'] == False:
+            GA, SB, TO, RAD = par[-4:]
+        else:
             GA, SB, TO = pars[-3:]
 
-    bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
-    bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys] 
+    bands, gal_Fnu= MD.GALAXYFdict[gal_obj.matched_parkeys]
+    bands, bbb_Fnu = MD.BBBFdict[bbb_obj.matched_parkeys] 
 
     gal_flux= gal_Fnu* 10**(GA)
     bbb_flux= bbb_Fnu* 10**(BB)
@@ -192,7 +233,7 @@ def prior_low_AGNfraction(data, models, P, *pars):
     data_lum_1500Angs = lumfactor*data_flux_1500Angs
     abs_mag_data = 51.6 - 2.5 *np.log10(data_lum_1500Angs)
 
-    """ Expected UV magnitude from Parsa, Dunlop et al. 2014.
+    """ Expected UV magnitude from Parsa, Dunlop et al. 2016.
     These calculations are based on Hubble Ultra Deep Field (HUDF), CANDELS/GOODS-South,
     and UltraVISTA/COSMOS surveys data from z~ 2-4, and literature at lower redshifts."""
     characteristic_mag = -35.4 * (1+data.z)**0.524/(1+(1+data.z)**0.678)

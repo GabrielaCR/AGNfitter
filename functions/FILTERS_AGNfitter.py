@@ -215,5 +215,3 @@ def create_filtersets(filters_dict, path):
 	filterset = FILTER_SET(filters_dict['filterset'], filters_dict, filters_objects_all)
 
 	return filterset
-
-		
