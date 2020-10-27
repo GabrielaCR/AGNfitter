@@ -201,8 +201,7 @@ class OUTPUT:
 
             if self.out['save_posteriors']:  
                 nsample, npar = self.chain.flatchain.shape
-
-                posteriors = np.column_stack((chain_pars[np.random.choice(nsample, (self.out['realizations2int'])),:], chain_others)) 
+                posteriors = np.column_stack((chain_pars[np.random.choice(nsample, (self.out['realizations2int'])),:], chain_others, self.chain.lnprob_flat[np.random.choice(nsample, (self.out['realizations2int']))])) 
                 posteriors_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
                 
                 return posteriors,posteriors_header
@@ -289,7 +288,7 @@ class OUTPUT:
             p7 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
             
             if plot_residuals:
-                p6r = axr.plot(data_nus[tuple(det)], (data_nuLnu_rest[tuple(det)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det)])/data_errors_rest[tuple(det)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
+                p6r = axr.plot(data_nus[tuple(det)], (data_nuLnu_rest[tuple(det)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det)])/data_errors_rest[tuple(det)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)	
             
             upplimits = ax1.errorbar(data_nus[tuple(upp)], 2.*data_nuLnu_rest[tuple(upp)], yerr= data_errors_rest[tuple(upp)]/2, uplims = True, linestyle='',  markersize=5, color="black")
             (_, caps, _) = ax1.errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
@@ -506,6 +505,7 @@ class FLUXES_ARRAYS:
 
 
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
+            #print(gal_obj.get_fluxes(gal_obj.matched_parkeys))
             all_gal_nus, gal_Fnus = gal_obj.get_fluxes(gal_obj.matched_parkeys)
             GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(), bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)

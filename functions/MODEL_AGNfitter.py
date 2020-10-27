@@ -61,10 +61,16 @@ ADDING NEW MODELS
         GALAXYFdict[tuple(gal_obj.matched_parkeys)] (model of more than one parameters
 """
 def GALAXYfunctions():
-    return 0                                                    
+    #return 0   
+    def apply_reddening (gal_nu, gal_Fnu, EBV_gal):
+        gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nu, gal_Fnu.flatten(), float(EBV_gal))   
+        return gal_nu, gal_Fnu_red   
+    def f0 (): #Dummy function
+        return None
+    return [apply_reddening, f0]                                            
 
 def GALAXY(path, modelsettings):
-    model_functions = []
+    model_functions = [0]
     if modelsettings['GALAXY']=='BC03':
 
         GALAXYFdict_4plot = dict()
@@ -77,17 +83,23 @@ def GALAXY(path, modelsettings):
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
         age_array = BC03dict['age-values']
-        ebvgal_array = np.array(np.arange(0.,100.,2.5)/100)
-
-        ## produce all combinations of parameter values (indices)
         _, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
-        
-        idxs = [np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+        GALAXY_functions = GALAXYfunctions()
 
+        # ## Name the parameters that compose the keyes of the dictionary: GALAXYFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['tau', 'age','EBVgal']
+        parameters_types =['grid', 'grid','grid']
 
-        random_array=np.array([int(r) for r in (np.random.rand(42)*16800.)])
-        for c in par_idxs_combinations:
+        if parameters_types[2] == 'grid':
+            ebvgal_array = np.array(np.arange(0.,100.,2.5)/100)
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            random_array=np.array([int(r) for r in (np.random.rand(42)*16800.)])
+            for c in par_idxs_combinations:
                 agei=c[0]
                 taui=c[1]
                 ebvi=c[2]
@@ -96,7 +108,7 @@ def GALAXY(path, modelsettings):
                 gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1] #invert
                 gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  # Fnu2Flambda
                 gal_SFR= BC03dict['SFR'][:,agei,taui,:,:].squeeze()
-                gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])  #erg/s/Hz                  
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])  #erg/s/Hz                  
                 GALAXYFdict_4plot[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
                                                                                         np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)  
                 GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
@@ -105,16 +117,36 @@ def GALAXY(path, modelsettings):
                 gal_att_int = gal_Fnu_int- gal_Fnured_int
                 GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int 
 
-        # ## Name the parameters that compose the keyes of the dictionary: GALAXYFdict_4plot[key]. 
-        ## Add the names in the same order as their values are arranged in the dictionary key above.    
-        parameters_names =['tau', 'age','EBVgal']
-        parameters_types =['grid', 'grid','grid']
+        elif parameters_types[2] == 'free':
+            ebvgal_array = np.array([0.,1.0])
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            random_array=np.array([int(r) for r in (np.random.rand(42)*16800.)])
+            for c in par_idxs_combinations:
+                agei=c[0]
+                taui=c[1]
+                ebvi=c[2]
+                #print agei, taui, ebvi
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][:,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1] #invert
+                gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  # Fnu2Flambda
+                gal_SFR= BC03dict['SFR'][:,agei,taui,:,:].squeeze()
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[0])  #erg/s/Hz                  
+                GALAXYFdict_4plot[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)  
+                GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
+                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
+                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red, x=gal_nu)
+                gal_att_int = gal_Fnu_int- gal_Fnured_int
+                GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
         return GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types, model_functions
 
 
     elif modelsettings['GALAXY']=='BC03_metal':
-
 
         GALAXYFdict_4plot = dict()
         GALAXY_SFRdict = dict()
@@ -127,15 +159,23 @@ def GALAXY(path, modelsettings):
         tau_array = BC03dict['tau-values']
         age_array = BC03dict['age-values']
         metal_array = BC03dict['metallicity-values']
-        #ebvgal_array = np.array(np.arange(0.,200.,10.)/100)
-        ebvgal_array = np.array(np.arange(0.,60.,5.)/100)
-
-        ## produce all combinations of parameter values (indices)
         metalidx, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
-        idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+        GALAXY_functions = GALAXYfunctions()
+        #ebvgal_array = np.array(np.arange(0.,200.,10.)/100)
 
-        for c in par_idxs_combinations:
+        ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['metal','tau', 'age','EBVgal']
+        parameters_types =['grid','grid', 'grid','free']  #'free'
+
+        if parameters_types[3] == 'grid':
+            ebvgal_array = np.array(np.arange(0.,60.,5.)/100)
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
                 metali=c[0]
                 agei=c[1]
                 taui=c[2]
@@ -143,7 +183,7 @@ def GALAXY(path, modelsettings):
                 gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][metali,agei,taui,:,:,:].squeeze()
                 gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
                 gal_Fnu= (gal_Fwl.value * 3.34e-19 * gal_wl**2.)[::-1]  
-                gal_nu, gal_Fnu_red = GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
                 ###!!! gal_Fnu_red
                 GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
                                                                                         np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)       
@@ -155,12 +195,35 @@ def GALAXY(path, modelsettings):
                 gal_att_int = gal_Fnu_int.value - gal_Fnured_int
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
-        ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
-        ## Add the names in the same order as their values are arranged in the dictionary key above.    
-        parameters_names =['metal','tau', 'age','EBVgal']
-        parameters_types =['grid','grid', 'grid','grid']
+        elif parameters_types[3] == 'free':
+            ebvgal_array = np.array([0.,0.6]) 
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                metali=c[0]
+                agei=c[1]
+                taui=c[2]
+                ebvi=c[3]
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][metali,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
+                gal_Fnu= (gal_Fwl.value * 3.34e-19 * gal_wl**2.)[::-1]  
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[0])                    
+                ###!!! gal_Fnu_red
+                GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)       
+
+                gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
+                GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
+                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_att_int = gal_Fnu_int.value - gal_Fnured_int
+                GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
         return  GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types, model_functions
+
 
 def STARBURSTfunctions():
     return 0
@@ -417,7 +480,7 @@ def BBB(path, modelsettings):
         elif modelsettings['XRAYS']==True:
 
             parameters_names =['EBVbbb', 'alphaScat'] 
-            parameters_types =['grid', 'grid'] #['grid', 'grid']
+            parameters_types =['free', 'free'] #['grid', 'grid']
 
             if parameters_types[0] == 'grid':
                 ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
@@ -462,7 +525,7 @@ def BBB(path, modelsettings):
 
         if modelsettings['XRAYS']==False:
             parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
-            parameters_types =['grid', 'grid', 'grid']
+            parameters_types =['grid', 'grid', 'free']
 
             if parameters_types[2] == 'grid':
                 ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
@@ -485,7 +548,7 @@ def BBB(path, modelsettings):
 
         elif modelsettings['XRAYS']== True:
             parameters_names =['logBHmass', 'logEddra', 'EBVbbb','alphaScat']
-            parameters_types =['grid', 'grid', 'grid', 'free']
+            parameters_types =['grid', 'grid', 'free', 'free']  #'free', 'free'
 
             if parameters_types[2] == 'grid':
                 ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)

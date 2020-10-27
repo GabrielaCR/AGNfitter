@@ -18,7 +18,7 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['BBB']=='R06':
         if models.settings['RADIO'] == True:
-            GA, SB, TO, BB, RAD = par[-5:]
+            GA, SB, TO, BB, RAD = pars[-5:]
         else:
             GA, SB, TO, BB= pars[-4:]
     else:
@@ -33,7 +33,7 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['PRIOR_energy_balance'] == True:  
         
-        prior= prior_energy_balance(MD.GALAXYatt_dict, gal_obj, GA, MD.STARBURST_LIRdict,sb_obj,SB)
+        prior= prior_energy_balance(data, MD.GALAXYatt_dict, MD.GALAXYFdict, gal_obj, GA, MD.STARBURST_LIRdict,sb_obj,SB, models)
         all_priors.append(prior)
 
     ### Informative priors to be added
@@ -70,10 +70,31 @@ def PRIORS(data, models, P, *pars):
     return final_prior
 
 
-def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB):
+def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBURST_LIRdict,sb_obj,SB, models):
 
-    Lgal_att = GALAXYatt_dict[gal_obj.matched_parkeys] * 10**(GA)
-    Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys[0:2]] * 10**(SB)
+    #Lgal_att = GALAXYatt_dict[tuple(gal_obj.matched_parkeys_grid)] * 10**(GA)
+
+    if gal_obj.par_types[-1] == 'grid':
+        Lgal_att = GALAXYatt_dict[tuple(gal_obj.matched_parkeys_grid)] * 10**(GA)
+
+    elif gal_obj.par_types[-1] == 'free':
+        bands, gal_Fnu= GALAXYFdict[tuple(gal_obj.matched_parkeys_grid)] #frequencies in log
+        fcts=gal_obj.functions()
+        f=fcts[gal_obj.functionidxs[0]]
+        rest_bands = bands + np.log10((1+data.z))
+        bandsf, Fnuf = f(10**rest_bands, gal_Fnu, gal_obj.matched_parkeys[-1])  #bandsf not in log form
+        bandsf = np.log10(bandsf) - np.log10((1+data.z))                        #bandsf in log form
+        gal_nu, gal_Fnu_red = 10**bandsf, Fnuf
+            
+        gal_Fnu_int = scipy.integrate.trapz(gal_Fnu*3.826e33, x=gal_nu)
+        gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+        gal_att_int = gal_Fnu_int - gal_Fnured_int
+        Lgal_att = gal_att_int * 10**(GA)
+
+    if models.settings['STARBURST'] == 'DH02_CE01':
+        Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB)
+    else:
+        Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys[0:2]] * 10**(SB)
 
     if Lsb_emit < Lgal_att:
         return -np.inf
@@ -83,12 +104,52 @@ def prior_energy_balance(GALAXYatt_dict, gal_obj, GA, STARBURST_LIRdict,sb_obj,S
 
 def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB): 
 
-    bands, gal_Fnu= GALAXYFdict[gal_obj.matched_parkeys]
+    if gal_obj.par_types[-1] == 'grid':
+        bands, gal_Fnu= GALAXYFdict[tuple(gal_obj.matched_parkeys)]
+    elif gal_obj.par_types[-1] == 'free':
+        bands, gal_Fnu= GALAXYFdict[tuple(gal_obj.matched_parkeys_grid)]
+        fcts=gal_obj.functions()
+        f=fcts[gal_obj.functionidxs[0]]
+        rest_bands = bands + np.log10((1+data.z))
+        bandsf, Fnuf = f(10**rest_bands, gal_Fnu, gal_obj.matched_parkeys[-1])
+        bandsf = np.log10(bandsf) - np.log10((1+data.z))  
+        bands, gal_Fnu = bandsf, Fnuf
 
-    if type(bbb_obj.matched_parkeys_grid)== list and len(bbb_obj.matched_parkeys_grid) > 1:
-        bands, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys_grid)] 
+    #bands, gal_Fnu= GALAXYFdict[tuple(gal_obj.matched_parkeys_grid)]
+
+    if 'free' in bbb_obj.par_types and bbb_obj.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+        fcts=bbb_obj.functions()
+        f=fcts[bbb_obj.functionidxs[0]]
+        bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)]
+        rest_bands = bands + np.log10((1+data.z))          #Rest frame frequency
+        if bbb_obj.par_types[-2] == 'free' and bbb_obj.par_types[-1] == 'free':
+            bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], bbb_obj.matched_parkeys[-2])
+            bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) - np.log10((1+data.z))
+            Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**bbb_obj.matched_parkeys[-1]))
+        elif bbb_obj.par_types[-2] == 'grid' and bbb_obj.par_types[-1] == 'free':
+            bandsf =  bands
+            Fnuf = np.concatenate((Fnu[rest_bands < 17], Fnu[rest_bands >= 17]*10**bbb_obj.matched_parkeys[-1]))
+        bands, bbb_Fnu = bandsf, Fnuf
+
+    elif 'free' in bbb_obj.par_types and bbb_obj.par_names[-1] != ['EBVbbb']:  #This is for the case of EBVgal == free
+        fcts=bbb_obj.functions()
+        f=fcts[bbb_obj.functionidxs[0]]
+        bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)] 
+        rest_bands = bands + np.log10((1+data.z))          #Rest frame frequency
+        bandsf, Fnuf = f(rest_bands, Fnu, bbb_obj.matched_parkeys[-1])
+        bandsf = bandsf - np.log10((1+data.z)) 
+        bands, bbb_Fnu = bandsf, Fnuf  
     else:
-        bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys_grid] 
+        if type(bbb_obj.matched_parkeys_grid)== list and len(bbb_obj.matched_parkeys_grid) > 1:
+            bands, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys_grid)] 
+        else:
+            bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys_grid] 
+
+
+    #if type(bbb_obj.matched_parkeys_grid)== list and len(bbb_obj.matched_parkeys_grid) > 1:
+        #bands, bbb_Fnu = BBBFdict[tuple(bbb_obj.matched_parkeys_grid)] 
+    #else:
+        #bands, bbb_Fnu = BBBFdict[bbb_obj.matched_parkeys_grid] 
 
 
     gal_flux= gal_Fnu* 10**(GA)

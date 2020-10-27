@@ -222,19 +222,30 @@ def dictkey_arrays(MD):
                         return self.modelsdict[matched_parkeys]
 
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':  #This is for the case of EBVgal == free
                         #print(self.pars_modelkeys[0])
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
-                        bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
-                        rest_bands = bands + np.log10((1+self.z))          #Rest frame frequency
-                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
-                        bandsf = bandsf - np.log10((1+self.z))             #Come back to frequency corrected by redshift
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                    #Rest frame frequency
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])   #Calzetti function need normal frequency (not log)
+                        bandsf = np.log10(bandsf) - np.log10((1+self.z))             #Come back to frequency corrected by redshift
 
                         return bandsf, Fnuf
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                    #Rest frame frequency
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])  
+                        bandsf = bandsf - np.log10((1+self.z))                       #Come back to frequency corrected by redshift
+
+                        return bandsf, Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']: #This is for free EBVbbb or alphaScat
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
@@ -321,7 +332,7 @@ def dictkey_arrays_4plot(MD):
                             #print ('line 206 dic : Free partype')
                             self.matched_parkeys.append(pars_mcmc[i])
                             self.matched_parkeys_grid.append(self.pars_modelkeys[i, 0])
-                        else: 
+                        else:
                             print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
                     self.matched_parkeys=tuple(self.matched_parkeys)
@@ -332,12 +343,21 @@ def dictkey_arrays_4plot(MD):
                         return self.modelsdict[matched_parkeys]
 
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
-                        rest_bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
-                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])    #Calzetti function need normal frequency (not log)
+
+                        return np.log10(bandsf), Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])    
 
                         return bandsf, Fnuf
 

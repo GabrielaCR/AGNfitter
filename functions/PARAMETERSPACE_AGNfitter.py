@@ -156,7 +156,7 @@ def ln_probab(pars, data, models, P):
     lnp = ln_prior(data, models, P, *pars)
 
     if np.isfinite(lnp):    
-        posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model)     
+        posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model) 
         return posterior
     return -np.inf
 
@@ -253,7 +253,7 @@ def get_initial_positions(nwalkers, P):
     p0 = np.random.uniform(size=(nwalkers, Npar))
 
     for i in range(Npar):
-        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) * (0.00001)
+        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) *0.00001 #(P['max'][i]-P['min'][i])*0.5 #(0.00001)
     #p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.0001)
     
     return p0
@@ -283,7 +283,7 @@ def get_best_position(filename, nwalkers, P):
     for i in range(Npar):
         p =P['ml'][i]
         
-        p1[:, i] = p + 0.00001 * p1[:, i]
+        p1[:, i] = p + p1[:, i]*0.00001 
 
     return p1
 
