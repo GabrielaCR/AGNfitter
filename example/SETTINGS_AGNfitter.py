@@ -2,16 +2,17 @@
 AGNfitter setting file:
 
 required:
-  CATALOG_settings
-  FILTERS_settings
-  MCMC_settings
-  OUTPUT_settings
+CATALOG_settings
+FILTERS_settings
+MCMC_settings
+OUTPUT_settings
 
 For default use (test example with 2 redshifts and default filter set)
 
 Change only the functions which state 
 ***USER INPUT NEEDED***.
 '''
+
 
 def CATALOG_settings():
 
@@ -27,36 +28,35 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] ='/Users/USER/AGNfitter/'  #path to the AGNfitter code
-
-
+    cat['path'] = '/home/laura-pc/PCLaura/Materias/Astrofisica_extragalactica/Proyecto-Gabriela/AGNfitter_2.0/AGNfitter/' #'/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
     cat['filename'] = cat['path']+'data/catalog_example.txt'
     cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
-                              ## FITS option not available yet. 
+    cat['name'] = 0                 ## If ASCII: Column index (int) of source IDs
+                                    ## If FITS : Column name (str). E.g. 'ID'
+    cat['redshift'] = 1             ## If ASCII:  Column index(int) of redshift 
+                                     ## If FITS : Column name (str). E.g. z'
 
-    cat['name'] = 0#'ID'            ## If ASCII: Column index (int) of source IDs
-                                        ## If FITS: not yet
-    cat['redshift'] = 1#'z'              ## If ASCII:  Column index(int) of redshift
-                                        ## If FITS: not yet
- 
-    ##FREQUENCIES/WAVELENGTHS 
+   ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(2,56,3).tolist()                                  
+    cat['freq/wl_list'] = np.arange(1,60,2).tolist() #np.arange(5,48,2).tolist()                                  
                                         ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
+
+    cat['use_central_wavelength'] = True # Option to use central wavelength if no wavelengths in table
+
     cat['freq/wl_format'] = 'wavelength' ## Gives your catalog *observed*
                                          ## 'frequency' or 'wavelength'?
-    cat['freq/wl_unit'] = u.Angstrom       ## Astropy unit of freq or wavelength
+    cat['freq/wl_unit'] = u.Angstrom     ## Astropy unit of freq or wavelength
 
     ##FLUXES 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['flux_unit'] = u.Jy             ## Astropy unit of *flux* (astropy-units)
-    cat['flux_list'] = np.arange(3,57,3).tolist()        
+    cat['flux_in_magAB'] = False # Option to calculate flux and flux_error from magnitude AB.
+    cat['flux_unit'] = u.Jy * 1e-3            ## Astropy unit of *flux* (astropy-units)
+    cat['flux_list'] = np.arange(2,61,2).tolist()        
                                         ## If ASCII: List of column indexes (int)
-    #cat['flux_suffix'] = '_f'          ## If FITS: Common ending of all flux column names (str)
-    
-    cat['fluxerr_list'] = np.arange(4,58,3).tolist() 
+    #cat['flux_suffix'] = '_f'          ## If FITS: Common ending of all flux column names (str)    
+    cat['fluxerr_list'] = np.arange(3,62,2).tolist() 
                                         ## If ASCII: List of column indexes (int)
     #cat['fluxerr_suffix'] = '_e'       ## If FITS: common ending to fluxerr column names (str)
 
@@ -75,9 +75,9 @@ def CATALOG_settings():
                                       # Specially needed in order not to alter git original repository
                                       # and when using an external processor.
                                       # Default: cat['path'] (same as AGNfitter code path) 
-
+                                      
     cat['output_folder'] =  cat['workingpath'] +'OUTPUT/' #if no special OUTPUT folder, leave default
-    cat['dict_path'] = cat['workingpath'] + 'models/MODELSDICT_default' 
+
 
 
     return cat
@@ -92,64 +92,127 @@ def FILTERS_settings():
 
     filters = dict()
 
-    filters['dict_zarray'] =np.array([0.283, 1.58])  # The grid of redshifts needed to fit your catalog
-    filters['Bandset'] = 'BANDSET_default' # OPTIONS: 
-                                           # 'BANDSET_default' (for testing)
-                                           # 'BANDSET_settings' (choosing relevant filters below, as given by your catalog)
-                                           # if your filter is not included, go to DICTIONARIES_AGNfitter to add.
+    filters['dict_zarray'] = np.array([0.894, 2.43, 0.731]) #np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
+    filters['path'] = 'models/FILTERS/' 
+    filters['filterset'] = 'example_30datapointa' ## 'filterset_default' (for the test case),
+                                               ## for the user's case: customize, eg. filtersv1
 
-    filters['SPIRE500']= True
-    filters['SPIRE350']= True
-    filters['SPIRE250']= True
-    filters['PACS160']=False
-    filters['PACS100']=False
+  
+    filters['SPIRE500'] = [True, 29]
+    filters['SPIRE350'] = [True, 28]
+    filters['SPIRE250'] = [True, 27]
+    filters['PACS160'] = [True, 26]
+    filters['PACS100'] = [True, 25]
 
-    filters['MIPS160']=False      
-    filters['MIPS70']=False    
-    filters['MIPS24']=True
+    filters['WISE4'] = [True, 24]
+    filters['WISE3'] = [True, 23]
+    filters['WISE2'] = [True, 22]
+    filters['WISE1'] = [True, 21]
 
-    filters['IRAC4']=True       
-    filters['IRAC3']=True
-    filters['IRAC2']=True
-    filters['IRAC1']=True
+    filters['K_UKIDSS'] = [True, 20]
+    filters['H_UKIDSS'] = [True, 19]
+    filters['J_UKIDSS'] = [True, 18]
+    filters['Y_UKIDSS'] = [True, 17]
 
-    filters['WISE4']=False
-    filters['WISE3']=False
-    filters['WISE2']=False
-    filters['WISE1']=False
+    filters['Ks_VISTA'] = [True, 16]
+    filters['H_VISTA'] = [True, 15]
+    filters['J_VISTA'] = [True, 14]
+    filters['Y_VISTA'] = [True, 13]
+    filters['Z_VISTA'] = [True, 12]
 
-    filters['Ks_2mass']=True
-    filters['H_2mass']=True
-    filters['J_2mass']=True
+    filters['g_PS1'] = [True, 7]
+    filters['r_PS1'] = [True, 8]
+    filters['i_PS1'] = [True, 9]
+    filters['z_PS1'] = [True, 10]
+    filters['y_PS1_good'] = [True, 11]
 
-    filters['H_VISTA']=False
-    filters['J_VISTA']=False
-    filters['K_VISTA']=False
-    filters['Y_VISTA']=True
+    filters['z_SDSS'] = [True, 6]
+    filters['i_SDSS'] = [True, 5]
+    filters['r_SDSS'] = [True, 4]
+    filters['g_SDSS'] = [True, 3]
+    filters['u_SDSS'] = [True, 2]
+    filters['GALEX_2500'] = [True, 1]
+    filters['GALEX_1500'] = [True, 0]
 
-    filters['u_SDSS']=False  
-    filters['g_SDSS']=False
-    filters['r_SDSS']=False
-    filters['i_SDSS']=False  
-    filters['z_SDSS']=False
 
-    filters['g_SUBARU']=False
-    filters['r_SUBARU']=True
-    filters['i_SUBARU']=True  
-    filters['z_SUBARU']=True
-    filters['B_SUBARU']=True
-    filters['V_SUBARU']=False
+    filters['add_filters']= False # If 'True' please add them below in ADD FILTERS
 
-    filters['u_CHFT']=True  
-    filters['g_CHFT']=False
-    filters['r_CHFT']=False
-    filters['i_CHFT']=False  
-    filters['z_CHFT']=False
+    """==================================
+    ADD FILTERS (optional)
+    =================================="""
 
-    filters['GALEX_2500']=True
-    filters['GALEX_1500']=False
+    ADDfilters=dict()
+    ADDfilters['names'] = []    ## (string/list of strings)User especified filter names. 
+                                ## If name has been previously used, an error message will appear. 
+    ADDfilters['filenames'] =[] ## (string/list of strings) File names of the new filters. 
+                                ## File format: 2 columns of 1) freq/wavelength 2) Throughput. 
+                                ## Path assumed is the cat['path'] especified above. 
+                                ## Example: 'models/FILTERS/my_new_filter.txt'
+    ADDfilters['freq/wl_format'] = ['wavelength'] * len(ADDfilters['names']) ## Info about the column 1 of your filter file.
+                                                                             ## Options: 'wavelength' or 'frequency'.    
+    ADDfilters['freq/wl_unit'] =  [u.Angstrom]* len(ADDfilters['names']) ## (Astropy Unit) Info about the column 1 
+                                                                         ## of your filter file. 
+    ADDfilters['description'] = ['description_dummy']* len(ADDfilters['names']) ## (Str) Any description the user wants to give 
+                                                                                ##  to the filter to add.
+
+    filters['add_filters_dict']= ADDfilters
 
     return filters
+
+def MODELS_settings():
+
+    """==================================
+    Work in progress
+    =================================="""
+
+
+    models = dict()
+    models['path'] = 'models/' 
+    models['modelset'] = 'modelsv1'
+
+
+    models['GALAXY'] = 'BC03_metal'   ### Current options:
+                                ### 'BC03' (Bruzual & Charlot 2003)
+                                ### 'BC03_metal' (Bruzual & Charlot 2003), with metallicities
+    models['STARBURST'] = 'S17_newmodel' ### Current options:
+                                ### 'DH02_CE01' (Dale & Helou 2002 + Chary & Elbaz 2001)
+                                ### 'S17' (Schreiber et al. 2017 (submitted))
+                                ### 'S17_newmodel'
+                                ### 'S17_newmodel_radio'
+
+    models['BBB'] ='SN12' ### Current options:
+                         ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
+                         ### 'SN12' (Slone&Netzer 2012)
+                         ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
+                         ### 'D12_K' (Done et al. 2012) for Kerr BH, with x-ray predictions
+
+    models['TORUS'] ='SKIRTORM' ### Current options:
+                           ### 'S04' (Silva et al. 2004)
+                           ### 'NK0' (Nenkova et al. 2008)
+                           ### 'SKIRTOR' (Stalevski et al. 2016)
+                           ### 'SKIRTORC' with parameter values used in X-CIGALE
+                           ### 'SKIRTORM' SKIRTOR model with averaged SEDs for each inclination
+                           ### 'SKIRTORM_2P' SKIRTOR model with averaged SEDs for each inclination and openning angle
+
+    models['XRAYS'] = False ### If X-ray data is available and informative for the fit
+
+    models['RADIO'] = False ### If radio data is available and informative for the fit
+
+    models['PRIOR_energy_balance'] = True ### Default:True
+                                          ### True: Sets a lower limit to the dust emission luminosity ('starburst' model)
+                                          ### as given by the observed attenuation in the stellar component SED.
+    models['PRIOR_AGNfraction'] = True  ### Default: True
+                                        ### True: - *IF* blue/UV bands (around 1500 Angstrom) are 10 times higher than expected by the galaxy luminosity function by Parsa, Dunlop et al. 2014. 
+                                        ###         this option rejects AGN-to-GAL ratios lower than 1 (log =0). It then applies a Gaussian prior probability with log ratio=2, with a sigma of 2.
+                                        ###       - In this cases it also applies a Gaussian prior on the galaxy normalization, i.e. stellar mass (usually unconstrained in these cases) to 
+                                        ###         populate physically expected ranges for QSO hosts -> 10^9 - 10^11. 
+                                        ###       - *ELSE IF* blue/UV bands (around 1500 Angstrom) are below 10 times the expected value by Parsa, Dunlop et al. 2014. 
+                                        ###         this option gives preference to galaxy contribution in the optical UV, with Gaussian prior probability centered on AGN to GALAXY log ratios of -1. 
+                                        ###          and sigma 1, i.e. accretion disk is disfavoured at least the data strongly prefers it.
+                                        ### False:- Non-informative prior
+    models['PRIOR_galaxy_only'] = False ### Default:False 
+                                        ### True: sets all AGN contribution to 0.ß
+    return models
 
 def MCMC_settings():
 
@@ -189,6 +252,7 @@ def OUTPUT_settings():
 
     #INTEGRATED LUMINOSITIES
     out['calc_intlum'] = True  
+    out['save_posterior_luminosities']= False
     out['realizations2int'] = 100 #This process is very time consuming.
                                 #Around 100-1000 is recomendend for computational reasons.
                                 #If you want to plot posterior triangles of 

@@ -22,23 +22,25 @@ This script includes:
 import matplotlib.pyplot as plt
 from matplotlib import rc, ticker
 #matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 import sys, os
 import math 
 import numpy as np
-import triangle #Author: Dan Foreman-Mackey (danfm@nyu.edu)
-import time
+from . import corner #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import scipy
 from astropy import units as u
 from astropy import constants as const
 
 #AGNfitter IMPORTS
-import MODEL_AGNfitter as model
-import PARAMETERSPACE_AGNfitter as parspace
-import cPickle
+from . import MODEL_AGNfitter as model
+from . import PARAMETERSPACE_AGNfitter as parspace
+import pickle
 
 
 
-def main(data, P, out):
+###!!!def main(data, P, out, models_settings):
+def main(data, models, P, out, models_settings):
 
 
     """
@@ -51,18 +53,16 @@ def main(data, P, out):
     
     """
 
-
-
     chain_burnin = CHAIN(data.output_folder+str(data.name)+ '/samples_burn1-2-3.sav', out)
     chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/samples_mcmc.sav',  out)
     chain_mcmc.props()
 
-    print '_________________________________'
-    print 'Properties of the sampling results:'
-    print '- Mean acceptance fraction', chain_mcmc.mean_accept
-    print '- Mean autocorrelation time', chain_mcmc.mean_autocorr
+    print( '_________________________________')
+    print( 'Properties of the sampling results:')
+    print( '- Mean acceptance fraction', chain_mcmc.mean_accept)
+    print( '- Mean autocorrelation time', chain_mcmc.mean_autocorr)
 
-    output = OUTPUT(chain_mcmc, data)
+    output = OUTPUT(chain_mcmc, data, models, P, models_settings)
 
     if out['plot_tracesburn-in']:
         fig, nplot=chain_burnin.plot_trace(P)
@@ -77,7 +77,7 @@ def main(data, P, out):
         plt.close(fig)
 
     if out['plot_posteriortriangle'] :
-        fig = output.plot_PDFtriangle('10pars', P.names)
+        fig = output.plot_PDFtriangle('10pars', P['names'])
         fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_10pars.' + out['plot_format'])
         plt.close(fig)
 
@@ -86,17 +86,37 @@ def main(data, P, out):
         fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_intlums.' + out['plot_format'])
         plt.close(fig)
 
+    if out['save_posterior_luminosities']: 
+        int_lums_array =output.save_realizations()
+        np.savetxt(data.output_folder+str(data.name)+'/posterior_intlums_'+str(data.name)+'.txt', int_lums_array.T, fmt= "%1.4f" ,header= str(out['intlum_names']))
+
+    if out['save_posteriors']: 
+        posteriors,posteriors_header = output.save_posteriors(P)
+        np.savetxt(data.output_folder + str(data.name)+'/posteriors_'+str(data.name)+'.txt' , posteriors, delimiter = " ",fmt= "%1.4f" ,header= posteriors_header)
+
     if out['writepar_meanwitherrors']:
         outputvalues, outputvalues_header = output.write_parameters_outputvalues(P)
         comments_ouput= ' # Output for source ' +str(data.name) + '\n' +' Rows are: 2.5, 16, 50, 84, 97.5 percentiles # '+'\n'+ '-----------------------------------------------------'+'\n' 
         np.savetxt(data.output_folder + str(data.name)+'/parameter_outvalues_'+str(data.name)+'.txt' , outputvalues, delimiter = " ",fmt= "%1.4f" ,header= outputvalues_header, comments =comments_ouput)
 
-    if out['plotSEDrealizations']:
-        fig = output.plot_manyrealizations_SED()
-        fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
+    if ((out['saveSEDrealizations']) or (out['plotSEDrealizations']) or (out['saveSEDresiduals'])):
+        fig, save_SEDS, save_residuals = output.plot_manyrealizations_SED(plot_residuals=out['plot_residuals'])
+        n_rp=out['realizations2plot']
+
+        if models.settings['RADIO'] == True:
+            SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
+        else:
+            SEDs_header = '#freq '+' '.join(['SBnuLnu'+str(i) for i in range(n_rp)]) +' ' +' '.join(['BBnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['GAnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['RADnuLnu'+str(i) for i in range(n_rp)])+' '+' '.join(['TOTALnuLnu'+str(i) for i in range(n_rp)]) +' '+' '.join(['BBnuLnu_deredd'+str(i) for i in range(n_rp)]) 
+
+        if out['saveSEDrealizations']:
+            np.savetxt(data.output_folder + str(data.name)+'/output_SEDs100_'+str(data.name)+'.txt' , save_SEDS, delimiter = " ",fmt= "%1.4f" ,header= SEDs_header, comments='')
+        if out['saveSEDresiduals']:
+            #res_header = '#freq '+' '.join(['res'+str(i) for i in range(n_rp)]) 
+            res_header = '#freq res'
+            np.savetxt(data.output_folder + str(data.name)+'/output_residuals100_'+str(data.name)+'.txt' , save_residuals, delimiter = " ",fmt= "%1.4f" ,header= res_header, comments='')
+        if out['plotSEDrealizations']:
+            fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
         plt.close(fig)
-
-
 
 
 """=========================================================="""
@@ -114,65 +134,93 @@ class OUTPUT:
     - object of the CHAIN class, object of DATA class
     """    
 
-    def __init__(self, chain_obj, data_obj):
+    def __init__(self, chain_obj, data_obj, model_obj, P, models_settings):
 
         self.chain = chain_obj
         self.chain.props()
 
         self.out = chain_obj.out
         self.data = data_obj
+        self.models = model_obj
+        self.models_settings = models_settings
         self.z=self.data.z
-        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, self.out,'int_lums')
-        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, self.out,'plot')
+        fluxobj_withintlums = FLUXES_ARRAYS(chain_obj, P,  self.out,'int_lums', self.models_settings)
+        fluxobj_4SEDplots = FLUXES_ARRAYS(chain_obj, P, self.out,'plot', self.models_settings)
 
-        if self.out['calc_intlum']:
-            fluxobj_withintlums.fluxes( self.data)
-            self.nuLnus = fluxobj_withintlums.nuLnus4plotting
-            self.allnus = fluxobj_withintlums.all_nus_rest
-            self.int_lums = fluxobj_withintlums.int_lums
+        fluxobj_withintlums.fluxes( self.data, self.models)
+        self.nuLnus = fluxobj_withintlums.nuLnus4plotting
+        self.allnus = fluxobj_withintlums.all_nus_rest
+        self.int_lums = fluxobj_withintlums.int_lums
+        self.int_lums_best = fluxobj_withintlums.int_lums_best
 
-        if self.out['plotSEDrealizations']:
-            fluxobj_4SEDplots.fluxes(self.data)
+        if ((self.out['plotSEDrealizations']) or (self.out['saveSEDrealizations']) or (self.out['saveSEDresiduals'])):
+            fluxobj_4SEDplots.fluxes(self.data, self.models)
             self.nuLnus = fluxobj_4SEDplots.nuLnus4plotting
             self.filtered_modelpoints_nuLnu = fluxobj_4SEDplots.filtered_modelpoints_nuLnu
             self.allnus = fluxobj_4SEDplots.all_nus_rest
 
     def write_parameters_outputvalues(self, P):        
 
-        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain_sorted, self.data, self.out['realizations2int'])
+        #Mstar0, SFR_opt0 = model.stellar_info_array(np.array([self.chain.best_fit_pars]), self.data, 1)
+        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain, self.data, self.models, self.out['realizations2int'])
         column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
-        chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))        
-                                            # np.mean(chain_pars, axis[0]),
-                                            # np.std(chain_pars, axis[0]),
-        if self.out['calc_intlum']:            
+        #chain_pars_best = np.hstack((self.chain.best_fit_pars, Mstar0, SFR_opt0))
+        chain_pars = np.column_stack((self.chain.flatchain_sorted, Mstar, SFR_opt))              
 
+        SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
+        #SFR_IR_best = model.sfr_IR(np.array([self.int_lums_best[0]])) #check that ['intlum_names'][0] is always L_IR(8-100)         
+
+        chain_others =np.column_stack((self.int_lums.T, SFR_IR))
+        #chain_others_best =np.hstack((self.int_lums_best.T, SFR_IR_best))            
+        outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
+                                        np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
+                                        np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
+
+        #outputvalues_best = np.hstack( (chain_pars_best, chain_others_best, np.max(self.chain.lnprob_flat)) )
+        #outputvalues = np.vstack((outputvalues, outputvalues_best))
+        outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+
+        return outputvalues, outputvalues_header
+
+    def save_posteriors(self, P):     
+
+        Mstar, SFR_opt = model.stellar_info_array(self.chain.flatchain, self.data, self.models, self.out['realizations2int'])
+        column_names = np.transpose(np.array(["P025","P16","P50","P84","P975"], dtype='|S3'))
+        chain_pars = np.column_stack((self.chain.flatchain, Mstar, SFR_opt))        
+        
+        if self.out['calc_intlum']:            
 
             SFR_IR = model.sfr_IR(self.int_lums[0]) #check that ['intlum_names'][0] is always L_IR(8-100)        
 
             chain_others =np.column_stack((self.int_lums.T, SFR_IR))
-            outputvalues = np.column_stack((np.transpose(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0)))),
-                                            np.transpose(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0)))),
+            outputvalues = np.column_stack((np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_pars, [2.5,16, 50, 84,97.5], axis=0))))),
+                                            np.transpose(list(map(lambda v: (v[0],v[1],v[2],v[3],v[4]), zip(*np.percentile(chain_others, [2.5,16, 50, 84,97.5], axis=0))))),
                                             np.transpose(np.percentile(self.chain.lnprob_flat, [2.5,16, 50, 84,97.5], axis=0)) ))  
+   
+            outputvalues_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
 
-
-    
-            outputvalues_header= ' '.join([ i for i in np.hstack((P.names, 'log Mstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
-
+            if self.out['save_posteriors']:  
+                nsample, npar = self.chain.flatchain.shape
+                posteriors = np.column_stack((chain_pars[np.random.choice(nsample, (self.out['realizations2int'])),:], chain_others, self.chain.lnprob_flat[np.random.choice(nsample, (self.out['realizations2int']))])) 
+                posteriors_header= ' '.join([ i for i in np.hstack((P['names'], 'logMstar', 'SFR_opt', self.out['intlum_names'], 'SFR_IR', '-ln_like'))] )
+                
+                return posteriors,posteriors_header
         else:
-            outputvalues = np.column_stack((map(lambda v: (v[1], v[2]-v[1], v[1]-v[0]), zip(*np.percentile(chain_pars, [16, 50, 84],  axis=0))))) 
-            outputvalues_header=' '.join( [ i for i in P.names] )
-        return outputvalues, outputvalues_header
+            print('Error: save_posteriors=True requires calc_intlum=True.')
+
+    def save_realizations(self):        
+        return self.int_lums
 
     def plot_PDFtriangle(self,parameterset, labels):        
 
         if parameterset=='10pars':
-            figure = triangle.corner(self.chain.flatchain, labels= labels, plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
+            figure = corner.corner(self.chain.flatchain,levels=[0.68,0.95],  labels= labels, plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
         elif parameterset == 'int_lums':
-            figure = triangle.corner(self.int_lums.T, labels= labels,   plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
+            figure = corner.corner(self.int_lums.T, levels=[0.68,0.95], labels= labels,   plot_contours=True, plot_datapoints = False, show_titles=True, quantiles=[0.16, 0.50, 0.84])
         return figure
 
 
-    def plot_manyrealizations_SED(self):    
+    def plot_manyrealizations_SED(self,plot_residuals=True):    
 
 
         #reading from valid data from object data
@@ -195,38 +243,64 @@ class OUTPUT:
         data_nuLnu_rest = ydata* data_nus_obs *lumfactor
         data_errors_rest= yerror * data_nus_obs * lumfactor
 
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
+        if self.models_settings['RADIO'] == True:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
+            save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, RADnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
+        else:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = self.nuLnus
+            save_SEDs= np.column_stack((all_nus,SBnuLnu.T,BBnuLnu.T, GAnuLnu.T, TOnuLnu.T, TOTALnuLnu.T, BBnuLnu_deredd.T  ))
 
         #plotting settings
-        fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest)
-        SBcolor, BBcolor, GAcolor, TOcolor, TOTALcolor= SED_colors(combination = 'a')
+        if plot_residuals:
+            fig, ax1, ax2, axr = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus, True)
+        else:
+            fig, ax1, ax2 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
+        SBcolor, BBcolor, GAcolor, TOcolor, RADcolor, TOTALcolor= SED_colors(combination = 'a')
         lw= 1.5
 
+
+        alp = 0.25
+        mec='None'
+        if Nrealizations == 1:
+            alp = 1.0
         for i in range(Nrealizations):
+            
+            # last one is the max likelihood fit
+            if i == Nrealizations -1:
+                alp = 1
+                lw = 2
+                mec='k'
+                save_residuals= np.column_stack((data_nus, np.array(data_nuLnu_rest-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.])/data_errors_rest))
 
             #Settings for model lines
-            p2=ax1.plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma", color= SBcolor, alpha = 0.5)
-            p3=ax1.plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma",color= BBcolor, alpha = 0.5)
-            p4=ax1.plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="1 /sigma",color=GAcolor, alpha = 0.5)
-            p5=ax1.plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = 0.5)
-            p1= ax1.plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= 0.5)
+            p2=ax1.plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma", color= SBcolor, alpha = alp)
+            p3=ax1.plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma",color= BBcolor, alpha = alp)
+            p4=ax1.plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="1 /sigma",color=GAcolor, alpha = alp)
+            p5=ax1.plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = alp)
+            p1= ax1.plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= alp)
 
-            p6 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =0.7)
+            if self.models_settings['RADIO'] == True:
+                p6=ax1.plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= RADcolor ,alpha = alp)
 
             det = [yndflags==1]
             upp = [yndflags==0]
-
-            upplimits = ax1.errorbar(data_nus[upp], 2.*data_nuLnu_rest[upp], yerr= data_errors_rest[upp]/2, uplims = True, linestyle='',  markersize=5, color="black")
-            (_, caps, _) = ax1.errorbar(data_nus[det], data_nuLnu_rest[det], yerr= data_errors_rest[det], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
-
-
-        ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
-        print ' => SEDs of '+ str(Nrealizations)+' different realization were plotted.'
-
-        return fig
-
+            
+            p7 = ax1.plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
+            
+            if plot_residuals:
+                p6r = axr.plot(data_nus[tuple(det)], (data_nuLnu_rest[tuple(det)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det)])/data_errors_rest[tuple(det)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)	
+            
+            upplimits = ax1.errorbar(data_nus[tuple(upp)], 2.*data_nuLnu_rest[tuple(upp)], yerr= data_errors_rest[tuple(upp)]/2, uplims = True, linestyle='',  markersize=5, color="black")
+            (_, caps, _) = ax1.errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
 
 
+        ax1.text(0.04, 0.92, r'id='+str(self.data.name)+r', z ='+ str(self.z), ha='left', transform=ax1.transAxes )
+        if plot_residuals:
+            ax1.text(0.96, 0.92, 'max ln-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), ha='right', transform=ax1.transAxes )
+        #ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z)+'max log-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
+        print(' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
+
+        return fig, save_SEDs, save_residuals
 
 """=========================================================="""
 
@@ -251,7 +325,7 @@ class CHAIN:
     def props(self):
         if os.path.lexists(self.outputfilename):
             f = open(self.outputfilename, 'rb')
-            samples = cPickle.load(f)
+            samples = pickle.load(f, encoding='latin1')
             f.close()
 
             self.chain = samples['chain']
@@ -267,7 +341,6 @@ class CHAIN:
 
 
             self.flatchain = samples['chain'][:,0:Ns*Nt:Nt,:].reshape(-1, npar)
-
             chain_length = int(len(self.flatchain))
 
             self.flatchain_sorted = self.flatchain[isort]
@@ -310,7 +383,7 @@ class CHAIN:
             ax = axes[i]
             for j in range(0, self.nwalkers, max(1, self.nwalkers // nwplot)):
                 ax.plot(self.chain[j,:,i], lw=0.5,  color = 'black', alpha = 0.3)
-            ax.set_title(r'\textit{Parameter : }'+P.names[i], fontsize=12)  
+            ax.set_title(r'\textit{Parameter : }'+P['names'][i], fontsize=12)  
             ax.set_xlabel(r'\textit{Steps}', fontsize=12)
             ax.set_ylabel(r'\textit{Walkers}',fontsize=12)
 
@@ -325,7 +398,6 @@ class CHAIN:
 
 
 """=========================================================="""
-
 
 
 class FLUXES_ARRAYS:
@@ -344,12 +416,14 @@ class FLUXES_ARRAYS:
     """
 
 
-    def __init__(self, chain_obj, out, output_type):
+    def __init__(self, chain_obj, P, out, output_type, models_settings):
         self.chain_obj = chain_obj
         self.output_type = output_type
         self.out = out
+        self.models_settings=models_settings
+        self.P = P
 
-    def fluxes(self, data):    
+    def fluxes(self, data, models):    
 
         """
         This is the main function of the class.
@@ -360,73 +434,131 @@ class FLUXES_ARRAYS:
         BBFnu_list = []
         GAFnu_list= []
         TOFnu_list = []
+        RADFnu_list = []
         TOTALFnu_list = []
         BBFnu_deredd_list = []
         if self.output_type == 'plot':
             filtered_modelpoints_list = []
 
+        gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays_4plot
 
-        gal_do,  irlum_dict, nh_dict, BBebv_dict,_ = data.dictkey_arrays
-        # Take the last 4 dictionaries, which are for plotting. (the first 4 were at bands)
-        _,_,_,_,STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_= data.dict_modelfluxes
-
+        # Take the  4 dictionaries for plotting. Dicts are described in DICTIONARIES_AGNfitter.py
+        MD= models.dict_modelfluxes
         nsample, npar = self.chain_obj.flatchain.shape
         source = data.name
 
         if self.output_type == 'plot':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:].T
+            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:]#.T        
+            par_best = self.chain_obj.best_fit_pars
+            par[-1]=par_best
+
+            realization_nr=self.out['realizations2plot']
+        
         elif self.output_type == 'int_lums':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:].T
+            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:]#.T
+            par_best = self.chain_obj.best_fit_pars
+            par[-1]=par_best
+            realization_nr=self.out['realizations2int']
+        
         elif self.output_type == 'best_fit':
-            tau, agelog, nh, irlum, SB ,BB, GA,TO, BBebv, GAebv= self.best_fit_pars
+            par = self.chain_obj.best_fit_pars
 
-        age = 10**agelog
+        if self.models_settings['BBB'] =='D12_S' or self.models_settings['BBB'] =='D12_K' or self.models_settings['XRAYS']==True:
+            ### extend SED to X-rays
+            lognu_max = 19
+        else:
+            lognu_max = 16.2
 
-        self.all_nus_rest = np.arange(11.5, 16, 0.001) 
+        if self.models_settings['RADIO']==True:
+            ## extend SED to radio
+            lognu_min = 9
+        else:
+            lognu_min = 11.5
 
-        for g in range(len(tau)):
+        self.all_nus_rest = np.arange(lognu_min, lognu_max, 0.001) 
+        
+        for g in range(realization_nr):
+            ## Pick dictionary key-values, nearest to the MCMC- parameter values
+            gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
 
+            tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])     
+            all_tor_nus, tor_Fnus= tor_obj.get_fluxes(tor_obj.matched_parkeys)
 
-            # Pick dictionary key-values, nearest to the MCMC- parameter values
-            irlum_dct = model.pick_STARBURST_template(irlum[g], irlum_dict)
-            nh_dct = model.pick_TORUS_template(nh[g], nh_dict)
-            ebvbbb_dct = model.pick_BBB_template(BBebv[g], BBebv_dict)
-            gal_do.nearest_par2dict(tau[g], age[g], GAebv[g])
-            tau_dct, age_dct, ebvg_dct=gal_do.t, gal_do.a,gal_do.e
+            sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])               
+            all_sb_nus, sb_Fnus= sb_obj.get_fluxes(sb_obj.matched_parkeys) 
+
+            if models.settings['BBB']=='R06': 
+                if models.settings['RADIO'] == True:
+                    GA, SB, TO, BB, RAD = par[g][-5:]
+                else:
+                    GA, SB, TO, BB = par[g][-4:]   
+                bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+                all_bbb_nus, bbb_Fnus = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
+            else:
+                if models.settings['RADIO'] == True:
+                    GA, SB, TO, RAD = par[g][-4:]
+                elif models.settings['RADIO'] == False:
+                    GA, SB, TO = par[g][-3:]
+                BB = 0.
+                bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+                all_bbb_nus, bbb_Fnus = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
+
 
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
-            all_gal_nus, gal_Fnus = GALAXYFdict[tau_dct, age_dct,ebvg_dct]   
-            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus, bounds_error=False, fill_value=0.)
+            #print(gal_obj.get_fluxes(gal_obj.matched_parkeys))
+            all_gal_nus, gal_Fnus = gal_obj.get_fluxes(gal_obj.matched_parkeys)
+            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(), bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
 
-            all_sb_nus, sb_Fnus= STARBURSTFdict[irlum_dct] 
-            SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus, bounds_error=False, fill_value=0.)
+            if models.settings['RADIO'] == True:
+                all_agnrad_nus, agnrad_Fnus = MD.AGN_RADFdict_4plot[[i for i in MD.AGN_RADFdict_4plot.keys()][0]] 
+                plt.semilogy(all_agnrad_nus, agnrad_Fnus*10**all_agnrad_nus, marker = '.', linestyle = '')
+                RADinterp = scipy.interpolate.interp1d(all_agnrad_nus, agnrad_Fnus, bounds_error=False, fill_value=0.)
+                all_agnrad_Fnus = RADinterp(self.all_nus_rest)
+                all_agnrad_Fnus[self.all_nus_rest>=16]= 0
+
+            SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus.flatten(), bounds_error=False, fill_value=0.)
             all_sb_Fnus = SBinterp(self.all_nus_rest)
 
-            all_bbb_nus, bbb_Fnus = BBBFdict[ebvbbb_dct] 
-            BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus, bounds_error=False, fill_value=0.)
-            all_bbb_Fnus = BBinterp(self.all_nus_rest)
+            if (models.settings['BBB'] =='SN12' or models.settings['BBB'] =='R06') and models.settings['XRAYS']==True:
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 17], bbb_Fnus.flatten()[all_bbb_nus < 17], bounds_error=False, fill_value=0.) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 17], bbb_Fnus.flatten()[all_bbb_nus >= 17],  bounds_error=False, fill_value=0.) 
+                all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 17]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 17])))
+            else:
+                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus.flatten(), bounds_error=False, fill_value=0.)
+                all_bbb_Fnus = BBinterp(self.all_nus_rest)
 
-            all_bbb_nus, bbb_Fnus_deredd = BBBFdict['0.0']
-            BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd, bounds_error=False, fill_value=0.)
-            all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+            ### Plot dereddened
+            if models.settings['BBB']=='R06' and bbb_obj.par_names == 'EBVbb': # len(bbb_obj.par_names)==1:     #if BB =! 0:
+                all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot['0.0']
+                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
+                all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+            else:
+                all_bbb_Fnus_deredd = all_bbb_Fnus
 
-            all_tor_nus, tor_Fnus= TORUSFdict[nh_dct]
-            TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus), bounds_error=False, fill_value=0.)
+            TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus).flatten(), bounds_error=False, fill_value=0.)
             all_tor_Fnus = 10**(TOinterp(self.all_nus_rest))        
-
+            all_tor_Fnus[self.all_nus_rest>16]= 0
+            all_tor_Fnus[self.all_nus_rest<11.7]= 0
 
             if self.output_type == 'plot':
-                par2 = tau[g], agelog[g], nh[g], irlum[g], SB[g] ,BB[g], GA[g] ,TO[g], BBebv[g], GAebv[g]
-                filtered_modelpoints, _, _ = parspace.ymodel(data.nus,data.z, data.dictkey_arrays, data.dict_modelfluxes, *par2)
-                
-
+                par2= par[g]
+                filtered_modelpoints, _ = parspace.ymodel(data.nus,data.z, data.dlum, models, self.P, *par2)
             #Using the costumized normalization 
-            SBFnu =   (all_sb_Fnus /1e20) *10**float(SB[g]) 
-            BBFnu = (all_bbb_Fnus /1e60) * 10**float(BB[g]) 
-            GAFnu =   (all_gal_Fnus/ 1e18) * 10**float(GA[g]) 
-            TOFnu =   (all_tor_Fnus/  1e-40) * 10**float(TO[g])
-            BBFnu_deredd = (all_bbb_Fnus_deredd /1e60) * 10**float(BB[g])
+            SBFnu =   all_sb_Fnus *10**float(SB) 
+            if models.settings['BBB']=='R06': 
+                BBFnu = all_bbb_Fnus * 10**float(BB) 
+            else:
+                BBFnu = (all_bbb_Fnus /(4*math.pi*data.dlum**2)) * 10**float(BB) 
+
+            GAFnu =   all_gal_Fnus * 10**float(GA) 
+            TOFnu =   all_tor_Fnus * 10**float(TO)
+            BBFnu_deredd = all_bbb_Fnus_deredd * 10**float(BB)
+
+            if models.settings['RADIO'] == True:
+                RADFnu =   all_agnrad_Fnus * 10**float(RAD)
+                RADFnu_list.append(RADFnu)
+                TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu + RADFnu
 
             TOTALFnu =  SBFnu + BBFnu + GAFnu + TOFnu
             
@@ -440,18 +572,23 @@ class FLUXES_ARRAYS:
             #Only if SED plotting: do the same with the  modelled flux values at each data point 
             if self.output_type == 'plot':
                 filtered_modelpoints_list.append(filtered_modelpoints)
-
-
+              
         #Convert lists into Numpy arrays
         SBFnu_array = np.array(SBFnu_list)
         BBFnu_array = np.array(BBFnu_list)
         GAFnu_array = np.array(GAFnu_list)
         TOFnu_array = np.array(TOFnu_list)
+        if models.settings['RADIO'] == True:
+            RADFnu_array = np.array(RADFnu_list)
         TOTALFnu_array = np.array(TOTALFnu_list)
         BBFnu_array_deredd = np.array(BBFnu_deredd_list)    
 
         #Put them all together to transport
-        FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, TOTALFnu_array,BBFnu_array_deredd)
+        if models.settings['RADIO'] == True:
+            FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, RADFnu_array, TOTALFnu_array,BBFnu_array_deredd)
+        elif models.settings['RADIO'] == False:
+            FLUXES4plotting = (SBFnu_array, BBFnu_array, GAFnu_array, TOFnu_array, TOTALFnu_array,BBFnu_array_deredd)
+
         #Convert Fluxes to nuLnu
         self.nuLnus4plotting = self.FLUXES2nuLnu_4plotting(self.all_nus_rest, FLUXES4plotting, data.z)
 
@@ -462,8 +599,12 @@ class FLUXES_ARRAYS:
             lumfactor = (4. * math.pi * distance**2.)
             self.filtered_modelpoints_nuLnu = (filtered_modelpoints *lumfactor* 10**(data.nus))
         #Only if calculating integrated luminosities:    
-        elif self.output_type == 'int_lums':
+        if self.output_type == 'int_lums':
+            #Convert Fluxes to nuLnu
             self.int_lums= np.log10(self.integrated_luminosities(self.out ,self.all_nus_rest, self.nuLnus4plotting))
+            #self.int_lums = int_lums[:,:-1]  # all except last one which is best fit
+            self.int_lums_best = self.int_lums[:,-1]  # last one, not yet working
+
         # elif self.output_type == 'best_fit':
         #     self.filtered_modelpoints_nuLnu = self.FLUXES2nuLnu_4plotting(all_nus_rest,  filtered_modelpoints, self.chain_obj.data.z)
 
@@ -483,9 +624,12 @@ class FLUXES_ARRAYS:
         all_nus_obs = 10**all_nus_rest /(1+z) 
         distance= model.z2Dlum(z)
         lumfactor = (4. * math.pi * distance**2.)
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = [ f *lumfactor*all_nus_obs for f in FLUXES4plotting]
-
-        return SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd
+        if len(FLUXES4plotting) == 7:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd = [ f *lumfactor*all_nus_obs for f in FLUXES4plotting]
+            return SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd
+        else:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd = [ f *lumfactor*all_nus_obs for f in FLUXES4plotting]
+            return SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd
 
 
     def integrated_luminosities(self,out ,all_nus_rest, nuLnus4plotting):
@@ -501,8 +645,11 @@ class FLUXES_ARRAYS:
         - nuLnus4plotting: nu*luminosities for the four models corresponding
                             to each element of the total chain
         """
+        if len(nuLnus4plotting) == 7:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, RADnuLnu, TOTALnuLnu, BBnuLnu_deredd =nuLnus4plotting
+        elif len(nuLnus4plotting) == 6:
+            SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd =nuLnus4plotting
 
-        SBnuLnu, BBnuLnu, GAnuLnu, TOnuLnu, TOTALnuLnu, BBnuLnu_deredd =nuLnus4plotting
         out['intlum_freqranges'] = (out['intlum_freqranges']*out['intlum_freqranges_unit']).to(u.Hz, equivalencies=u.spectral())
         int_lums = []
         for m in range(len(out['intlum_models'])):
@@ -517,12 +664,44 @@ class FLUXES_ARRAYS:
                  nuLnu=GAnuLnu
             elif out['intlum_models'][m] == 'tor':    
                  nuLnu=TOnuLnu
-        
-            index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
-            all_nus_rest_int = 10**(all_nus_rest[index])
-            Lnu = nuLnu[:,index] / all_nus_rest_int
-            Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
-            int_lums.append(Lnu_int)
+            elif out['intlum_models'][m] == 'agn_rad':    
+                    nuLnu=RADnuLnu
+            elif out['intlum_models'][m] == 'AGNfrac':    
+                nuLnuto=TOnuLnu
+                nuLnusb=SBnuLnu
+                nuLnuga=GAnuLnu
+
+                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
+                    index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()
+                    Lnuto = nuLnuto[:,index].ravel() 
+                    Lnusb = nuLnusb[:,index].ravel()
+                    Lnuga = nuLnuga[:,index].ravel()
+                    AGNfrac = Lnuto/(Lnuto+Lnusb+Lnuga)
+                else:
+                    index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                    all_nus_rest_int = 10**(all_nus_rest[index])
+                    Lnuto = nuLnuto[:,index] / all_nus_rest_int
+                    Lnusb = nuLnusb[:,index] / all_nus_rest_int
+                    Lnuga = nuLnuga[:,index] / all_nus_rest_int
+                    Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
+                    Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
+                    Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
+                    AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
+                             
+            if out['intlum_models'][m] != 'AGNfrac': 
+
+                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
+                    index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()   
+                    Lnu_mono = nuLnu[:,index].ravel()
+                    int_lums.append(Lnu_mono)
+                else:
+                    index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
+                    all_nus_rest_int = 10**(all_nus_rest[index])
+                    Lnu = nuLnu[:,index] / all_nus_rest_int
+                    Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
+                    int_lums.append(Lnu_int)
+            else:
+                int_lums.append(AGNfrac)
 
         return np.array(int_lums)
 
@@ -532,17 +711,16 @@ class FLUXES_ARRAYS:
 Some stand-alone functions on the SED plot format
 """
 
-
-
-def SED_plotting_settings(x, ydata):
+def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
     """
     This function produces the setting for the figures for SED plotting.
     **Input:
     - all nus, and data (to make the plot limits depending on the data)
     """
-    fig = plt.figure()
-    ax1 = fig.add_subplot(111)
+    fig = plt.figure(figsize=(9,5))
+    ax1 = fig.add_axes([0.15,0.3,0.8,0.6])
+    #ax1 = fig.add_subplot(111)
     ax2 = ax1.twiny()
 
     #-- Latex -------------------------------------------------
@@ -566,14 +744,15 @@ def SED_plotting_settings(x, ydata):
 
 
     mediandata = np.median(ydata)
-    ax1.set_ylim(mediandata /50.,mediandata * 50.)
+    ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*2) #ax1.set_ylim(6*1e37, 1e47) # mediandata /90., mediandata * 50.
+    ax1.set_xlim(min(np.log10(x)), max(np.log10(x))) #min(np.log10(x)), max(np.log10(x)) 9,19
+    #ax1.set_xlim(min(modeldata), max(modeldata))
 
     ax2.set_xscale('log')
     ax2.set_yscale('log')
-    ax2.set_ylim( mediandata /50., mediandata * 50.)
 
 
-    ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+    #ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
     ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5)
     ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5)
 
@@ -581,10 +760,25 @@ def SED_plotting_settings(x, ydata):
 
     ax2.plot(x2, np.ones(len(x2)), alpha=0)
     ax2.invert_xaxis()
-    ax2.set_xticks([100., 10.,1., 0.1]) 
+    #ax2.set_xticks([1e3, 100., 10.,1., 0.1, 0.01]) 
 
+    if plot_residuals==True:
+        axr = fig.add_axes([0.15,0.1,0.8,0.2],sharex=ax1)
+        axr.set_xlabel(r'rest-frame ${\log \  \nu}$ $[\mathrm{Hz}] $')
+        axr.set_ylabel(r'residual $[\sigma]$')
+        axr.set_ylabel(r'residual $[\sigma]$')
+        axr.set_autoscalex_on(True) 
+        axr.set_xscale('linear')
+        axr.minorticks_on()
+        xr = np.log10(x[::-1]) # frequency axis
+        axr.plot(xr, np.zeros(len(xr)), 'gray', alpha=1)
+        axr.set_xlim(min(modeldata), max(modeldata))
+        ax1.xaxis.set_visible(False)
 
-    return fig, ax1, ax2
+        return fig, ax1, ax2, axr
+    else:
+        return fig, ax1, ax2
+
 
 def SED_colors(combination = 'a'):
 
@@ -596,5 +790,5 @@ def SED_colors(combination = 'a'):
         lila = '#68228B'
         darkblue='#123281'
 
-    return seagreen, darkblue, 'orange', lila, 'red'
+    return seagreen, darkblue, 'orange', lila, darkcyan, 'red'
 
