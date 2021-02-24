@@ -199,7 +199,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
 
         try:  
             if not os.path.lexists(dictz):
-                zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings)
+                zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings, data.nRADdata)
                 zdict.build()
                 f = open(zdict.filename, 'wb')
                 pickle.dump(zdict, f, protocol=2)
@@ -219,16 +219,16 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                                         # From PARAMETERSPACE_AGNfitter.py
 
             t1= time.time()
-            MCMC_AGNfitter.main(data, models, P, mc)
-            PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+            #MCMC_AGNfitter.main(data, models, P, mc)
+            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
-            # try:            
-            #     PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
-            #     print ( 'Done already'  )      
-            # except:
-            #     print ( 'Not done yet')
-            #     MCMC_AGNfitter.main(data, models, P, mc) 
-            #     PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+            try:            
+                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+                print ( 'Done already'  )      
+            except:
+                print ( 'Not done yet')
+                MCMC_AGNfitter.main(data, models, P, mc) 
+                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
             print ( '_____________________________________________________')
             print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))

@@ -11,16 +11,13 @@ the main information on the dictionaries (DICTS).
 """
 import sys,os
 import numpy as np
-from math import exp,log,pi, sqrt
-import matplotlib.pyplot as plt
-from numpy import random,argsort,sqrt
-import time
-from scipy.integrate import quad, trapz
-from astropy import constants as const
+import pandas as pd
+from math import pi, sqrt
+from scipy.interpolate import interp1d
 from astropy import units as u
 from astropy.table import Table
-from astropy.io import fits
-import functions.MODEL_AGNfitter as model
+import functions.MODEL_AGNfitter as model  
+import decimal
 
 
 class DATA_all:
@@ -40,7 +37,6 @@ class DATA_all:
     def __init__(self, cat, filters):
         self.cat = cat
         self.filters = filters
-        #self.sourceline = sourceline
         self.catalog = cat['filename']
         if not os.path.lexists(cat['filename']):
             print ('ERROR: Catalog does not exist under this name '+cat['filename'])
@@ -53,12 +49,15 @@ class DATA_all:
         if self.cat['filetype'] == 'ASCII': 
 
             ### read catalog columns
-            column = np.loadtxt(self.catalog, skiprows=1, unpack=True)
+            # It's necessary to read redshift as decimal.Decimal object because of the representation as a binary floating point number 
+            # (python add digits to some values of z)
+            column = pd.read_csv(self.catalog, delim_whitespace=True, decimal=".", skiprows = 0, converters = {'z':decimal.Decimal}) 
 
             ### properties
-            self.name = column[self.cat['name']]#.astype(int)
-            self.z = column[self.cat['redshift']].astype(float)
-            self.dlum = np.array([model.z2Dlum(z) for z in self.z])
+            self.name = column.iloc[:, self.cat['name']]
+            self.z = [float(i) for i in column.iloc[:, self.cat['redshift']]]
+            self.dlum = np.array(model.z2Dlum(self.z))
+
 
             if self.cat['use_central_wavelength']:
                 ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
@@ -70,7 +69,6 @@ class DATA_all:
                 dictionary = self.filters.copy()
                 
                 del dictionary['dict_zarray'];
-                #del dictionary['order'];
                 del dictionary['add_filters_dict'];
                 del dictionary['add_filters'];
                 del dictionary['path'];
@@ -100,22 +98,23 @@ class DATA_all:
             else:
                 ### If central wavelengths are given in catalog 
                 freq_wl_cat_ALL = \
-                    np.array([column[c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
+                    np.array([column.iloc[:, c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
  
 
             flux_cat_ALL =\
-                np.array([ca for ca in  column[self.cat['flux_list']] ])*self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['flux_list']])*self.cat['flux_unit']
             fluxerr_cat_ALL = \
-                np.array([ce for ce in column[self.cat['fluxerr_list']]])*self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['fluxerr_list']])*self.cat['flux_unit']
             if self.cat['ndflag_bool'] == True: 
-                ndflag_cat_ALL = np.array(column[self.cat['ndflag_list']])
+                ndflag_cat_ALL = np.array(column.iloc[:, self.cat['ndflag_list']])
 
             nus_l=[]
             fluxes_l=[]
             fluxerrs_l=[]
             ndflag_l=[]
+            nRADdata_l = []
 
-            nrBANDS, nrSOURCES= np.shape(flux_cat_ALL)
+            nrSOURCES, nrBANDS= np.shape(flux_cat_ALL)
             
             self.cat['nsources'] = nrSOURCES
 
@@ -128,8 +127,8 @@ class DATA_all:
                 else:
                     freq_wl_cat = freq_wl_cat_ALL[:,j]
                 
-                flux_cat= flux_cat_ALL[:,j]
-                fluxerr_cat= fluxerr_cat_ALL[:,j]
+                flux_cat= flux_cat_ALL[j]
+                fluxerr_cat= fluxerr_cat_ALL[j]
 
                 if self.cat['use_central_wavelength']:
                     nus0 = freq_wl_cat
@@ -177,11 +176,16 @@ class DATA_all:
                 fluxerrs_l.append(fluxerrs0[nus0.argsort()])
                 ndflag_l.append(ndflag_cat0[nus0.argsort()])
 
+                ## Evaluate the number of valid radio data. This information will be important to choose a AGN radio model
+                RADdata_pos = nus0[nus0.argsort()] < (10.5-np.log10(1+self.z[j]))        # < 30 GHz rest frame
+                RADdata = fluxes0[nus0.argsort()][(RADdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
+                nRADdata_l.append(len(RADdata))
 
             self.nus = np.array(nus_l)
             self.fluxes = np.array(fluxes_l)
             self.fluxerrs = np.array(fluxerrs_l)
             self.ndflag = np.array(ndflag_l)
+            self.nRADdata = np.array(nRADdata_l)
 
         elif self.cat['filetype'] == 'FITS': 
 
@@ -248,6 +252,7 @@ class DATA_all:
             fluxes_l=[]
             fluxerrs_l=[]
             ndflag_l=[]
+            nRADdata_l = []
 
             nrBANDS, nrSOURCES= np.shape(flux_cat_ALL)
 
@@ -303,11 +308,17 @@ class DATA_all:
                 fluxerrs_l.append(fluxerrs0[nus0.argsort()])
                 ndflag_l.append(ndflag_cat0[nus0.argsort()])
 
+                ## Evaluate the number of valid radio data. This information will be important to choose a AGN radio model
+                RADdata_pos = nus0[nus0.argsort()] < (10.5-np.log10(1+self.z[j]))        # < 30 GHz rest frame
+                RADdata = fluxes0[nus0.argsort()][(RADdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
+                nRADdata_l.append(len(RADdata))
+
 
             self.nus = np.array(nus_l)
             self.fluxes = np.array(fluxes_l)
             self.fluxerrs = np.array(fluxerrs_l)
             self.ndflag = np.array(ndflag_l)
+            self.nRADdata = np.array(nRADdata_l)
 
 class DATA():
 
@@ -333,6 +344,7 @@ class DATA():
         self.z =catalog.z[line]
         self.dlum = catalog.dlum[line]
         self.lumfactor = 4. * pi * catalog.dlum[line] **2.
+        self.nRADdata = catalog.nRADdata[line]
 
         self.cat = catalog.cat
         #self.sourceline = sourceline
