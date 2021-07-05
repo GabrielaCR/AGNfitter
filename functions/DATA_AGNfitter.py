@@ -113,6 +113,7 @@ class DATA_all:
             fluxerrs_l=[]
             ndflag_l=[]
             nRADdata_l = []
+            nXRaysdata_l = []
 
             nrSOURCES, nrBANDS= np.shape(flux_cat_ALL)
             
@@ -170,6 +171,11 @@ class DATA_all:
                     # If neither fluxes and fluxerrs are given (both -99), 
                     # these are considered as a non existant data point.
 
+                if self.cat['err+10%flux_moreflex'] == True:  
+                    ## It's a option to add in quadrature a 10% of the flux to the measurement error in order to increase the flexibility of the fit
+                    fluxerrs0[ndflag_cat0 != 0] = np.sqrt(fluxerrs0[ndflag_cat0 != 0]**2 + (fluxes0[ndflag_cat0 != 0]*0.1)**2)
+
+
                 ## Sort in order of frequency
                 nus_l.append(nus0[nus0.argsort()])
                 fluxes_l.append(fluxes0[nus0.argsort()])
@@ -181,11 +187,17 @@ class DATA_all:
                 RADdata = fluxes0[nus0.argsort()][(RADdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
                 nRADdata_l.append(len(RADdata))
 
+                ## Evaluate the number of valid Xrays data. This information will be important to choose the model
+                XRdata_pos = nus0[nus0.argsort()] > (16.685-np.log10(1+self.z[j]))        # > 0.2 keV rest frame
+                XRdata = fluxes0[nus0.argsort()][(XRdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
+                nXRaysdata_l.append(len(XRdata))
+
             self.nus = np.array(nus_l)
             self.fluxes = np.array(fluxes_l)
             self.fluxerrs = np.array(fluxerrs_l)
             self.ndflag = np.array(ndflag_l)
             self.nRADdata = np.array(nRADdata_l)
+            self.nXRaysdata = np.array(nXRaysdata_l)
 
         elif self.cat['filetype'] == 'FITS': 
 
@@ -313,12 +325,18 @@ class DATA_all:
                 RADdata = fluxes0[nus0.argsort()][(RADdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
                 nRADdata_l.append(len(RADdata))
 
+                ## Evaluate the number of valid Xrays data. This information will be important to choose the model
+                XRdata_pos = nus0[nus0.argsort()] < (16.685-np.log10(1+self.z[j]))        # > 0.2 keV rest frame
+                XRdata = fluxes0[nus0.argsort()][(XRdata_pos == True) & (ndflag_cat0[nus0.argsort()] > 0)]
+                nXRaysdata_l.append(len(XRdata))
+
 
             self.nus = np.array(nus_l)
             self.fluxes = np.array(fluxes_l)
             self.fluxerrs = np.array(fluxerrs_l)
             self.ndflag = np.array(ndflag_l)
             self.nRADdata = np.array(nRADdata_l)
+            self.nXRaysdata = np.array(nXRaysdata_l)
 
 class DATA():
 
@@ -345,6 +363,7 @@ class DATA():
         self.dlum = catalog.dlum[line]
         self.lumfactor = 4. * pi * catalog.dlum[line] **2.
         self.nRADdata = catalog.nRADdata[line]
+        self.nXRaysdata = catalog.nXRaysdata[line]
 
         self.cat = catalog.cat
         #self.sourceline = sourceline

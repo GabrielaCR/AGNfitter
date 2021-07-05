@@ -24,9 +24,10 @@ def PRIORS(data, models, P, *pars):
 
     all_priors=[]
 
-    if modelsettings['PRIOR_energy_balance'] == True:  
+    if (modelsettings['PRIOR_energy_balance'] == 'Flexible') or (modelsettings['PRIOR_energy_balance'] == 'Restrictive'):  
         """
-        This prior promotes starburst emission consistent with galaxy attenuated emission
+        This prior promotes starburst emission consistent with galaxy attenuated emission. The flexible prior only impose a lower limit
+        for the luminosity of the cold dust, while the restrictive promotes models in which both emissioons are the same.
         """
         prior= prior_energy_balance(data, MD.GALAXYatt_dict, MD.GALAXYFdict, gal_obj, GA, MD.STARBURST_LIRdict,sb_obj,SB, models)
         all_priors.append(prior)
@@ -46,6 +47,13 @@ def PRIORS(data, models, P, *pars):
         prior2= prior_stellar_mass(GA)
         all_priors.append(prior1 + prior2) 
 
+    if modelsettings['PRIOR_midIR_UV']==True:  
+        """
+        """
+        prior_IR_UV= prior_midIR_UV(data, MD.BBBFdict, bbb_obj, BB, MD.TORUSFdict, tor_obj, TO, models)
+        all_priors.append(prior_IR_UV) 
+
+
     if modelsettings['RADIO']==True:  
         # This prior gives predominance to Synchrotron more than Starburst emission in IR if the IR data can be explained by a simple power law 
         # extended from radio data available
@@ -59,7 +67,7 @@ def PRIORS(data, models, P, *pars):
 
     if modelsettings['XRAYS']== 'Prior_midIR': 
         # This prior promotes torus models consistent with Xrays data and the mid-IR-Xray correlation by Stern 2015
-        prior_L6microns = prior_IR_XRays(data, MD.BBBFdict, bbb_obj, BB, models)
+        prior_L6microns = prior_IR_XRays(data, MD.TORUSFdict, tor_obj, TO, models)
         all_priors.append(prior_L6microns)
 
     final_prior= np.sum(np.array(all_priors))
@@ -77,20 +85,25 @@ def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBUR
         fcts=gal_obj.functions()
         f=fcts[gal_obj.functionidxs[0]]
         rest_bands = bands + np.log10((1+data.z))                               #Pass to rest frame
-        bandsf, Fnuf = f(10**rest_bands, gal_Fnu, gal_obj.matched_parkeys[-1])  #bandsf not in log form, apply reddening
+        bandsf, Fnuf = f(10**rest_bands, gal_Fnu*1e18, gal_obj.matched_parkeys[-1])  #bandsf not in log form, apply reddening
         gal_nu, gal_Fnu_red = bandsf/(1+data.z), Fnuf                           #Pass to observed frame
-            
         gal_Fnu_int = scipy.integrate.trapz(gal_Fnu*3.826e33, x=gal_nu)          
         gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
         gal_att_int = gal_Fnu_int - gal_Fnured_int
-        Lgal_att = gal_att_int * 10**(GA)                                       #Calculate the attenuated luminosity
+        Lgal_att = abs(gal_att_int * 10**(GA))                                       #Calculate the attenuated luminosity
 
     Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB)
 
     if Lsb_emit < Lgal_att:
         return -np.inf
-    else:
+    elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Flexible'):
         return 0
+    elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Restrictive'):
+        frac_SB_attGal = np.log10(Lsb_emit/Lgal_att)
+        mu = 0
+        sigma = 2.
+        prior_frac = Gaussian_prior(mu, sigma, frac_SB_attGal)
+        return prior_frac
 
 
 def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB): 
@@ -111,15 +124,29 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
         f=fcts[bbb_obj.functionidxs[0]]
         bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)]
         rest_bands = bands + np.log10((1+data.z))                               #Rest frame frequency
-        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], bbb_obj.matched_parkeys[-2])  #Apply reddening
-        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) - np.log10((1+data.z))            #Come back to observed frame 
-        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**bbb_obj.matched_parkeys[-1]))               #Add the effect of scatter in UV-Xray correlation
+        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], bbb_obj.matched_parkeys[-2])  #Apply reddening
+        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+data.z))            #Come back to observed frame 
+        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**bbb_obj.matched_parkeys[-1]))               #Add the effect of scatter in UV-Xray correlation
+        bands, bbb_Fnu = bandsf, Fnuf
+
+    elif bbb_obj.par_types[-3: ] == ['free', 'free', 'grid'] and bbb_obj.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+        fcts=bbb_obj.functions()
+        f=fcts[bbb_obj.functionidxs[0]]
+        bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)]
+        rest_bands = bands + np.log10((1+data.z))                               #Rest frame frequency
+        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], bbb_obj.matched_parkeys[-3])  #Apply reddening
+        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+data.z))            #Come back to observed frame 
+        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**bbb_obj.matched_parkeys[-2]))               #Add the effect of scatter in UV-Xray correlation
         bands, bbb_Fnu = bandsf, Fnuf
 
     elif bbb_obj.par_types[-1] == 'free' and bbb_obj.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free and no x-rays
         fcts=bbb_obj.functions()
         f=fcts[bbb_obj.functionidxs[0]]
-        bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)] 
+        if type(bbb_obj.matched_parkeys_grid) != list:                          #If model is R06, there isn't a list of parameters so tuple don't work well
+            bands, Fnu = bbb_obj.modelsdict[bbb_obj.matched_parkeys_grid] 
+            bbb_obj.matched_parkeys = [bbb_obj.matched_parkeys]
+        else:
+            bands, Fnu = bbb_obj.modelsdict[tuple(bbb_obj.matched_parkeys_grid)] 
         rest_bands = bands + np.log10((1+data.z))                               #Rest frame frequency
         bandsf, Fnuf = f(rest_bands, Fnu, bbb_obj.matched_parkeys[-1])          #Apply reddening
         bandsf = bandsf - np.log10((1+data.z))                                  #Come back to observed frame 
@@ -186,10 +213,10 @@ def prior_stellar_mass(GA):
 def prior_IR_SYNfraction(data, STARBURSTFdict, sb_obj, SB, AGN_RADFdict, agnrad_obj, RAD, models): 
 
     bands, sb_Fnu = STARBURSTFdict[sb_obj.matched_parkeys] 
-    if (agnrad_obj.pars_modelkeys != ['No model parameters']).all() :   #If the model have fitting parameters
+    if (agnrad_obj.pars_modelkeys != ['-99.9']).all() :   #If the model have fitting parameters
         bands, syn_Fnu = AGN_RADFdict[agnrad_obj.matched_parkeys]
     else:
-        bands, syn_Fnu = AGN_RADFdict['No model parameters']          #If the model have fix parameters
+        bands, syn_Fnu = AGN_RADFdict['-99.9']          #If the model have fix parameters
     sb_flux= sb_Fnu* 10**(SB)
     syn_flux = syn_Fnu* 10**(RAD)
 
@@ -281,14 +308,14 @@ def prior_IR_XRays(data, TORUSFdict, tor_obj, TO, models):
     lumfactor = (4. * pi * data.dlum**2.)
     nuLnu_6microns = (10**13.69897)* tor_flux_6microns * lumfactor                #nuLnu at 6 microns
     x = np.log10(nuLnu_6microns/1e41)
-    log_L2_10keV_model = 40.981 + 1.024*x - 0.047*x**2                            #midIR-Xray correlation by Stern 2015
+    log_L2_10keV_model = 40.981 + 1.024*x - 0.047*x**2                            #midIR-Xray correlation by Stern 2015 (erg/s)
+    logf_2_10keV_model = 22.9494264 + 1.024*x - 0.047*x**2                        #monocromatic flux at 10**17.906 Hz (erg/s/Hz)
 
     #Central frequency at the band 2-10keV (10**17.906) in rest-frame
     flux2_10keV_data = data.fluxes[( 17.685 < (data.nus+np.log10(1+data.z))) & ((data.nus+np.log10(1+data.z)) < 18.384 )][0]  
-    nu_2_10keV = data.nus[data.fluxes == flux2_10keV_data][0] 
-    log_L2_10keV_data = np.log10(flux2_10keV_data * lumfactor*10**nu_2_10keV)    #L2-10keV from data
+    logf2_10keV_data = np.log10(flux2_10keV_data * lumfactor)                    #monocromatic flux at band 2-10keV from data
 
-    ratio_midIR_Xrays= log_L2_10keV_data - log_L2_10keV_model
+    ratio_midIR_Xrays= logf2_10keV_data - logf_2_10keV_model
 
     """Define prior"""
     mu= 0
@@ -296,6 +323,40 @@ def prior_IR_XRays(data, TORUSFdict, tor_obj, TO, models):
     prior_midIR_Xrays= Gaussian_prior(mu, sigma, ratio_midIR_Xrays)  #Promotes torus models that decrease the difference between data and model at 2-10keV
 
     return prior_midIR_Xrays
+
+
+def prior_midIR_UV(data, BBBFdict, bbb_obj, BB, TORUSFdict, tor_obj, TO, models): 
+
+    tor_nus, tor_Fnu = TORUSFdict[tor_obj.matched_parkeys_grid]
+    tor_flux= tor_Fnu* 10**(TO)
+    tor_flux_6microns = tor_flux[(13.59897 < tor_nus) & (tor_nus < 13.79897)][0]  #Flux at 6 microns = 13.69897 log(Hz)
+    lumfactor = (4. * pi * data.dlum**2.)
+    x = np.log10(tor_flux_6microns * lumfactor) -27.30103
+    log_L2500A_tomodel = (16.2530786 + 1.024*x - 0.047*x**2)/0.643                 #correlations by Stern 2015 + Just et al. 2007
+
+    if models.settings['BBB']=='R06' and models.settings['XRAYS'] != True:
+        all_bbb_nus, bbb_Fnus_dered = BBBFdict['0.0']                                                    #Intrinsic fluxes without reddening
+
+    else: 
+        EBVbbb_pos = bbb_obj.par_names.index('EBVbbb')
+        params = bbb_obj.matched_parkeys_grid
+        params[EBVbbb_pos] = str(0.0)
+        all_bbb_nus, bbb_Fnus_dered = BBBFdict[tuple(params)]                                            #Intrinsic fluxes without reddening
+
+    bbb_flux_dered= bbb_Fnus_dered* 10**(BB)
+    if BB !=0:
+        bbb_flux_dered = bbb_flux_dered*(4*pi*(data.dlum)**2)   ##BB normalization to have units [erg s⁻¹Hz⁻¹] and ranges of values
+
+    log_L2500A_bbmodel = np.log10(bbb_flux_dered[(15.04 < all_bbb_nus) & (all_bbb_nus < 15.15 )][0])        #Flux in 2500A from BB model
+
+    ratio_2500A= log_L2500A_bbmodel - log_L2500A_tomodel
+
+    """Define prior"""
+    mu= 0
+    sigma= 0.8  
+    prior_midIR_UV= Gaussian_prior(mu, sigma, ratio_2500A)  #Promotes torus and accretion disk models consistent to each other
+
+    return prior_midIR_UV
 
 
 def prior_low_AGNfraction(data, models, P, *pars):

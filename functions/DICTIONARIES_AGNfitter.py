@@ -43,11 +43,12 @@ class MODELSDICT:
 
     """     
 
-    def __init__(self, filename, path, filters, models, nRADdata):
+    def __init__(self, filename, path, filters, models, nRADdata, nXRaysdata):
         self.filename = filename
         self.path=path
         self.modelsettings=models
         self.nRADdata = nRADdata  #Number of valid radio data
+        self.nXRaysdata = nXRaysdata  #Number of valid Xrays data
 
         ## To be called form filters
         self.z_array = filters['dict_zarray']
@@ -99,7 +100,7 @@ class MODELSDICT:
                     bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
                     self.STARBURSTFdict[c] = bands, sb_Fnu_filtered.flatten()
 
-        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings)
+        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings, self.nXRaysdata)
         for c in self.BBBFdict_4plot.keys():
                     bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]               
                     bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
@@ -249,9 +250,21 @@ def dictkey_arrays(MD):
                         f=fcts[self.functionidxs[idxs]]
                         bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
                         rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
-                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
-                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) - np.log10((1+self.z))   #Come back to redshifted frequency
-                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**(matched_parkeys[-1]/0.3838)))     #Add the effect of alpha_ox scatter
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))     #Add the effect of alpha_ox scatter
+
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs= 0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))     #Add the effect of alpha_ox scatter
 
                         return bandsf, Fnuf
                     else: 
@@ -266,7 +279,7 @@ def dictkey_arrays(MD):
     else:     
         galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
         galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
-        agnrad_obj = 'No model parameters'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
 
     gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
     sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
@@ -371,9 +384,19 @@ def dictkey_arrays_4plot(MD):
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
                         rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
-                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
-                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) 
-                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**(matched_parkeys[-1]/0.3838)))   #Add the effect of alpha_ox scatter
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))   #Add the effect of alpha_ox scatter
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))   #Add the effect of alpha_ox scatter
                         return bandsf, Fnuf
 
                     else: 
@@ -388,7 +411,7 @@ def dictkey_arrays_4plot(MD):
     else:     
         galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
         galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
-        agnrad_obj = 'No model parameters'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
 
     gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict_4plot, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
     sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict_4plot,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)

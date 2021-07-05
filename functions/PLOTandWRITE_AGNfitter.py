@@ -288,10 +288,10 @@ class OUTPUT:
                     h = 4.135667731*1e-15*1e-3                                                     #eV/Hz --> keV/Hz
                     nu_2kev = 4.83598*1e17 
                     a = Fnu_2kev/((h*nu_2kev)**(-1.8+1)*np.e**(-nu_2kev/(7.2540*1e19)))
-                    xray_nu = np.logspace(17, 19.7, 1000)                                          #with a hole between BB template and X-Rays
+                    xray_nu = np.logspace(16.685, 19.7, 1000)                                          #with a hole between BB template and X-Rays
                     xray_Fnu = a*(h*xray_nu)**(-1.8+1)*np.e**(-xray_nu/(7.2540*1e19))
                     xray_nuLnu = xray_Fnu*xray_nu
-                    p8=ax1s[j].plot(np.log10(np.logspace(17, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= BBcolor, alpha = alp)
+                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= BBcolor, alpha = alp)
 
                 if self.models_settings['XRAYS'] == 'Prior_midIR':
                     to_nuLnu_6microns = TOnuLnu[i][(13.59897 < all_nus) & (all_nus < 13.79897)][0]
@@ -303,10 +303,10 @@ class OUTPUT:
                     h = 4.135667731*1e-15*1e-3                                                      #eV/Hz --> keV/Hz
                     nu_2_10kev = 10**17.9061
                     a = F2_10keV/((h*nu_2_10kev)**(-1.8+1)*np.e**(-nu_2_10kev/(7.2540*1e19)))
-                    xray_nu = np.logspace(17, 19.7, 1000)                                           #with a hole between BB template and X-Rays
+                    xray_nu = np.logspace(16.685, 19.7, 1000)                                           #with a hole between BB template and X-Rays
                     xray_Fnu = a*(h*xray_nu)**(-1.8+1)*np.e**(-xray_nu/(7.2540*1e19))
                     xray_nuLnu = xray_Fnu*xray_nu
-                    p8=ax1s[j].plot(np.log10(np.logspace(17, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= TOcolor, alpha = alp)
+                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= TOcolor, alpha = alp)
                 p4=ax1s[j].plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="1 /sigma",color=GAcolor, alpha = alp)
                 p5=ax1s[j].plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = alp)
                 p1=ax1s[j].plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= alp)
@@ -316,11 +316,12 @@ class OUTPUT:
 
                 det = [yndflags==1]
                 upp = [yndflags==0]
-            
-                p7 = ax1s[j].plot(data_nus, self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
+                det2 = [yndflags==1 & (data_nus < 15.38)| (data_nus > 16.685)]
+
+                p7 = ax1s[j].plot(data_nus[tuple(det2)], self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
             
                 if plot_residuals:
-                    p6r = axrs[j].plot(data_nus[tuple(det)], (data_nuLnu_rest[tuple(det)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det)])/data_errors_rest[tuple(det)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
+                    p6r = axrs[j].plot(data_nus[tuple(det2)], (data_nuLnu_rest[tuple(det2)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)])/data_errors_rest[tuple(det2)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
                 	
             
             upplimits = ax1s[j].errorbar(data_nus[tuple(upp)], 2.*data_nuLnu_rest[tuple(upp)], yerr= data_errors_rest[tuple(upp)]/2, uplims = True, linestyle='',  markersize=5, color="black")
@@ -364,16 +365,16 @@ class CHAIN:
             self.chain = samples['chain']
             nwalkers, nsamples, npar = samples['chain'].shape
 
-            Ns, Nt = self.out['Nsample'], self.out['Nthinning']        
+            Ns, Nt = self.out['Nsample'], self.out['Nthinning'] 
             self.lnprob = samples['lnprob']
-            self.lnprob_flat = samples['lnprob'][:,0:Ns*Nt:Nt].ravel()
+            self.lnprob_flat = samples['lnprob'][:,int(nsamples/2):int(nsamples):Nt].ravel() #[:,0:Ns*Nt:Nt]
 
             isort = (- self.lnprob_flat).argsort() #sort parameter vector for likelihood
             lnprob_sorted = np.reshape(self.lnprob_flat[isort],(-1,1))
             self.lnprob_max = lnprob_sorted[0]
 
 
-            self.flatchain = samples['chain'][:,0:Ns*Nt:Nt,:].reshape(-1, npar)
+            self.flatchain = samples['chain'][:,int(nsamples/2):int(nsamples):Nt,:].reshape(-1, npar) #[:,0:Ns*Nt:Nt,:]
             chain_length = int(len(self.flatchain))
 
             self.flatchain_sorted = self.flatchain[isort]
@@ -499,14 +500,14 @@ class FLUXES_ARRAYS:
             ### extend SED to X-rays if there are models with Xrays or Xray priors were applied
             lognu_max = 19
         else:
-            lognu_max = 16.2
+            lognu_max = 16.5
 
         if self.models_settings['RADIO']==True:
             ## extend SED to radio
             RADFnu_list = []
             lognu_min = 9
         else:
-            lognu_min = 11.5
+            lognu_min = 10.5
 
         self.all_nus_rest = np.arange(lognu_min, lognu_max, 0.001) 
         
@@ -538,20 +539,35 @@ class FLUXES_ARRAYS:
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
             #print(gal_obj.get_fluxes(gal_obj.matched_parkeys))
             all_gal_nus, gal_Fnus = gal_obj.get_fluxes(gal_obj.matched_parkeys)
-            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(), bounds_error=False, fill_value=0.)
+            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(),  kind = 'quadratic', bounds_error=False, fill_value=0.)
             all_gal_Fnus = GAinterp(self.all_nus_rest)
+            #if g == (realization_nr -1):
+            #    bands, gal_Fnu= MD.GALAXYFdict[tuple(gal_obj.matched_parkeys_grid)] 
+            #    fcts=gal_obj.functions()
+            #    f=fcts[gal_obj.functionidxs[0]]
+            #    rest_bands = bands + np.log10((1+data.z))                               #Pass to rest frame
+            #    bandsf, Fnuf = f(10**rest_bands, gal_Fnu, gal_obj.matched_parkeys[-1])  #bandsf not in log form, apply reddening
+            #    gal_nu, gal_Fnu_red = bandsf/(1+data.z), Fnuf                           #Pass to observed frame
+            
+            #    gal_Fnu_int = scipy.integrate.trapz(gal_Fnu*3.826e33, x=gal_nu)          
+            #    gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+            #    gal_att_int = gal_Fnu_int - gal_Fnured_int
+            #    Lgal_att = gal_att_int * 10**(GA)
+
+            #    Lsb_emit = MD.STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB) 
+            #    print('z: {5}, SB: {0}, LSB: {1}, EBV_GAL: {2}, Lgal_att: {3}, frac: {4}'.format(SB, Lsb_emit, gal_obj.matched_parkeys[-1], Lgal_att, np.log10(Lsb_emit/Lgal_att), data.z))
 
             if models.settings['RADIO'] == True:
 
-                if (agnrad_obj.pars_modelkeys != ['No model parameters']).all() :    #If there is a radio model with fitting parameters
+                if (agnrad_obj.pars_modelkeys != ['-99.9']).all() :    #If there is a radio model with fitting parameters
                     agnrad_obj.pick_nD(par[g][self.P['idxs'][4]:self.P['idxs'][5]])
                     all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes(agnrad_obj.matched_parkeys)
                 else:                                                                #If there is a radio model with fix parameters
-                    all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes('No model parameters')
+                    all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes('-99.9')
 
                 RADinterp = scipy.interpolate.interp1d(all_agnrad_nus, agnrad_Fnus, bounds_error=False, fill_value=0.)
                 all_agnrad_Fnus = RADinterp(self.all_nus_rest)
-                all_agnrad_Fnus[self.all_nus_rest>=16]= 0
+                all_agnrad_Fnus[self.all_nus_rest>=17.5]= 0
                 RADFnu =   all_agnrad_Fnus * 10**float(RAD)
                 RADFnu_list.append(RADFnu)
 
@@ -560,9 +576,9 @@ class FLUXES_ARRAYS:
 
             #If the UV-Xray correlation was applied, interpolate in a separately the emission of accretion disk and Xrays
             if (models.settings['BBB'] =='SN12' or models.settings['BBB'] =='R06') and models.settings['XRAYS']==True:
-                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 17], bbb_Fnus.flatten()[all_bbb_nus < 17], bounds_error=False, fill_value=0.) ##
-                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 17], bbb_Fnus.flatten()[all_bbb_nus >= 17],  bounds_error=False, fill_value=0.) 
-                all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 17]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 17])))
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], bbb_Fnus.flatten()[all_bbb_nus < 16.685], bounds_error=False, fill_value=0.) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], bbb_Fnus.flatten()[all_bbb_nus >= 16.685],  bounds_error=False, fill_value=0.) 
+                all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
             else:
                 BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus.flatten(), bounds_error=False, fill_value=0.)
                 all_bbb_Fnus = BBinterp(self.all_nus_rest)
@@ -572,14 +588,24 @@ class FLUXES_ARRAYS:
                 all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot['0.0']
                 BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
                 all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+
             elif models.settings['BBB']=='SN12' and models.settings['XRAYS'] != True: 
                 all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict[tuple(np.append(bbb_obj.matched_parkeys[:-1], 0.0))] 
                 BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
                 all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+
+            elif models.settings['XRAYS'] == True: 
+                EBVbbb_pos = bbb_obj.par_names.index('EBVbbb')
+                params = bbb_obj.matched_parkeys_grid
+                params[EBVbbb_pos] = str(0.0)
+                all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot[tuple(params)]                    #Intrinsic fluxes without reddening
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], bbb_Fnus_deredd.flatten()[all_bbb_nus < 16.685], bounds_error=False, fill_value=0.) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], bbb_Fnus_deredd.flatten()[all_bbb_nus >= 16.685],  bounds_error=False, fill_value=0.) 
+                all_bbb_Fnus_deredd = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
             else:
                 all_bbb_Fnus_deredd = all_bbb_Fnus
 
-            TOinterp = scipy.interpolate.interp1d(all_tor_nus, tor_Fnus.flatten(), bounds_error=False, fill_value=0.)
+            TOinterp = scipy.interpolate.interp1d(all_tor_nus, tor_Fnus.flatten(),  kind = 'quadratic', bounds_error=False, fill_value=0.)
             all_tor_Fnus = TOinterp(self.all_nus_rest)      
             all_tor_Fnus[self.all_nus_rest>16]= 0
             all_tor_Fnus[self.all_nus_rest<11.7]= 0
@@ -708,30 +734,48 @@ class FLUXES_ARRAYS:
                 nuLnu=TOnuLnu
             elif out['intlum_models'][m] == 'agn_rad':    
                 nuLnu=RADnuLnu
-            elif out['intlum_models'][m] == 'AGNfrac':    
+            elif out['intlum_models'][m] == 'AGNfrac' or out['intlum_models'][m] =='tor+bbb':    
                 nuLnuto=TOnuLnu
                 nuLnusb=SBnuLnu
                 nuLnuga=GAnuLnu
-
-                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
+                nuLnubb=BBnuLnu
+                #nuLnurad=RADnuLnu  #In the cases in which the AGNfrac accounts for radio fluxes
+                
+                # In these cases, the AGNfraction and the AGN luminosity values are calculated and saved at the same time
+                if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### AGNfraction or AGN luminosity for monochromatic luminosities
                     index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()
                     Lnuto = nuLnuto[:,index].ravel() 
                     Lnusb = nuLnusb[:,index].ravel()
                     Lnuga = nuLnuga[:,index].ravel()
-                    AGNfrac = Lnuto/(Lnuto+Lnusb+Lnuga)
-                else:
+                    Lnubb = nuLnubbb[:,index].ravel()
+                    #Lnurad = nuLnurad[:,index].ravel()
+                    if out['intlum_models'][m] == 'AGNfrac':
+                        AGNfrac = (Lnuto)/(Lnuto+Lnusb+Lnuga)
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'tor+bbb':
+                        int_lums.append(Lnuto+Lnubb)
+                else:                                                       ### AGNfraction or AGN luminosity for luminosities in a band
                     index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
                     all_nus_rest_int = 10**(all_nus_rest[index])
                     Lnuto = nuLnuto[:,index] / all_nus_rest_int
                     Lnusb = nuLnusb[:,index] / all_nus_rest_int
                     Lnuga = nuLnuga[:,index] / all_nus_rest_int
+                    #Lnurad = nuLnurad[:,index] / all_nus_rest_int
+                    Lnubb = nuLnubb[:,index] / all_nus_rest_int
                     Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
                     Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
                     Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
-                    AGNfrac = Lnuto_int/(Lnuto_int+Lnusb_int+Lnuga_int)
-                             
-            if out['intlum_models'][m] != 'AGNfrac': 
+                    #Lnurad_int = scipy.integrate.trapz(Lnurad, x=all_nus_rest_int)
+                    Lnubb_int = scipy.integrate.trapz(Lnubb, x=all_nus_rest_int)
 
+                    if out['intlum_models'][m] == 'AGNfrac':                
+                        AGNfrac = (Lnuto_int)/(Lnuto_int+Lnusb_int) #+Lnuga_int+Lnurad_int)
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'tor+bbb':
+                        int_lums.append(Lnuto_int+Lnubb_int)
+			
+            #Once the nuLnu is defined, the luminosity is calculated and saved                
+            if out['intlum_models'][m] != 'AGNfrac' and out['intlum_models'][m] !='tor+bbb': 
                 if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
                     index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()   
                     Lnu_mono = nuLnu[:,index].ravel()
@@ -742,8 +786,6 @@ class FLUXES_ARRAYS:
                     Lnu = nuLnu[:,index] / all_nus_rest_int
                     Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
                     int_lums.append(Lnu_int)
-            else:
-                int_lums.append(AGNfrac)
 
         return np.array(int_lums)
 

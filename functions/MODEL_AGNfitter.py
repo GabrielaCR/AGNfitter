@@ -382,27 +382,45 @@ def AGN_RAD(path, modelsettings, nRADdata):
     if modelsettings['RADIO']== True:
 
         AGN_RADFdict_4plot = dict()
-        agnrad_nu = 10**np.arange(9, 16, 0.02)
-        #alpha == -0.75:                                                                   #Single power law with cutoff
-        #agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha)*np.exp(-agnrad_nu/(1e13))      
+        agnrad_nu = 10**np.arange(9, 15, 0.02)#15, 17
+        #alpha == -0.75: 
+        #parameters_names = ['alpha', 'Ecutoff']                                                     #Single power law with cutoff
+        #parameters_types = ['grid', 'grid']
+        #alpha = np.arange(-2.0, 1.0, 0.1)
+        #E_cutoff = np.linspace(13, 14, 150)
+
+        #idxs=[alpha, E_cutoff]
+        #par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        #for c in par_idxs_combinations:
+         #   alphai = c[0]
+         #   E_cutoffi = c[1]
+         #   agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alphai)*np.exp(-agnrad_nu/10**E_cutoffi)     
+         #   AGN_RADFdict_4plot[str(alphai), str(E_cutoffi)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
+
+
+        #for i in alpha:
+          #  agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**i)*np.exp(-agnrad_nu/(1e13))     
+          #  AGN_RADFdict_4plot[str(i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
 
         #alpha1, alpha2, freq = 0, -0.6, 3.2*1e9                                           #Broken power law with cutoff
         #Fnu1, Fnu2 = (agnrad_nu[agnrad_nu < freq]/1e9)**alpha1, (agnrad_nu[agnrad_nu >= freq]/(freq))**alpha2*np.exp(-agnrad_nu[agnrad_nu >= freq]/5e19)
         #agnrad_Fnu = np.concatenate((Fnu1, Fnu1[-1]*Fnu2))
 
-        if nRADdata < 3:  #If there aren't enough data to find the normalization parameter, alpha1 and alpha2, fit a #Double power law with cutoff with 
-                          # alpha1 and alpha2 as fix parameters
+        if nRADdata < 3:  
+            #If there aren't enough data to find the normalization parameter, alpha1 and alpha2, fit a #Double power law with cutoff with 
+            # alpha1 and alpha2 as fix parameters
             parameters_names =['None']
             parameters_types =['grid']
             alpha1 = 0.5               
             alpha2 = -0.55
 
-            agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1-alpha2)))*np.exp(-agnrad_nu/1e13)  
-            AGN_RADFdict_4plot['No model parameters'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+            agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1-alpha2)))*np.exp(-agnrad_nu/(1e13))  
+            AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
 
         else:                                                                                  #Double power law with cutoff with parameters
             parameters_names =['alpha1', 'alpha2']
-            parameters_types =['grid', 'grid']
+            parameters_types =['grid', 'grid', 'grid']
             alpha1 = np.arange(-1.0, 1.0, 0.2)                               
             alpha2 = np.arange(-1.0, 0, 0.1) 
             
@@ -413,7 +431,7 @@ def AGN_RAD(path, modelsettings, nRADdata):
                 alpha1i = c[0]
                 alpha2i = c[1]
 
-                agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1i)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/1e13)
+                agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1i)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/(1e13))
                 AGN_RADFdict_4plot[str(alpha1i), str(alpha2i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
 
         return AGN_RADFdict_4plot, parameters_names, parameters_types, model_functions
@@ -423,17 +441,17 @@ def BBBfunctions():
     def apply_reddening (bbb_nu, bbb_Fnu, EBV_bbb):
         bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu.flatten(), float(EBV_bbb))  
         return bbb_nu0, bbb_Fnu_red
-    def add_xrays (bbb_nu, bbb_Fnu, EBV_bbb, alpha_scat):
+    def add_xrays (bbb_nu, bbb_Fnu, EBV_bbb, alpha_scat, gamma = 1.8):
         bbb_nu0, bbb_Fnu_red = BBBred_Prevot(bbb_nu, bbb_Fnu.flatten(), float(EBV_bbb))  
-        xray_nu, xray_Fnu = XRAYS(bbb_nu, bbb_Fnu.flatten(), float(alpha_scat)) 
+        xray_nu, xray_Fnu = XRAYS(bbb_nu, bbb_Fnu.flatten(), float(alpha_scat), float(gamma)) 
         # R06 SED is extended and we need avoid overlapping between BBB template and X-Rays power-law
-        bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0[bbb_nu0 < 17], xray_nu)), np.concatenate((bbb_Fnu_red[bbb_nu0 < 17], xray_Fnu))
+        bbb_nu0x, bbb_Fnu_redx = np.concatenate((bbb_nu0[bbb_nu0 < 16.685], xray_nu)), np.concatenate((bbb_Fnu_red[bbb_nu0 < 16.685], xray_Fnu))
         return bbb_nu0x, bbb_Fnu_redx
     def f0 (): #Dummy function
         return None
     return [apply_reddening,add_xrays, f0]
 
-def BBB(path, modelsettings):
+def BBB(path, modelsettings, nXRaysdata):
     ## Model from Richards 2006    
     if modelsettings['BBB']=='R06':
 
@@ -465,7 +483,7 @@ def BBB(path, modelsettings):
 
             return BBBFdict_4plot, parameters_names, parameters_types, model_functions
 
-        elif modelsettings['XRAYS']==True:          #Use the UV-Xrays correlation (Just et al. 2007) to extend SEDs
+        elif modelsettings['XRAYS']==True and nXRaysdata <= 1:          #Use the UV-Xrays correlation (Just et al. 2007) to extend SEDs
 
             parameters_names =['EBVbbb', 'alphaScat'] 
             parameters_types =['free', 'free'] 
@@ -496,6 +514,43 @@ def BBB(path, modelsettings):
                     BBBFdict_4plot[str(ebvi), str(alpha_scati)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
 
             return BBBFdict_4plot, parameters_names, parameters_types, model_functions
+
+        elif modelsettings['XRAYS']==True and nXRaysdata > 1:          #Use the UV-Xrays correlation (Just et al. 2007) to extend SEDs
+
+            parameters_names =['EBVbbb', 'alphaScat', 'Gamma'] 
+            parameters_types =['free', 'free', 'grid'] 
+
+            if parameters_types == ['grid', 'grid', 'grid'] :
+                ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+                alpha_scat =  np.arange(-0.4, 0.44, 0.04)
+                gamma = np.arange(0.0, 3.15, 0.15)
+                idxs = [ebvbbb_array, alpha_scat, gamma] 
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1]  
+                    gammai = c[2]
+                    #Apply reddening + UV-Xrays correlation
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvi, alpha_scati, gammai)     
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati), str(gammai)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+            elif parameters_types == ['free', 'free', 'grid'] :
+                ebvbbb_array = np.array([0.,1.0])
+                alpha_scat =  np.array([-0.4, 0.4]) 
+                gamma = np.arange(0.0, 3.15, 0.15)
+                idxs = [ebvbbb_array, alpha_scat, gamma]
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1] 
+                    gammai = c[2]
+                    #Apply reddening + UV-Xrays correlation. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvbbb_array[0], 0, gammai)
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati), str(gammai)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+
+            return BBBFdict_4plot, parameters_names, parameters_types, model_functions
+
 
     ## Model from Slone and Netzer 2012  
     elif modelsettings['BBB']=='SN12':
@@ -574,12 +629,12 @@ def BBB(path, modelsettings):
     ## Model from Done et al. 2012 assuming a Schwarzschild black hole 
     elif modelsettings['BBB']=='D12_S':
 
-        model_functions = []
+        model_functions = [0]
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_S.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra']
-        parameters_types =['grid', 'grid']
+        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
+        parameters_types =['grid', 'grid', 'free']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -588,27 +643,41 @@ def BBB(path, modelsettings):
 
         ## produce all combinations of parameter values (indices)
         _, EddRidx,Mbhidx =  np.shape(D12dict['SED'])
-        idxs = [np.arange(EddRidx),np.arange(Mbhidx)]
+        BBB_functions = BBBfunctions()
+
+        if parameters_types[2] == 'grid':
+            ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        elif parameters_types[2] == 'free':
+            ebvbbb_array = np.array([0.,1.0])
+
+        idxs = [np.arange(EddRidx),np.arange(Mbhidx), np.arange(len(ebvbbb_array))]
         par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
         for c in par_idxs_combinations:
                 EddRi=c[0]
                 Mbhi=c[1]
-                bbb_nu, bbb_Fnu_nored =  D12dict['frequency'],D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                ebvi=c[2]
+                bbb_nu, bbb_Fnu_nored =  np.log10(D12dict['frequency']),D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                if parameters_types[2] == 'grid':
+                #Apply reddening
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])
+                elif parameters_types[2] == 'free':  
+                #Apply reddening. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu_nored, ebvbbb_array[0])
                 #Construct dictionaries
-                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
+                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
 
         return BBBFdict_4plot, parameters_names, parameters_types, model_functions
 
     ## Model from Done et al. 2012 assuming a kerr black hole 
     elif modelsettings['BBB']=='D12_K':
 
-        model_functions = []
+        model_functions = [0]
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
         D12dict = pickle.load(open(path + 'models/BBB/D12_K.pickle', 'rb'), encoding='latin1')    
-        parameters_names =['logBHmass', 'logEddra']
-        parameters_types =['grid', 'grid']
+        parameters_names =['logBHmass', 'logEddra', 'EBVbbb']
+        parameters_types =['grid', 'grid', 'free']
 
         ## specify the sizes of the array of parameter values: Here two parameters
         ## spin = 0. --> If wished otherwise, request a new modelfile in Github.
@@ -617,15 +686,28 @@ def BBB(path, modelsettings):
 
         ## produce all combinations of parameter values (indices)
         _, EddRidx,Mbhidx =  np.shape(D12dict['SED'])
-        idxs = [np.arange(EddRidx),np.arange(Mbhidx)]
+        BBB_functions = BBBfunctions()
+        if parameters_types[2] == 'grid':
+            ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        elif parameters_types[2] == 'free':
+            ebvbbb_array = np.array([0.,1.0])
+
+        idxs = [np.arange(EddRidx),np.arange(Mbhidx), np.arange(len(ebvbbb_array))]
         par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
         for c in par_idxs_combinations:
                 EddRi=c[0]
                 Mbhi=c[1]
-                bbb_nu, bbb_Fnu_nored =  D12dict['frequency'],D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                ebvi=c[2]
+                bbb_nu, bbb_Fnu_nored =  np.log10(D12dict['frequency']),D12dict['SED'][:,EddRi,Mbhi].squeeze()
+                if parameters_types[2] == 'grid':
+                #Apply reddening
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu_nored, ebvbbb_array[ebvi])
+                elif parameters_types[2] == 'free':  
+                #Apply reddening. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu_nored, ebvbbb_array[0])
                 #Construct dictionaries
-                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi])] = np.log10(bbb_nu), bbb_Fnu_nored        
+                BBBFdict_4plot[str(Mbh_array[Mbhi]),str(EddR_array[EddRi]), str(ebvbbb_array[ebvi])] = bbb_nu0, bbb_Fnu_red        
 
         return BBBFdict_4plot, parameters_names, parameters_types, model_functions
 
@@ -675,6 +757,89 @@ def TORUS(path, modelsettings):
         parameters_types = ['grid']
 
         return TORUSFdict_4plot, parameters_names, parameters_types , model_functions
+
+    ## Model from Nenkova et al. 2008
+    elif modelsettings['TORUS']=='NK0_2P':
+        # Nenkova model with averaged SEDs for each inclination and openning angle (2 parameters)
+        TORUSFdict_4plot  = dict()
+
+        NK0_2Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_2p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = NK0_2Pdict['oa-values'].unique()
+        incl_array = NK0_2Pdict['incl-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+            oai=c[0]
+            incli=c[1]
+            model = NK0_2Pdict[(NK0_2Pdict['oa-values'] == oai) & (NK0_2Pdict['incl-values'] == incli)] 
+            tor_nu0, tor_Fnu0 =  model['wavelength'].values.item(), model['SED'].values.item()              
+            TORUSFdict_4plot[str(oai), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl']
+        parameters_types = ['grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
+
+    ## Model from Nenkova et al. 2008
+    elif modelsettings['TORUS']=='NK0_3P':
+        # Nenkova model with averaged SEDs for each inclination, openning angle and optical depth (3 parameters)
+
+        TORUSFdict_4plot  = dict()
+        NK0_3Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_3p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = NK0_3Pdict['oa-values'].unique()
+        incl_array = NK0_3Pdict['incl-values'].unique()
+        tv_array = NK0_3Pdict['tv-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array, tv_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+            oai=c[0]
+            incli=c[1]
+            tvi = c[2]
+            model = NK0_3Pdict[(NK0_3Pdict['oa-values'] == oai) & (NK0_3Pdict['incl-values'] == incli) & (NK0_3Pdict['tv-values'] == tvi)] 
+            tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+            TORUSFdict_4plot[str(oai), str(incli), str(tvi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl', 'tv']
+        parameters_types = ['grid', 'grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
+
+    ## Model from Nenkova et al. 2008
+    elif modelsettings['TORUS']=='NK0_4P':
+        # Nenkova model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
+
+        TORUSFdict_4plot  = dict()
+        NK0_4Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_4p.pickle', 'rb'), encoding='latin1')  
+        
+        oa_array = NK0_4Pdict['oa-values'].unique()
+        incl_array = NK0_4Pdict['incl-values'].unique()
+        tv_array = NK0_4Pdict['tv-values'].unique()
+        N0_array = NK0_4Pdict['N0-values'].unique()
+
+        ## produce all combinations of parameter values (indices)
+        idxs = [oa_array, incl_array, tv_array, N0_array]
+        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+        for c in par_idxs_combinations:
+            oai=c[0]
+            incli=c[1]
+            tvi = c[2]
+            N0i = c[3]
+            model = NK0_4Pdict[(NK0_4Pdict['oa-values'] == oai) & (NK0_4Pdict['incl-values'] == incli) & (NK0_4Pdict['tv-values'] == tvi) & (NK0_4Pdict['N0-values'] == N0i)] 
+            tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
+            TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(pi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
+
+        parameters_names = ['oa', 'incl', 'tv', 'p']
+        parameters_types = ['grid', 'grid', 'grid', 'grid']
+        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
+
+
 
     ## Model from Stalevski et al. 2016
     elif modelsettings['TORUS']=='SKIRTOR':  #This model has too many parameters --> The code can't find the parameters
@@ -828,7 +993,7 @@ def TORUS(path, modelsettings):
 
 
 
-def XRAYS(bbb_nu, bbb_Fnu, scatter): #Use the UV-Xrays correlation (Just et a. 2007) to extend SEDs, assuming a power law emission in Xrays
+def XRAYS(bbb_nu, bbb_Fnu, scatter, Gamma = 1.8): #Use the UV-Xrays correlation (Just et a. 2007) to extend SEDs, assuming a power law emission in Xrays
     
     # Interpolation to the nearest neighbors
     f = interp1d(bbb_nu, bbb_Fnu, kind = 'nearest', bounds_error=False, fill_value=0.) 
@@ -842,10 +1007,9 @@ def XRAYS(bbb_nu, bbb_Fnu, scatter): #Use the UV-Xrays correlation (Just et a. 2
 
     #Proportionality constant a to scale x-ray power-law in 2keV to the value found with alpha_OX-L_2500
     h = 4.135667731*1e-15*1e-3                                   #eV/Hz --> keV/Hz
-    Gamma = 1.8
     a = Fnu_2kev/((h*nu_2kev)**(-Gamma+1)*np.e**(-nu_2kev/(7.2540*1e19)))
 
-    xray_nu = np.logspace(17, 19.7, 1000)                         #with a hole between BB template and X-Rays
+    xray_nu = np.logspace(16.685, 19.7, 1000)                         #with a hole between BB template and X-Rays
     xray_Fnu = a*(h*xray_nu)**(-Gamma+1)*np.e**(-xray_nu/(7.2540*1e19))
 
     return np.log10(xray_nu), xray_Fnu
@@ -871,16 +1035,22 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
     #Application of reddening - reading E(B-V) from MCMC sampler
     RV= 2.72
 
-    #converting freq to wavelength, to be able to use prevots function instead on simple linear interpolation 
+    #converting freq to wavelength [A], to be able to use prevots function instead on simple linear interpolation 
     redd_x =  2.998 * 1e10 / (10**(bbb_x)* 1e-8)
     redd_x= redd_x[::-1]
+    wl_200eV = 2.998 * 1e10 / (10**(16.685)* 1e-8)
+    bbb_k = np.zeros(len(redd_x))
+
+    w0 = tuple([redd_x > wl_200eV])   #energies lower than Xrays
+    w1 = tuple([redd_x <= wl_200eV])  #wavelenghts correspond to energies higher than UV
 
     #    Define prevots function for the reddening law redd_k    
     def function_prevot(x, RV):
            y=1.39*pow((pow(10.,-4.)*x),-1.2)-0.38 ;
            return y 
 
-    bbb_k = function_prevot(redd_x, RV)
+    bbb_k[w0] = function_prevot(redd_x[w0], RV)
+    bbb_k[w1] = 0                   #If wavelenghts correspond to energies higher than UV, there is no reddening
     bbb_k= bbb_k[::-1]
     bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
     bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
@@ -925,7 +1095,7 @@ def GALAXYred_Calzetti(gal_nu, gal_Fnu,GAebv):
 
     gal_k= k[::-1] #invert for nus
     gal_Fnu_red = gal_Fnu* 10**(-0.4 * gal_k * GAebv)
-    gal_Fnu_red[np.where(gal_k == 0)[0]] = 0
+    #gal_Fnu_red[np.where(gal_k == 0)[0]] = 0
     return gal_nu, gal_Fnu_red
 
 
@@ -979,10 +1149,12 @@ def stellar_info(chain, data, models):
     """
     computes stellar masses and SFRs
     """
-    if len(models.dictkey_arrays) == 4:
-        gal_obj,_,_,_ = models.dictkey_arrays
+    gal_obj,_,_,_,_ = models.dictkey_arrays
+    if models.settings['RADIO'] == False:
+        GA = chain[:, -4]
     else:
-        gal_obj,_,_,_,_ = models.dictkey_arrays
+        GA = chain[:, -5] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
+                            ## in order to have comparable NORMfactors  
     MD= models.dict_modelfluxes
 
     if len(gal_obj.par_names)==3:
@@ -992,8 +1164,7 @@ def stellar_info(chain, data, models):
         metal_mcmc = chain[:,0] 
         tau_mcmc = chain[:,1]     
         age_mcmc = chain[:,2] 
-    GA = chain[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
-                            ## in order to have comparable NORMfactors    
+  
     z = data.z
     distance = z2Dlum(z)
 

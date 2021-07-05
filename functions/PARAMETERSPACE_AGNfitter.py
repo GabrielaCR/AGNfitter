@@ -38,7 +38,7 @@ def Pdict (data, models):
     """
     P = dict()
     ga,sb,to,bb, agnrad= models.dictkey_arrays
-    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['No model parameters']).all() : #If there is a radio model with fitting parameters
+    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['-99.9']).all() : #If there is a radio model with fitting parameters
         par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys), np.array(agnrad.pars_modelkeys)]]))
         par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
@@ -65,7 +65,7 @@ def Pdict (data, models):
         par_maxs.append(10)           
         normpars.append('RAD')
 
-    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['No model parameters']).all(): #If there is a radio model with fitting parameters
+    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['-99.9']).all(): #If there is a radio model with fitting parameters
         all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names, agnrad.par_names, normpars]))  
         npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(agnrad.par_names), len(normpars)]  
         P['priortype'] = [ga.par_types,sb.par_types, to.par_types, bb.par_types, agnrad.par_types,['free']*len(normpars)] 
@@ -134,7 +134,8 @@ def ln_likelihood(x, y, ysigma, z, ymodel, models):
     if models.settings['XRAYS'] == 'Prior':                                  #Ignore X-rays data in the likelihood (already taken into account in prior)      
         x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
     else:                                                                    #Ignore only UV data because of IGM absorption  
-        x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) | (x > np.log10(10**(16.48)/(1+z))) & (y>-99.e-23)]
+        x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) | (x > np.log10(10**(16.685)/(1+z))) & (y>-99.e-23)]
+
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
     return -0.5 * np.dot(resid, resid)
 
@@ -156,7 +157,7 @@ def ln_probab(pars, data, models, P):
     y_model, bands  = ymodel(data.nus, data.z, data.dlum, models, P, *pars)
     lnp = ln_prior(data, models, P, *pars)
 
-    if np.isfinite(lnp):    
+    if np.isfinite(lnp): 
         posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model, models) 
         return posterior
     return -np.inf
@@ -192,11 +193,11 @@ def ymodel(data_nus, z, dlum, models, P, *par):
             GA, SB, TO, BB, RAD = par[-5:]
         else:
             GA, SB, TO, RAD = par[-4:]
-        if (agnrad_obj.pars_modelkeys != ['No model parameters']).all() :             #If there is a radio model with fitting parameters
+        if (agnrad_obj.pars_modelkeys != ['-99.9']).all() :             #If there is a radio model with fitting parameters
             agnrad_obj.pick_nD(par[P['idxs'][4]:P['idxs'][5]])
             _, agnrad_Fnu= agnrad_obj.get_fluxes(agnrad_obj.matched_parkeys)
         else:           #If the model have fix parameters, there aren't included in the exploration of parameters space and there is an unique SED template
-            all_agnrad_nus, agnrad_Fnu = agnrad_obj.get_fluxes('No model parameters')
+            all_agnrad_nus, agnrad_Fnu = agnrad_obj.get_fluxes('-99.9')
     else:
         if models.settings['BBB']=='R06':
             GA, SB, TO, BB = par[-4:]
@@ -207,7 +208,6 @@ def ymodel(data_nus, z, dlum, models, P, *par):
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
     tor_obj.pick_nD(par[P['idxs'][2]:P['idxs'][3]])            
     bbb_obj.pick_nD(par[P['idxs'][3]:P['idxs'][4]])
-
 
     try: 
         bands, gal_Fnu=  gal_obj.get_fluxes(gal_obj.matched_parkeys)
