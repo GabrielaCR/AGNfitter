@@ -187,7 +187,6 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     
     if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav'):           
         print('Done')
-
         dictz = str.encode(dictz)  #Added by Laura
         with open(dictz, 'rb') as f:
             zdict = pickle.load(f, encoding='latin1')
@@ -195,14 +194,12 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         models.DICTS(filtersz, Modelsdictz)
         P = parspace.Pdict (data, models)
         PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
-
         
     else:
 
         try:  
             if not os.path.lexists(dictz):
-                zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings, data.nRADdata)
-
+                zdict = MODELSDICT(dictz, cat_settings['path'], filtersz, models_settings)
                 zdict.build()
                 f = open(zdict.filename, 'wb')
                 pickle.dump(zdict, f, protocol=2)
@@ -213,7 +210,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                 dictz = str.encode(dictz)
                 with open(dictz, 'rb') as f:
                     zdict = pickle.load(f, encoding='latin1')
-   
+            
             Modelsdictz = zdict
 
             models.DICTS(filtersz, Modelsdictz)
@@ -222,16 +219,16 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
                                         # From PARAMETERSPACE_AGNfitter.py
 
             t1= time.time()
-            #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+            MCMC_AGNfitter.main(data, models, P, mc)
+            PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
-            try:            
-                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
-                print ( 'Done already'  )      
-            except:
-                print ( 'Not done yet')
-                MCMC_AGNfitter.main(data, models, P, mc) 
-                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+            # try:            
+            #     PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+            #     print ( 'Done already'  )      
+            # except:
+            #     print ( 'Not done yet')
+            #     MCMC_AGNfitter.main(data, models, P, mc) 
+            #     PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
 
             print ( '_____________________________________________________')
             print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -263,9 +260,9 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     print ( '- Sourcename: ', data.name)
 
     t1= time.time()
-
     MCMC_AGNfitter.main(data, P, mc)        
     PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
+
 
     # try:
     #     PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
@@ -274,14 +271,6 @@ def RUN_AGNfitter_onesource( line, data_obj, models_settings):
     #     print ( 'Not done yet')
     #     MCMC_AGNfitter.main(data, models, P, mc)        
     #     PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
-
-    try:
-        PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
-        print ( 'Done already'   )     
-    except:
-        print ( 'Not done yet')
-        MCMC_AGNfitter.main(data, models, P, mc)        
-        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
 
     print ( '_____________________________________________________')
     print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -408,7 +397,6 @@ if __name__ == "__main__":
     #         RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
     #     else:
     #         RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
-
         
         
     print ( '======= : =======')

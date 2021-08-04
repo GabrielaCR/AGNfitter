@@ -13,7 +13,12 @@ It contains:
 
 """
 from __future__ import division
+import pylab as pl
 import numpy as np
+from math import pi
+# import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('TkAgg')
 import time
 from collections import Iterable
 import itertools
@@ -37,47 +42,40 @@ def Pdict (data, models):
     - data object
     """
     P = dict()
-    ga,sb,to,bb, agnrad= models.dictkey_arrays
-    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['-99.9']).all() : #If there is a radio model with fitting parameters
-        par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
-               for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys), np.array(agnrad.pars_modelkeys)]]))
-        par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
-               for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys), np.array(agnrad.pars_modelkeys)]]))
-
-    else:            #If there isn't radio data available or if the model have fix parameters, there aren't included in the exploration of parameters space
-        par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
+    ga,sb,to,bb= models.dictkey_arrays
+    par_mins = list(flatten([min(i.astype(float)) if i.ndim==1 else [min(i[j].astype(float)) for j in range(len(i))] \
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
-        par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
+    par_maxs = list(flatten([max(i.astype(float)) if i.ndim==1 else [max(i[j].astype(float)) for j in range(len(i))] \
                for i in [np.array(ga.pars_modelkeys), np.array(sb.pars_modelkeys), np.array(to.pars_modelkeys), np.array(bb.pars_modelkeys)]]))
-
+    
     ## Add normalization parameters:
-    [par_mins.append(i) for i in [-10,-10.,-10]]
-    [par_maxs.append(i)for i in [10,10,10]]
-    normpars=['GA','SB','TO'] 
+    if models.settings['BBB']=='R06': 
+       ## With tor but correct 
+        if models.settings['RADIO'] == True:
+            [par_mins.append(i) for i in [-10,-10.,-10,-10., -10.]]
+            [par_maxs.append(i)for i in [10,10,10,10, 10]]
+            normpars=['GA','SB','TO','BB', 'RAD'] 
+        else:
+            [par_mins.append(i) for i in [-10,-10.,-10,-10.]]
+            [par_maxs.append(i)for i in [10,10,10,10]]
+            normpars=['GA','SB','TO','BB'] 
 
-    if models.settings['BBB']=='R06': #Only the Richards et al. model need normalization parameter
-        par_mins.append(-10.)
-        par_maxs.append(10)
-        normpars.append('BB') 
-
-    if models.settings['RADIO'] == True:
-        par_mins.append(-10.)
-        par_maxs.append(10)           
-        normpars.append('RAD')
-
-    if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['-99.9']).all(): #If there is a radio model with fitting parameters
-        all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names, agnrad.par_names, normpars]))  
-        npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(agnrad.par_names), len(normpars)]  
-        P['priortype'] = [ga.par_types,sb.par_types, to.par_types, bb.par_types, agnrad.par_types,['free']*len(normpars)] 
-        P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4]), sum(npc[0:5])]
-
-    else:           #If there isn't radio data available or if the model have fix parameters, there aren't included in the exploration of parameters space
-        all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
-        npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(normpars)]  
-        P['priortype'] = [ga.par_types,sb.par_types, to.par_types, bb.par_types, ['free']*len(normpars)] 
-        P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
+    else:
+        if models.settings['RADIO'] == True:
+            [par_mins.append(i) for i in [-10.,-10.,-10., -10.]]
+            [par_maxs.append(i)for i in [10.,10.,10., 10]]           
+            normpars=['GA','SB','TO', 'RAD'] 
+        else:
+            [par_mins.append(i) for i in [-10.,-10.,-10.]]
+            [par_maxs.append(i)for i in [10.,10.,10.]]           
+            normpars=['GA','SB','TO'] 
+ 
+    all_pars = list(itertools.chain.from_iterable([ ga.par_names, sb.par_names,to.par_names, bb.par_names ,normpars]))  
+    npc= [len(ga.par_names),len(sb.par_names),len(to.par_names), len(bb.par_names), len(normpars)]  
 
     P['names'] = all_pars
+    Npar = len(P['names'])
+    P['priortype'] = [ga.par_types,sb.par_types, to.par_types, bb.par_types, ['free']*len(normpars)]  ###!np.array(['non-info']*Npar)
     P['min'] = par_mins
     P['max'] = par_maxs    
     for i,ps in enumerate(P['names']): ### Maximum age is the age of the Universe
@@ -89,6 +87,8 @@ def Pdict (data, models):
             P['max'][i] = 42.
         if P['names'][i]=='EBVgal':####
            P['min'][i] =0.05 ### can be generally assumed for galaxies with log M*> 9.5
+
+    P['idxs'] = [0, sum(npc[0:1]),sum(npc[0:2]),sum(npc[0:3]),sum(npc[0:4])]
 
     return P  
 
@@ -106,7 +106,9 @@ def ln_prior(data, models, P, *pars):
          from the galaxy luminosity function as a maximum of the prior.
 
     """
+    t1= time.time()
     for i,p in enumerate(pars):
+        ###! if P['priortype'][i]=='non-info' and not (P['min'][i] < p < P['max'][i]):
         if not (P['min'][i] < p < P['max'][i]):
             return -np.inf
 
@@ -114,7 +116,7 @@ def ln_prior(data, models, P, *pars):
     return prior
 
 
-def ln_likelihood(x, y, ysigma, z, ymodel, models):
+def ln_likelihood(x, y, ysigma, z, ymodel):
 
     """Calculates the likelihood function.
 
@@ -130,12 +132,8 @@ def ln_likelihood(x, y, ysigma, z, ymodel, models):
     - (-1 * ln(likelihood))"""
     #x_valid:
     #only frequencies with existing data (no detections nor limits F = -99)        
-    #Consider only data free of IGM absorption. Lyz = 15.38 restframe  
-    if models.settings['XRAYS'] == 'Prior':                                  #Ignore X-rays data in the likelihood (already taken into account in prior)      
-        x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
-    else:                                                                    #Ignore only UV data because of IGM absorption  
-        x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) | (x > np.log10(10**(16.685)/(1+z))) & (y>-99.e-23)]
-
+    #Consider only data free of IGM absorption. Lyz = 15.38 restframe        
+    x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
     return -0.5 * np.dot(resid, resid)
 
@@ -157,10 +155,11 @@ def ln_probab(pars, data, models, P):
     y_model, bands  = ymodel(data.nus, data.z, data.dlum, models, P, *pars)
     lnp = ln_prior(data, models, P, *pars)
 
-    if np.isfinite(lnp): 
-        posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model, models) 
+    if np.isfinite(lnp):    
+        posterior = lnp + ln_likelihood(data.nus, data.fluxes, data.fluxerrs, data.z, y_model)     
         return posterior
     return -np.inf
+
 
 
 """------------------------------------
@@ -185,24 +184,11 @@ def ymodel(data_nus, z, dlum, models, P, *par):
 
     """
 
-    par = par[0:len(par)]
-    gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj = models.dictkey_arrays
+    #STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict,_,_,_,_,_,_,_,_,_ = dict_modelfluxes
 
-    if models.settings['RADIO'] == True:
-        if models.settings['BBB']=='R06':
-            GA, SB, TO, BB, RAD = par[-5:]
-        else:
-            GA, SB, TO, RAD = par[-4:]
-        if (agnrad_obj.pars_modelkeys != ['-99.9']).all() :             #If there is a radio model with fitting parameters
-            agnrad_obj.pick_nD(par[P['idxs'][4]:P['idxs'][5]])
-            _, agnrad_Fnu= agnrad_obj.get_fluxes(agnrad_obj.matched_parkeys)
-        else:           #If the model have fix parameters, there aren't included in the exploration of parameters space and there is an unique SED template
-            all_agnrad_nus, agnrad_Fnu = agnrad_obj.get_fluxes('-99.9')
-    else:
-        if models.settings['BBB']=='R06':
-            GA, SB, TO, BB = par[-4:]
-        else:
-            GA, SB, TO = par[-3:]
+    gal_obj,sb_obj,tor_obj, bbb_obj = models.dictkey_arrays
+
+    par = par[0:len(par)]
 
     gal_obj.pick_nD(par[P['idxs'][0]:P['idxs'][1]])  
     sb_obj.pick_nD(par[P['idxs'][1]:P['idxs'][2]]) 
@@ -215,21 +201,38 @@ def ymodel(data_nus, z, dlum, models, P, *par):
         _, bbb_Fnu = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
         _, tor_Fnu= tor_obj.get_fluxes(tor_obj.matched_parkeys)
 
+        if models.settings['RADIO'] == True:
+            MD = models.dict_modelfluxes
+            _, agnrad_Fnu= MD.AGN_RADFdict[[i for i in MD.AGN_RADFdict.keys()][0]] 
+
     except ValueError:
          print ('Error: Dictionary does not contain some values')
 
-    if models.settings['BBB'] !='R06':  #The other accretion disk models have a different normalization (only during the exploration of the parameters space)
+    if models.settings['BBB']=='R06':
+        if models.settings['RADIO'] == True:
+            GA, SB, TO, BB, RAD = par[-5:]
+        else:
+            GA, SB, TO, BB = par[-4:]
+    else:
         bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
         BB=0
+        if models.settings['RADIO'] == True:
+            GA, SB, TO, RAD = par[-4:]
+        else:
+            GA, SB, TO = par[-3:]
+
 
     # Total SED sum
     #--------------------------------------------------------------------
-    lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu
-
-    if models.settings['RADIO'] == True:  #Include the 5th component, if radio data is available
-        lum += 10**(RAD)*agnrad_Fnu
+    if models.settings['RADIO'] == True:
+        lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
+          + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu + 10**(RAD)*agnrad_Fnu
+    else:
+        lum = 10**(SB)* sb_Fnu  + 10**(BB)*bbb_Fnu    \
+          + 10**(GA)*gal_Fnu +10**(TO) *tor_Fnu
     #--------------------------------------------------------------------    
     lum = lum.reshape((np.size(lum),))
+    
     return lum, bands
 
 
@@ -250,7 +253,8 @@ def get_initial_positions(nwalkers, P):
     p0 = np.random.uniform(size=(nwalkers, Npar))
 
     for i in range(Npar):
-        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) *0.00001 
+        p0[:, i] = 0.5*(P['min'][i] + P['max'][i]) + (2* p0[:, i] - 1) * (0.00001)
+    #p0[:,8]= 0.1 + (2* p0[:, 8] - 1) * (0.0001)
     
     return p0
 
@@ -279,7 +283,7 @@ def get_best_position(filename, nwalkers, P):
     for i in range(Npar):
         p =P['ml'][i]
         
-        p1[:, i] = p + p1[:, i]*0.00001 
+        p1[:, i] = p + 0.00001 * p1[:, i]
 
     return p1
 
