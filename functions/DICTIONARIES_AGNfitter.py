@@ -16,17 +16,12 @@ This script contains all functions which are needed to construct the total model
 """
 import sys,os
 import numpy as np
-import sys
-from collections import defaultdict
-
 from . import MODEL_AGNfitter as model
 from . import FILTERS_AGNfitter as filterpy
-
 from scipy.integrate  import trapz
 from scipy.interpolate import interp1d
 import time
-import pickle
-from astropy import units as u 
+import pickle 
 
 
 class MODELSDICT:
@@ -48,10 +43,12 @@ class MODELSDICT:
 
     """     
 
-    def __init__(self, filename, path, filters, models):
+    def __init__(self, filename, path, filters, models, nRADdata, nXRaysdata):
         self.filename = filename
         self.path=path
         self.modelsettings=models
+        self.nRADdata = nRADdata  #Number of valid radio data
+        self.nXRaysdata = nXRaysdata  #Number of valid Xrays data
 
         ## To be called form filters
         self.z_array = filters['dict_zarray']
@@ -65,9 +62,8 @@ class MODELSDICT:
                 a[list(a.keys())[i]] = filters[list(a.keys())[i]]               
                 
             else:
-                a[list(a.keys())[i]] = filters[list(a.keys())[i]]#[0]
+                a[list(a.keys())[i]] = filters[list(a.keys())[i]]
 
-        #print a
         self.filters_list = a
         if os.path.lexists(filename):
             self.fo = pickle.load(open(filename, 'rb'))
@@ -104,7 +100,7 @@ class MODELSDICT:
                     bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
                     self.STARBURSTFdict[c] = bands, sb_Fnu_filtered.flatten()
 
-        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings)
+        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings, self.nXRaysdata)
         for c in self.BBBFdict_4plot.keys():
                     bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]               
                     bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
@@ -116,22 +112,27 @@ class MODELSDICT:
                     bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
                     self.TORUSFdict[c] = bands, tor_Fnu_filtered.flatten()
 
-        if self.modelsettings['RADIO']== True:
+        norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
+        norm_partypes = ['free', 'free', 'free', 'free' ]
+        self.all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames]
+        self.all_partypes = [galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes]
+
+
+        if self.modelsettings['RADIO']== True:  #If there are radio data available, the SEDfitting consider 5 components (AGN radio is the 5th)
             self.AGN_RADFdict = dict()
-            self.AGN_RADFdict_4plot, self.AGN_RADfunctions  = model.AGN_RAD(self.path, self.modelsettings)
+            self.AGN_RADFdict_4plot, agnrad_parnames, agnrad_partypes, self.AGN_RADfunctions  = model.AGN_RAD(self.path, self.modelsettings, self.nRADdata)
             for c in self.AGN_RADFdict_4plot.keys():
                 agnrad_nu, agnrad_Fnu = self.AGN_RADFdict_4plot[c]               
                 bands, agnrad_Fnu_filtered  =  filtering_models(agnrad_nu, agnrad_Fnu, filterdict, z)            
                 self.AGN_RADFdict[c] = bands, agnrad_Fnu_filtered.flatten()
-            norm_parnames = ['GA', 'SB', 'BB', 'TO', 'RAD']
-            norm_partypes = ['free', 'free', 'free', 'free', 'free']
+            norm_parnames.append('RAD')
+            norm_partypes.append('free')
+            self.all_parnames.extend((agnrad_parnames, norm_parnames))
+            self.all_partypes.extend((agnrad_partypes, norm_partypes))
 
         else:
-            norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
-            norm_partypes = ['free', 'free', 'free', 'free' ]
-
-        self.all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames]
-        self.all_partypes = [galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes]
+            self.all_parnames.append(norm_parnames)
+            self.all_partypes.append(norm_partypes)
 
 
     def build(self):
@@ -144,7 +145,7 @@ class MODELSDICT:
         for z in self.z_array:                
             i += 1
             filterdict = [self.fo.central_nu_array, self.fo.lambdas_dict, self.fo.factors_dict]
-            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict)
+            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict)          #Models SEDs are redshifted and filtered
             Modelsdict[str(z)] = dict_modelsfiltered
             time.sleep(0.01)
             dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
@@ -161,8 +162,6 @@ def dictkey_arrays(MD):
 
     ##output:
     """
-
-    #STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict, GALAXYatt_dict, STARBURST_LIRdict, all_parnames, all_partypes= MODELSdict
 
     galaxy_parkeys= np.array(list(MD.GALAXYFdict.keys()))
     starburst_parkeys = np.array(list(MD.STARBURSTFdict.keys()))
@@ -188,80 +187,106 @@ def dictkey_arrays(MD):
                 if len(pars_mcmc)==1:
                     for i in range(len(pars_mcmc)):   
                         if self.par_types[i] == 'grid':
-                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()  #Choose the parameter value closest to that found by mcmc
                             matched_parkey = self.pars_modelkeys[matched_idx]
                             self.matched_parkeys =matched_parkey
                             self.matched_parkeys_grid=self.matched_parkeys
                         elif self.par_types[i] == 'free':
-                            #print ('line 206 dic : Free partype')
-                            self.matched_parkeys=pars_mcmc[i]
+                            self.matched_parkeys=pars_mcmc[i]                                    #Values found by mcmc in case of free parameters
                             self.matched_parkeys_grid=self.pars_modelkeys[0]
                         else: 
                             print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
                 else:
                     for i in range(len(pars_mcmc)):
-                        if self.par_types[i] == 'grid': #if not 'grid'  
-                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                        if self.par_types[i] == 'grid': 
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
                             matched_parkey = self.pars_modelkeys[i][matched_idx]
                             self.matched_parkeys.append(matched_parkey)
-                            self.matched_parkeys_grid.append(matched_parkey)     #=self.matched_parkeys
+                            self.matched_parkeys_grid.append(matched_parkey)     
                         elif self.par_types[i] == 'free':
-                            #print ('line 206 dic : Free partype')
-                            self.matched_parkeys.append(pars_mcmc[i])
-                            self.matched_parkeys_grid.append(self.pars_modelkeys[i,0]) #self.pars_modelkeys[0]
+                            self.matched_parkeys.append(pars_mcmc[i])                               #Values found by mcmc in case of free parameters
+                            self.matched_parkeys_grid.append(self.pars_modelkeys[i,0]) 
                         else: 
                             print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
                     self.matched_parkeys=tuple(self.matched_parkeys)
 
-            def get_fluxes(self,  matched_parkeys):
+            def get_fluxes(self,  matched_parkeys):  #From the dictionary of redshifted and filtered models
                     
-                    if 'free' not in self.par_types: #if all are 'grid'  
-                        #print(self.par_names, self.modelsdict[matched_parkeys][1])
+                    if 'free' not in self.par_types:   
                         return self.modelsdict[matched_parkeys]
 
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
-                        #print(self.pars_modelkeys[0])
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':  #This is for the case of EBVgal == free
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
-                        bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
-                        rest_bands = bands + np.log10((1+self.z))          #Rest frame frequency
-                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
-                        bandsf = bandsf - np.log10((1+self.z))             #Come back to frequency corrected by redshift
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                        #Rest frame frequency
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])       #Calzetti function need normal frequency (not log)
+                        bandsf = np.log10(bandsf) - np.log10((1+self.z))                 #Come back to frequency corrected by redshift
+                        return bandsf, Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        #R06 without X-Rays only have 1 parameter (EBV_bbb) and not a list of parameters so tuple() produce problems
+                        if type(self.matched_parkeys_grid) != list:         
+                            bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                            matched_parkeys = [matched_parkeys]
+                        else:
+                            bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])  
+                        bandsf = bandsf - np.log10((1+self.z))                            #Come back to frequency corrected by redshift
 
                         return bandsf, Fnuf
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                    elif self.par_types[-2: ] == ['free', 'free'] and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']: 
                         fcts=self.functions()
-                        idxs=0
+                        idxs= 0
                         f=fcts[self.functionidxs[idxs]]
                         bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
-                        rest_bands = bands + np.log10((1+self.z))          #Rest frame frequency
-                        if self.par_types[-2] == 'free' and self.par_types[-1] == 'free':
-                            bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
-                            bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) - np.log10((1+self.z))
-                            Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
-                        elif self.par_types[-2] == 'grid' and self.par_types[-1] == 'free':
-                            bandsf =  bands
-                            Fnuf = np.concatenate((Fnu[rest_bands < 17], Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))     #Add the effect of alpha_ox scatter
+
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs= 0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))     #Add the effect of alpha_ox scatter
 
                         return bandsf, Fnuf
                     else: 
                         print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
+    if MD.modelsettings['RADIO']== True:
+        agnrad_parkeys = np.array(list(MD.AGN_RADFdict.keys()))
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, agnrad_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, agnrad_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj=get_model(agnrad_parnames,agnrad_partypes,agnrad_parkeys,MD.AGN_RADFdict,MD.z, MD.AGN_RADfunctions ,model.AGN_RADfunctions)
 
-    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
-    galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+    else:     
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
 
     gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
     sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
     tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict,MD.z, MD.TORUSfunctions, model.TORUSfunctions)
     bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict,MD.z, MD.BBBfunctions ,model.BBBfunctions)
 
-    return gal_obj,sb_obj,tor_obj, bbb_obj
+    return gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj
 
 
 def dictkey_arrays_4plot(MD):
@@ -299,13 +324,12 @@ def dictkey_arrays_4plot(MD):
                 if len(pars_mcmc)==1:
                     for i in range(len(pars_mcmc)):   
                         if self.par_types[i] == 'grid':
-                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
                             matched_parkey = self.pars_modelkeys[matched_idx]
                             self.matched_parkeys =matched_parkey
                             self.matched_parkeys_grid=self.matched_parkeys
                         elif self.par_types[i] == 'free':
-                            #print ('line 206 dic : Free partype')
-                            self.matched_parkeys=pars_mcmc[i]
+                            self.matched_parkeys=pars_mcmc[i]                                   #Values found by mcmc in case of free parameters
                             self.matched_parkeys_grid = self.pars_modelkeys[0]
                         else: 
                             print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
@@ -313,69 +337,89 @@ def dictkey_arrays_4plot(MD):
                 else:
                     for i in range(len(pars_mcmc)):
                         if self.par_types[i] == 'grid': #if not 'grid'  
-                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin()
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
                             matched_parkey = self.pars_modelkeys[i][matched_idx]
                             self.matched_parkeys.append(matched_parkey)
                             self.matched_parkeys_grid.append(matched_parkey)
                         elif self.par_types[i] == 'free':
                             #print ('line 206 dic : Free partype')
-                            self.matched_parkeys.append(pars_mcmc[i])
+                            self.matched_parkeys.append(pars_mcmc[i])                              #Values found by mcmc in case of free parameters
                             self.matched_parkeys_grid.append(self.pars_modelkeys[i, 0])
-                        else: 
+                        else:
                             print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
                     self.matched_parkeys=tuple(self.matched_parkeys)
 
-            def get_fluxes(self,  matched_parkeys):
+            def get_fluxes(self,  matched_parkeys):    #From the dictionary of original models (without redshifting and filtering)
                     
-                    if 'free' not in self.par_types: #if all are 'grid'  
+                    if 'free' not in self.par_types:  
                         return self.modelsdict[matched_parkeys]
 
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] != ['EBVbbb', 'alphaScat']:
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':   #This is for the case of EBVgal == free
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
-                        rest_bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
-                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys)
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])    #Calzetti function need normal frequency (not log)
+
+                        return np.log10(bandsf), Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        #R06 without X-Rays only have 1 parameter (EBV_bbb) and not a list of parameters so tuple() produce problems
+                        if type(self.matched_parkeys_grid) != list:          
+                            rest_bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                            matched_parkeys = [matched_parkeys]
+                        else:
+                            rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])    
 
                         return bandsf, Fnuf
 
-                    elif 'free' in self.par_types and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                    elif self.par_types[-2: ] == ['free', 'free'] and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
                         fcts=self.functions()
                         idxs=0
                         f=fcts[self.functionidxs[idxs]]
                         rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
-                        if self.par_types[-2] == 'free' and self.par_types[-1] == 'free':
-                            bandsf0, Fnuf0 = f(rest_bands[rest_bands < 17], Fnu[rest_bands < 17], matched_parkeys[-2])
-                            bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 17])) 
-                            Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
-                        elif self.par_types[-2] == 'grid' and self.par_types[-1] == 'free':
-                            bandsf =  rest_bands
-                            Fnuf = np.concatenate((Fnu[rest_bands < 17], Fnu[rest_bands >= 17]*10**matched_parkeys[-1]))
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))   #Add the effect of alpha_ox scatter
                         return bandsf, Fnuf
 
-                    #elif 'free' in self.par_types:
-                        #print(self.pars_modelkeys[0])
-                     #   bands, Fnu = self.modelsdict[self.pars_modelkeys[0]]
-                      #  fcts=self.functions()
-                       # idxs=0
-                       # f=fcts[self.functionidxs[idxs]]
-                        #bandsf, Fnuf = f(bands, Fnu, matched_parkeys)
-                        #return bandsf, Fnuf
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))   #Add the effect of alpha_ox scatter
+                        return bandsf, Fnuf
+
                     else: 
                         print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
 
+    if MD.modelsettings['RADIO']== True:
+        agnrad_parkeys = np.array(list(MD.AGN_RADFdict.keys()))
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, agnrad_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, agnrad_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj=get_model(agnrad_parnames,agnrad_partypes,agnrad_parkeys,MD.AGN_RADFdict_4plot,MD.z, MD.AGN_RADfunctions, model.AGN_RADfunctions)
 
-    galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
-    galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes
+    else:     
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
 
     gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict_4plot, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
-    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict_4plot, MD.z,MD.STARBURSTfunctions, model.STARBURSTfunctions)
-    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict_4plot, MD.z, MD.TORUSfunctions, model.TORUSfunctions)
-    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict_4plot, MD.z, MD.BBBfunctions ,model.BBBfunctions)
+    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict_4plot,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
+    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict_4plot,MD.z, MD.TORUSfunctions, model.TORUSfunctions)
+    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict_4plot,MD.z, MD.BBBfunctions ,model.BBBfunctions)
 
-    return gal_obj,sb_obj,tor_obj, bbb_obj
+    return gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj
+
 
 
 def filtering_models( model_nus, model_fluxes, filterdict, z ):    
