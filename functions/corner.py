@@ -470,9 +470,9 @@ def quantile(x, q, weights=None):
 
 
 def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
-           ax=None, color=None, plot_datapoints=True, plot_density=True,
-           plot_contours=True, no_fill_contours=False, fill_contours=False,
-           contour_kwargs=None, contourf_kwargs=None, data_kwargs=None,
+           ax=None, color=None, plot_datapoints=True, plot_density=True, 
+           plot_contours=True, no_fill_contours=False, fill_contours= None, #fill_contours=None
+           contour_kwargs = None, contourf_kwargs=None, data_kwargs=None, #contour_kwargs = {'colors': 'red'}
            **kwargs):
     """
     Plot a 2-D histogram of samples.
@@ -633,11 +633,11 @@ def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
     if plot_contours and fill_contours:
         if contourf_kwargs is None:
             contourf_kwargs = dict()
-        contourf_kwargs["colors"] = contourf_kwargs.get("colors", contour_cmap)
+        contourf_kwargs["colors"] = contourf_kwargs.get("colors", contour_cmap) 
         contourf_kwargs["antialiased"] = contourf_kwargs.get("antialiased",
                                                              False)
         ax.contourf(X2, Y2, H2.T, np.concatenate([[0], V, [H.max()*(1+1e-4)]]),
-                    **contourf_kwargs)
+                   **contourf_kwargs)
 
     # Plot the density map. This can't be plotted at the same time as the
     # contour fills.
@@ -648,8 +648,7 @@ def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
     if plot_contours:
         if contour_kwargs is None:
             contour_kwargs = dict()
-        contour_kwargs["colors"] = contour_kwargs.get("colors", color)
-        ax.contour(X2, Y2, H2.T, V, **contour_kwargs)
-
+        contour_kwargs["colors"] = contour_kwargs.get("colors", color)   
+        ax.contour(X2, Y2, H2.T, V,  cmap = 'seismic', antialiased = False, zorder = 9)#**contour_kwargs)
     ax.set_xlim(range[0])
     ax.set_ylim(range[1])

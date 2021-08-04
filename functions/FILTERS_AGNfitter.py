@@ -17,14 +17,11 @@ This script contains all functions which are needed to construct the total model
 import numpy as np
 import sys
 from collections import defaultdict
-import sys,os
-import time
+import os
 import pickle
-import shelve
 from astropy import units as u 
 from astropy.table import Table
 from astropy.io import ascii
-import locale
 
 
 class FILTER:
@@ -147,9 +144,9 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 			filters_objects_all[filtername] = FILTER(filtername, ADDfilters_dict['filenames'][i], ADDfilters_dict['freq/wl_format'][i],\
 												 ADDfilters_dict['freq/wl_unit'][i],ADDfilters_dict['description'][i])
 
-		central_lambdas = [filters_objects_all[i].central_lambda for i in ADDfilters_dict['names']]
-		central_nus = [filters_objects_all[i].central_nu for i in ADDfilters_dict['names']]
-		IDs= [filters_objects_all[i].ID for i in ADDfilters_dict['names']]
+		#central_lambdas = [filters_objects_all[i].central_lambda for i in ADDfilters_dict['names']]
+		#central_nus = [filters_objects_all[i].central_nu for i in ADDfilters_dict['names']]
+		#IDs= [filters_objects_all[i].ID for i in ADDfilters_dict['names']]
 		f = open(filters_objects_all_filename, 'wb')
 		pickle.dump(filters_objects_all, f, protocol=2) 
 
@@ -170,7 +167,7 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 	## Save the info of all filters, including new added ones in a table ALL_FILTERS_info.dat.
 	filters_table = Table(list(map(list,zip(*[[o.ID, o.filtername, '{:.0f}'.format(o.central_lambda), '{:.4f}'.format(o.central_nu), o.description] for o in filters_objects_all.values()]))) ,\
 					names=('ID (disk)','filtername', 'central lambda (Angstrom)', 'central nu (log Hz)', 'description of filter') )
-	filters_table_sorted =filters_table.sort('central nu (log Hz)')
+	#filters_table_sorted =filters_table.sort('central nu (log Hz)')
 	ascii.write(filters_table, path + 'models/FILTERS/ALL_FILTERS_info.dat', delimiter ='|', overwrite=True)
 
 	## save again the dictionary of all FILTER objects, now including the new aded ones.
@@ -200,7 +197,7 @@ def create_filtersets(filters_dict, path):
 
 	"""   
 	filters_objects_all_filename = path+filters_dict['path']+ 'ALL_FILTERS'
-	filterspath = filters_dict['path']
+	#filterspath = filters_dict['path']
 
 	if not os.path.lexists(filters_objects_all_filename):
 		ADDfilters_dict = filters_dict['add_filters_dict']
