@@ -30,6 +30,7 @@ def CATALOG_settings():
     ##GENERAL
 
     cat['path'] ='/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
+
     cat['filename'] = cat['path']+'data/catalog_example.txt'
     cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
     cat['name'] = 0                 ## If ASCII: Column index (int) of source IDs
@@ -39,7 +40,9 @@ def CATALOG_settings():
 
    ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(5,48,2).tolist()                                                                          ## If ASCII: List of column indexes (int), 
+
+    cat['freq/wl_list'] = np.arange(5,48,2).tolist()    ## If ASCII: List of column indexes (int), 
+
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
 
@@ -91,6 +94,7 @@ def FILTERS_settings():
     =================================="""
 
     filters = dict()
+
 
     filters['dict_zarray'] =np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
     filters['path'] = 'models/FILTERS/' 

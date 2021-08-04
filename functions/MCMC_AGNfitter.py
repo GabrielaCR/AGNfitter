@@ -13,7 +13,6 @@ This script contains
 import emcee #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import sys,os
 import time
-import numpy as np
 import pickle
 from . import PARAMETERSPACE_AGNfitter as parspace
 
@@ -32,7 +31,6 @@ def main(data, models, P, mc):
     - dictionary mc, of mcmc settings (RUN_AGNfitter_multi.py)
     """
 
-    path = os.path.abspath(__file__).rsplit('/', 1)[0]
 
     print( '......................................................')
     print( 'model parameters', P['names'])
