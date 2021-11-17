@@ -101,7 +101,7 @@ def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBUR
     elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Restrictive'):
         frac_SB_attGal = np.log10(Lsb_emit/Lgal_att)
         mu = 0
-        sigma = 2.
+        sigma = 0.1
         prior_frac = Gaussian_prior(mu, sigma, frac_SB_attGal)
         return prior_frac
 
@@ -346,14 +346,13 @@ def prior_midIR_UV(data, BBBFdict, bbb_obj, BB, TORUSFdict, tor_obj, TO, models)
     bbb_flux_dered= bbb_Fnus_dered* 10**(BB)
     if BB !=0:
         bbb_flux_dered = bbb_flux_dered*(4*pi*(data.dlum)**2)   ##BB normalization to have units [erg s⁻¹Hz⁻¹] and ranges of values
-
-    log_L2500A_bbmodel = np.log10(bbb_flux_dered[(15.04 < all_bbb_nus) & (all_bbb_nus < 15.15 )][0])        #Flux in 2500A from BB model
+    log_L2500A_bbmodel = np.log10(bbb_flux_dered[( 14.8 < all_bbb_nus) & (all_bbb_nus < 15.15 )][0])        #Flux in 2500A from BB model #15.04
 
     ratio_2500A= log_L2500A_bbmodel - log_L2500A_tomodel
 
     """Define prior"""
     mu= 0
-    sigma= 0.8  
+    sigma= 0.6 #0.5 (scatter midIR-Xray) + 0.1 (alpha OX)  
     prior_midIR_UV= Gaussian_prior(mu, sigma, ratio_2500A)  #Promotes torus and accretion disk models consistent to each other
 
     return prior_midIR_UV

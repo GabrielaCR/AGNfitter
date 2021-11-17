@@ -628,7 +628,7 @@ def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
     # Plot the base fill to hide the densest data points.
     if (plot_contours or plot_density) and not no_fill_contours:
         ax.contourf(X2, Y2, H2.T, [V.min(), H.max()],
-                    cmap=white_cmap, antialiased=False)
+                    cmap=white_cmap, antialiased=False)  #cmap = white_cmap
 
     if plot_contours and fill_contours:
         if contourf_kwargs is None:
@@ -650,5 +650,6 @@ def hist2d(x, y, bins=20, range=None, weights=None, levels=None, smooth=None,
             contour_kwargs = dict()
         contour_kwargs["colors"] = contour_kwargs.get("colors", color)   
         ax.contour(X2, Y2, H2.T, V,  cmap = 'seismic', antialiased = False, zorder = 9)#**contour_kwargs)
+
     ax.set_xlim(range[0])
     ax.set_ylim(range[1])

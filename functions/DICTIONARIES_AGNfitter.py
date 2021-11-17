@@ -102,8 +102,8 @@ class MODELSDICT:
 
         self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings, self.nXRaysdata)
         for c in self.BBBFdict_4plot.keys():
-                    bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]               
-                    bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)            
+                    bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]             
+                    bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)              
                     self.BBBFdict[c] = bands, bbb_Fnu_filtered.flatten()
 
         self.TORUSFdict_4plot, torus_parnames, torus_partypes ,self.TORUSfunctions = model.TORUS(self.path, self.modelsettings)
@@ -461,7 +461,6 @@ def filtering_models( model_nus, model_fluxes, filterdict, z ):
         lambdas_filter = np.array(lambdas_dict[iband])
         factors_filter = np.array(factors_dict[iband])
         iband_angst = nu2lambda_angstrom(iband)
-
         # Interpolate the model fluxes to 
         #the exact wavelengths of filter curves
         modelfluxes_at_filterlambdas = mod2filter_interpol(lambdas_filter)
@@ -474,7 +473,7 @@ def filtering_models( model_nus, model_fluxes, filterdict, z ):
         # Convert all from lambda, F_lambda  to Fnu and nu    
         filtered_modelFnu_atfilter_i = fluxlambda_2_fluxnu(filtered_modelF_lambda, iband_angst)
         filtered_model_Fnus.append(filtered_modelFnu_atfilter_i)
-
+  
     return bands, np.array(filtered_model_Fnus)
 
 

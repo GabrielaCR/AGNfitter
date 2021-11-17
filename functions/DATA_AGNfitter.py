@@ -20,7 +20,6 @@ import functions.MODEL_AGNfitter as model
 import decimal
 
 
-
 class DATA_all:
 
     """
@@ -48,6 +47,7 @@ class DATA_all:
     def PROPS(self):
 
         if self.cat['filetype'] == 'ASCII': 
+
             ### read catalog columns
             # It's necessary to read redshift as decimal.Decimal object because of the representation as a binary floating point number 
             # (python add digits to some values of z)
@@ -96,10 +96,11 @@ class DATA_all:
                 elif self.cat['freq/wl_format'] == 'frequency':
                     freq_wl_cat_ALL = centr_wl[::-1]
             else:
-                ### If central wavelengths are given in catalog 
+                ### If central wavelengths are given in catalog with itw own order
                 freq_wl_cat_ALL = \
                     np.array([column.iloc[:, c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
  
+
             flux_cat_ALL =\
                 np.array(column.iloc[:, self.cat['flux_list']])*self.cat['flux_unit']
             fluxerr_cat_ALL = \
@@ -127,10 +128,8 @@ class DATA_all:
                 else:
                     freq_wl_cat = freq_wl_cat_ALL[:,j]
                 
-
                 flux_cat= flux_cat_ALL[j]
                 fluxerr_cat= fluxerr_cat_ALL[j]
-
 
                 if self.cat['use_central_wavelength']:
                     nus0 = freq_wl_cat
@@ -365,6 +364,7 @@ class DATA():
         self.lumfactor = 4. * pi * catalog.dlum[line] **2.
         self.nRADdata = catalog.nRADdata[line]
         self.nXRaysdata = catalog.nXRaysdata[line]
+
         self.cat = catalog.cat
         #self.sourceline = sourceline
         self.catalog = catalog.cat['filename']

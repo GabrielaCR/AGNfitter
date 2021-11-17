@@ -181,3 +181,5 @@ ID (disk)|filtername|central lambda (Angstrom)|central nu (log Hz)|description o
 140010779835344|ALMA_band3|30990991|10.9855|description_dummy
 140010778946064|Y_SUBARU_HSC|9780|14.4864|description_dummy
 140010778795088|RAD_5_5GHz|564251753|9.7252|description_dummy
+139915718573008|CTIO_MOSAIC_B|4395|14.8337|description_dummy
+139915718393488|CTIO_MOSAIC_R|6633|14.6550|description_dummy
