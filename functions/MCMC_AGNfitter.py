@@ -42,9 +42,7 @@ def main(data, models, P, mc):
     Npar = len(P['names'])
 
     sampler = emcee.EnsembleSampler(
-            mc['Nwalkers'], Npar, parspace.ln_probab,
-            ###!!!args=[data,  P],  daemon= True)
-            args=[data, models, P],  daemon= True)
+            mc['Nwalkers'], Npar, parspace.ln_probab, args=[data, models, P])
 
     ## BURN-IN SETS ##
     if mc['Nburn'] > 0:
@@ -94,7 +92,7 @@ def run_burn_in(sampler, mc, p0, sourcename, folder, setnr):
         i += 1
         if not i % iprint:
             print( i )
-        
+ 
     save_chains(folder+str(sourcename)+'/samples_burn1-2-3.sav', sampler, pos, state)
 
     return pos, state   
@@ -131,7 +129,7 @@ def save_chains(filename, sampler, pos, state):
     f = open(filename, 'wb')
     pickle.dump(dict(
         chain=sampler.chain, accept=sampler.acceptance_fraction,
-        lnprob=sampler.lnprobability, final_pos=pos, state=state, acor=sampler.acor), f, protocol=2)
+        lnprob=sampler.lnprobability, final_pos=pos, state=state, acor=sampler.acor), f, protocol=2) # 
     f.close()
 
 

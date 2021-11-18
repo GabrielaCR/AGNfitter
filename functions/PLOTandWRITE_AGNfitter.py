@@ -328,9 +328,9 @@ class OUTPUT:
             (_, caps, _) = ax1s[j].errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
 
 
-            ax1s[j].text(0.04, 0.92, r'id='+str(self.data.name)+r', z ='+ str(self.z), ha='left', transform=ax1s[j].transAxes )
+            ax1s[j].text(0.04, 0.92, r'id='+str(self.data.name)+r', z ='+ str(self.z), ha='left', transform=ax1s[j].transAxes, fontsize = 15 )
             if plot_residuals:
-                ax1s[j].text(0.96, 0.92, 'max ln-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), ha='right', transform=ax1s[j].transAxes )
+                ax1s[j].text(0.96, 0.92, 'max ln-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), ha='right', transform=ax1s[j].transAxes, fontsize = 15 )
         #ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z)+'max log-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print(' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
 
@@ -539,8 +539,8 @@ class FLUXES_ARRAYS:
             #Produce model fluxes at all_nus_rest for plotting, through interpolation
             #print(gal_obj.get_fluxes(gal_obj.matched_parkeys))
             all_gal_nus, gal_Fnus = gal_obj.get_fluxes(gal_obj.matched_parkeys)
-            GAinterp = scipy.interpolate.interp1d(all_gal_nus, gal_Fnus.flatten(),  kind = 'quadratic', bounds_error=False, fill_value=0.)
-            all_gal_Fnus = GAinterp(self.all_nus_rest)
+            GAinterp = scipy.interpolate.interp1d(all_gal_nus, np.log10(gal_Fnus.flatten()),  kind = 'linear', bounds_error=False, fill_value=-100.)
+            all_gal_Fnus = 10**GAinterp(self.all_nus_rest)
             #if g == (realization_nr -1):
             #    bands, gal_Fnu= MD.GALAXYFdict[tuple(gal_obj.matched_parkeys_grid)] 
             #    fcts=gal_obj.functions()
@@ -565,48 +565,48 @@ class FLUXES_ARRAYS:
                 else:                                                                #If there is a radio model with fix parameters
                     all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes('-99.9')
 
-                RADinterp = scipy.interpolate.interp1d(all_agnrad_nus, agnrad_Fnus, bounds_error=False, fill_value=0.)
-                all_agnrad_Fnus = RADinterp(self.all_nus_rest)
+                RADinterp = scipy.interpolate.interp1d(all_agnrad_nus, np.log10(agnrad_Fnus), bounds_error=False, fill_value=-100)
+                all_agnrad_Fnus = 10**RADinterp(self.all_nus_rest)
                 all_agnrad_Fnus[self.all_nus_rest>=17.5]= 0
                 RADFnu =   all_agnrad_Fnus * 10**float(RAD)
                 RADFnu_list.append(RADFnu)
 
-            SBinterp = scipy.interpolate.interp1d(all_sb_nus, sb_Fnus.flatten(), bounds_error=False, fill_value=0.)
-            all_sb_Fnus = SBinterp(self.all_nus_rest)
+            SBinterp = scipy.interpolate.interp1d(all_sb_nus, np.log10(sb_Fnus.flatten()), bounds_error=False, fill_value=-100)
+            all_sb_Fnus = 10**SBinterp(self.all_nus_rest)
 
             #If the UV-Xray correlation was applied, interpolate in a separately the emission of accretion disk and Xrays
             if (models.settings['BBB'] =='SN12' or models.settings['BBB'] =='R06') and models.settings['XRAYS']==True:
-                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], bbb_Fnus.flatten()[all_bbb_nus < 16.685], bounds_error=False, fill_value=0.) ##
-                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], bbb_Fnus.flatten()[all_bbb_nus >= 16.685],  bounds_error=False, fill_value=0.) 
-                all_bbb_Fnus = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], np.log10(bbb_Fnus.flatten()[all_bbb_nus < 16.685]), bounds_error=False, fill_value=-100) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], np.log10(bbb_Fnus.flatten()[all_bbb_nus >= 16.685]),  bounds_error=False, fill_value=-100) 
+                all_bbb_Fnus = np.concatenate((10**BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), 10**BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
             else:
-                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus.flatten(), bounds_error=False, fill_value=0.)
-                all_bbb_Fnus = BBinterp(self.all_nus_rest)
+                BBinterp = scipy.interpolate.interp1d(all_bbb_nus, np.log10(bbb_Fnus.flatten()), bounds_error=False, fill_value=-100)
+                all_bbb_Fnus = 10**BBinterp(self.all_nus_rest)
 
             ### Plot dereddened
             if models.settings['BBB']=='R06' and models.settings['XRAYS'] != True: 
                 all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot['0.0']
-                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
-                all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, np.log10(bbb_Fnus_deredd.flatten()), bounds_error=False, fill_value=-100)
+                all_bbb_Fnus_deredd = 10**BBderedinterp(self.all_nus_rest)
 
             elif models.settings['BBB']=='SN12' and models.settings['XRAYS'] != True: 
                 all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict[tuple(np.append(bbb_obj.matched_parkeys[:-1], 0.0))] 
-                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, bbb_Fnus_deredd.flatten(), bounds_error=False, fill_value=0.)
-                all_bbb_Fnus_deredd = BBderedinterp(self.all_nus_rest)
+                BBderedinterp = scipy.interpolate.interp1d(all_bbb_nus, np.log10(bbb_Fnus_deredd.flatten()), bounds_error=False, fill_value=-100)
+                all_bbb_Fnus_deredd = 10**BBderedinterp(self.all_nus_rest)
 
             elif models.settings['XRAYS'] == True: 
                 EBVbbb_pos = bbb_obj.par_names.index('EBVbbb')
                 params = bbb_obj.matched_parkeys_grid
                 params[EBVbbb_pos] = str(0.0)
                 all_bbb_nus, bbb_Fnus_deredd = MD.BBBFdict_4plot[tuple(params)]                    #Intrinsic fluxes without reddening
-                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], bbb_Fnus_deredd.flatten()[all_bbb_nus < 16.685], bounds_error=False, fill_value=0.) ##
-                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], bbb_Fnus_deredd.flatten()[all_bbb_nus >= 16.685],  bounds_error=False, fill_value=0.) 
-                all_bbb_Fnus_deredd = np.concatenate((BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
+                BBinterp1 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus < 16.685], np.log10(bbb_Fnus_deredd.flatten()[all_bbb_nus < 16.685]), bounds_error=False, fill_value=-100) ##
+                BBinterp2 = scipy.interpolate.interp1d(all_bbb_nus[all_bbb_nus >= 16.685], np.log10(bbb_Fnus_deredd.flatten()[all_bbb_nus >= 16.685]),  bounds_error=False, fill_value=-100) 
+                all_bbb_Fnus_deredd = np.concatenate((10**BBinterp1(self.all_nus_rest[ self.all_nus_rest < 16.685]), 10**BBinterp2(self.all_nus_rest[ self.all_nus_rest >= 16.685])))
             else:
                 all_bbb_Fnus_deredd = all_bbb_Fnus
 
-            TOinterp = scipy.interpolate.interp1d(all_tor_nus, tor_Fnus.flatten(),  kind = 'quadratic', bounds_error=False, fill_value=0.)
-            all_tor_Fnus = TOinterp(self.all_nus_rest)      
+            TOinterp = scipy.interpolate.interp1d(all_tor_nus, np.log10(tor_Fnus.flatten()),  kind = 'linear', bounds_error=False, fill_value=-100) #quadratic
+            all_tor_Fnus = 10**TOinterp(self.all_nus_rest)   
             all_tor_Fnus[self.all_nus_rest>16]= 0
             all_tor_Fnus[self.all_nus_rest<11.7]= 0
 
@@ -734,7 +734,7 @@ class FLUXES_ARRAYS:
                 nuLnu=TOnuLnu
             elif out['intlum_models'][m] == 'agn_rad':    
                 nuLnu=RADnuLnu
-            elif out['intlum_models'][m] == 'AGNfrac' or out['intlum_models'][m] =='tor+bbb':    
+            elif (out['intlum_models'][m] == 'AGNfrac_IR') or (out['intlum_models'][m] =='tor+bbb') or (out['intlum_models'][m] == 'AGNfracTO') or (out['intlum_models'][m] == 'AGNfracGA') or (out['intlum_models'][m] == 'AGNfracSB') or (out['intlum_models'][m] == 'AGNfrac_opt') or (out['intlum_models'][m] =='gal+bbb'):    
                 nuLnuto=TOnuLnu
                 nuLnusb=SBnuLnu
                 nuLnuga=GAnuLnu
@@ -768,14 +768,28 @@ class FLUXES_ARRAYS:
                     #Lnurad_int = scipy.integrate.trapz(Lnurad, x=all_nus_rest_int)
                     Lnubb_int = scipy.integrate.trapz(Lnubb, x=all_nus_rest_int)
 
-                    if out['intlum_models'][m] == 'AGNfrac':                
-                        AGNfrac = (Lnuto_int)/(Lnuto_int+Lnusb_int) #+Lnuga_int+Lnurad_int)
+                    if out['intlum_models'][m] == 'AGNfrac_IR':                
+                        AGNfrac = (Lnuto_int)/(Lnuto_int+Lnusb_int) #+Lnuga_int+Lnurad_int)}
                         int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'AGNfracTO':                
+                        AGNfrac = (Lnuto_int)/(Lnuto_int+Lnusb_int+Lnuga_int)
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'AGNfracGA':                
+                        AGNfrac = (Lnuga_int)/(Lnuto_int+Lnusb_int+Lnuga_int)
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'AGNfracSB':                
+                        AGNfrac = (Lnusb_int)/(Lnuto_int+Lnusb_int+Lnuga_int)
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'AGNfrac_opt':                
+                        AGNfrac = Lnuga_int/Lnubb_int
+                        int_lums.append(10**AGNfrac)
+                    elif out['intlum_models'][m] == 'gal+bbb':
+                        int_lums.append(Lnuga_int+Lnubb_int)
                     elif out['intlum_models'][m] == 'tor+bbb':
                         int_lums.append(Lnuto_int+Lnubb_int)
 			
             #Once the nuLnu is defined, the luminosity is calculated and saved                
-            if out['intlum_models'][m] != 'AGNfrac' and out['intlum_models'][m] !='tor+bbb': 
+            if (out['intlum_models'][m] != 'AGNfrac_IR') and (out['intlum_models'][m] !='tor+bbb') and (out['intlum_models'][m] != 'AGNfracTO') and (out['intlum_models'][m] != 'AGNfracGA') and (out['intlum_models'][m] != 'AGNfracSB') and (out['intlum_models'][m] != 'AGNfrac_opt') and  (out['intlum_models'][m] !='gal+bbb'): 
                 if out['intlum_freqranges'][m][0] ==out['intlum_freqranges'][m][1]: ### monochromatic luminosities
                     index  = (np.abs(all_nus_rest - np.log10(out['intlum_freqranges'][m][0].value))).argmin()   
                     Lnu_mono = nuLnu[:,index].ravel()
@@ -803,8 +817,8 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
     - all nus, and data (to make the plot limits depending on the data)
     """
     output_plots = []
-    fig = plt.figure(figsize=(9,5))
-    fig2 = plt.figure(figsize=(9,5))
+    fig = plt.figure(figsize=(9,6))
+    fig2 = plt.figure(figsize=(9,6))
     for i in [fig, fig2]:
         ax1 = i.add_axes([0.15,0.3,0.8,0.6])
         ax2 = ax1.twiny()
@@ -816,12 +830,12 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
         #-------------------------------------------------------------
 
     #    ax1.set_title(r"\textbf{SED of Type 2}" + r"\textbf{ AGN }"+ "Source Nr. "+ source + "\n . \n . \n ." , fontsize=17, color='k')    
-        ax1.set_xlabel(r'rest-frame $\mathbf{log \  \nu} [\mathtt{Hz}] $', fontsize=13)
-        ax2.set_xlabel(r'$\mathbf{\lambda} [\mathtt{\mu m}] $', fontsize=13)
-        ax1.set_ylabel(r'$\mathbf{\nu L(\nu) [\mathtt{erg \ } \mathtt{ s}^{-1}]}$',fontsize=13)
+        ax1.set_xlabel(r'rest-frame $\mathbf{log \  \nu} [\mathtt{Hz}] $', fontsize=16)
+        ax2.set_xlabel(r'$\mathbf{\lambda} [\mathtt{\mu m}] $', fontsize=16)
+        ax1.set_ylabel(r'$\mathbf{\nu L(\nu) [\mathtt{erg \ } \mathtt{ s}^{-1}]}$',fontsize=16)
 
-        ax1.tick_params(axis='both',reset=False,which='major',length=8,width=1.5)
-        ax1.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5)
+        ax1.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 16)
+        ax1.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 16)
 
         ax1.set_autoscalex_on(True) 
         ax1.set_autoscaley_on(True) 
@@ -831,7 +845,7 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
         mediandata = np.median(ydata)
         if i == fig:
-            ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*4) 
+            ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*6) 
             ax1.set_xlim(min(np.log10(x)), max(np.log10(x))) 
         else:
             ax1.set_ylim(min(ydata)*1e1, max(ydata)*2) 
@@ -842,8 +856,8 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
 
         #ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
-        ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5)
-        ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5)
+        ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 16)
+        ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 16)
 
         x2 = (2.98e14/ x)[::-1] # Wavelenght axis
 
@@ -858,12 +872,13 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
         if plot_residuals==True:
             axr = i.add_axes([0.15,0.1,0.8,0.2],sharex=ax1)
-            axr.set_xlabel(r'rest-frame ${\log \  \nu}$ $[\mathrm{Hz}] $')
-            axr.set_ylabel(r'residual $[\sigma]$')
-            axr.set_ylabel(r'residual $[\sigma]$')
+            axr.set_xlabel(r'rest-frame ${\log \  \nu}$ $[\mathrm{Hz}] $', fontsize=16)
+            axr.set_ylabel(r'residual $[\sigma]$', fontsize=16)
+            axr.set_ylabel(r'residual $[\sigma]$', fontsize=16)
             axr.set_autoscalex_on(True) 
             axr.set_xscale('linear')
             axr.minorticks_on()
+            axr.tick_params(labelsize = 16)
             xr = np.log10(x[::-1]) # frequency axis
             axr.plot(xr, np.zeros(len(xr)), 'gray', alpha=1)
             if i == fig:

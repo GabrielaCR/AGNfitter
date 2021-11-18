@@ -52,12 +52,12 @@ def Pdict (data, models):
 
     ## Add normalization parameters:
     [par_mins.append(i) for i in [-10,-10.,-10]]
-    [par_maxs.append(i)for i in [10,10,10]]
+    [par_maxs.append(i)for i in [ 10, 10,10]]  ##ALTERADO
     normpars=['GA','SB','TO'] 
 
     if models.settings['BBB']=='R06': #Only the Richards et al. model need normalization parameter
         par_mins.append(-10.)
-        par_maxs.append(10)
+        par_maxs.append(10)  
         normpars.append('BB') 
 
     if models.settings['RADIO'] == True:
@@ -135,7 +135,6 @@ def ln_likelihood(x, y, ysigma, z, ymodel, models):
         x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
     else:                                                                    #Ignore only UV data because of IGM absorption  
         x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) | (x > np.log10(10**(16.685)/(1+z))) & (y>-99.e-23)]
-
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
     return -0.5 * np.dot(resid, resid)
 

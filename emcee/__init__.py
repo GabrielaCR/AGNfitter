@@ -1,36 +1,36 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import (division, print_function, absolute_import,
-                        unicode_literals)
-from emcee.sampler import *
-from emcee.mh import *
-from emcee.ensemble import *
-from emcee.ptsampler import *
-from emcee import utils
+__bibtex__ = """
+@article{emcee,
+   author = {{Foreman-Mackey}, D. and {Hogg}, D.~W. and {Lang}, D. and {Goodman}, J.},
+    title = {emcee: The MCMC Hammer},
+  journal = {PASP},
+     year = 2013,
+   volume = 125,
+    pages = {306-312},
+   eprint = {1202.3665},
+      doi = {10.1086/670067}
+}
+"""
+__uri__ = "https://emcee.readthedocs.io"
+__author__ = "Daniel Foreman-Mackey"
+__email__ = "foreman.mackey@gmail.com"
+__license__ = "MIT"
+__description__ = "The Python ensemble sampling toolkit for MCMC"
 
 
-__version__ = "1.2.0"
+from .emcee_version import __version__  # isort:skip
 
+from . import autocorr, backends, moves
+from .ensemble import EnsembleSampler, walkers_independent
+from .state import State
 
-def test():
-    from inspect import getmembers, ismethod
-    from .tests import Tests
-
-    print("Starting tests...")
-    failures = 0
-    tests = Tests()
-    for o in getmembers(tests):
-        tests.setUp()
-        if ismethod(o[1]) and o[0].startswith("test"):
-            print("{0} ...".format(o[0]))
-            try:
-                o[1]()
-            except Exception as e:
-                print("Failed with:\n    {0.__class__.__name__}: {0}"
-                      .format(e))
-                failures += 1
-            else:
-                print("    Passed.")
-
-    print("{0} tests failed".format(failures))
+__all__ = [
+    "EnsembleSampler",
+    "walkers_independent",
+    "State",
+    "moves",
+    "autocorr",
+    "backends",
+    "__version__",
+]
