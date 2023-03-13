@@ -1,473 +1,679 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-An affine invariant Markov chain Monte Carlo (MCMC) sampler.
 
-Goodman & Weare, Ensemble Samplers With Affine Invariance
-   Comm. App. Math. Comp. Sci., Vol. 5 (2010), No. 1, 65–80
+import warnings
+from itertools import count
+from typing import Dict, List, Optional, Union
 
-"""
-
-from __future__ import (division, print_function, absolute_import,
-                        unicode_literals)
-
-__all__ = ["EnsembleSampler"]
-
-import multiprocessing
 import numpy as np
 
+from .backends import Backend
+from .model import Model
+from .moves import StretchMove
+from .pbar import get_progress_bar
+from .state import State
+from .utils import deprecated, deprecation_warning
+
+__all__ = ["EnsembleSampler", "walkers_independent"]
+
 try:
-    import acor
-    acor = acor
+    from collections.abc import Iterable
 except ImportError:
-    acor = None
+    # for py2.7, will be an Exception in 3.8
+    from collections import Iterable
 
-from emcee.sampler import Sampler
 
+class EnsembleSampler(object):
+    """An ensemble MCMC sampler
 
-class EnsembleSampler(Sampler):
-    """
-    A generalized Ensemble sampler that uses 2 ensembles for parallelization.
-    The ``__init__`` function will raise an ``AssertionError`` if
-    ``k < 2 * dim`` (and you haven't set the ``live_dangerously`` parameter)
-    or if ``k`` is odd.
+    If you are upgrading from an earlier version of emcee, you might notice
+    that some arguments are now deprecated. The parameters that control the
+    proposals have been moved to the :ref:`moves-user` interface (``a`` and
+    ``live_dangerously``), and the parameters related to parallelization can
+    now be controlled via the ``pool`` argument (:ref:`parallel`).
 
-    **Warning**: The :attr:`chain` member of this object has the shape:
-    ``(nwalkers, nlinks, dim)`` where ``nlinks`` is the number of steps
-    taken by the chain and ``k`` is the number of walkers.  Use the
-    :attr:`flatchain` property to get the chain flattened to
-    ``(nlinks, dim)``. For users of pre-1.0 versions, this shape is
-    different so be careful!
-
-    :param nwalkers:
-        The number of Goodman & Weare "walkers".
-
-    :param dim:
-        Number of dimensions in the parameter space.
-
-    :param lnpostfn:
-        A function that takes a vector in the parameter space as input and
-        returns the natural logarithm of the posterior probability for that
-        position.
-
-    :param a: (optional)
-        The proposal scale parameter. (default: ``2.0``)
-
-    :param args: (optional)
-        A list of extra arguments for ``lnpostfn``. ``lnpostfn`` will be
-        called with the sequence ``lnpostfn(p, *args)``.
-
-    :param postargs: (optional)
-        Alias of ``args`` for backwards compatibility.
-
-    :param threads: (optional)
-        The number of threads to use for parallelization. If ``threads == 1``,
-        then the ``multiprocessing`` module is not used but if
-        ``threads > 1``, then a ``Pool`` object is created and calls to
-        ``lnpostfn`` are run in parallel.
-
-    :param pool: (optional)
-        An alternative method of using the parallelized algorithm. If
-        provided, the value of ``threads`` is ignored and the
-        object provided by ``pool`` is used for all parallelization. It
-        can be any object with a ``map`` method that follows the same
-        calling sequence as the built-in ``map`` function.
+    Args:
+        nwalkers (int): The number of walkers in the ensemble.
+        ndim (int): Number of dimensions in the parameter space.
+        log_prob_fn (callable): A function that takes a vector in the
+            parameter space as input and returns the natural logarithm of the
+            posterior probability (up to an additive constant) for that
+            position.
+        moves (Optional): This can be a single move object, a list of moves,
+            or a "weighted" list of the form ``[(emcee.moves.StretchMove(),
+            0.1), ...]``. When running, the sampler will randomly select a
+            move from this list (optionally with weights) for each proposal.
+            (default: :class:`StretchMove`)
+        args (Optional): A list of extra positional arguments for
+            ``log_prob_fn``. ``log_prob_fn`` will be called with the sequence
+            ``log_pprob_fn(p, *args, **kwargs)``.
+        kwargs (Optional): A dict of extra keyword arguments for
+            ``log_prob_fn``. ``log_prob_fn`` will be called with the sequence
+            ``log_pprob_fn(p, *args, **kwargs)``.
+        pool (Optional): An object with a ``map`` method that follows the same
+            calling sequence as the built-in ``map`` function. This is
+            generally used to compute the log-probabilities for the ensemble
+            in parallel.
+        backend (Optional): Either a :class:`backends.Backend` or a subclass
+            (like :class:`backends.HDFBackend`) that is used to store and
+            serialize the state of the chain. By default, the chain is stored
+            as a set of numpy arrays in memory, but new backends can be
+            written to support other mediums.
+        vectorize (Optional[bool]): If ``True``, ``log_prob_fn`` is expected
+            to accept a list of position vectors instead of just one. Note
+            that ``pool`` will be ignored if this is ``True``.
+            (default: ``False``)
+        parameter_names (Optional[Union[List[str], Dict[str, List[int]]]]):
+            names of individual parameters or groups of parameters. If
+            specified, the ``log_prob_fn`` will recieve a dictionary of
+            parameters, rather than a ``np.ndarray``.
 
     """
-    def __init__(self, nwalkers, dim, lnpostfn, a=2.0, args=[], postargs=None,
-                 threads=1, daemon = True ,pool=None, live_dangerously=False):
-        self.k = nwalkers
-        self.a = a
-	self.daemon = True
-        self.threads = threads
-	self.pool = pool
-	
 
-        if postargs is not None:
-            args = postargs
-        super(EnsembleSampler, self).__init__(dim, lnpostfn, args=args)
+    def __init__(
+        self,
+        nwalkers,
+        ndim,
+        log_prob_fn,
+        pool=None,
+        moves=None,
+        args=None,
+        kwargs=None,
+        backend=None,
+        vectorize=False,
+        blobs_dtype=None,
+        parameter_names: Optional[Union[Dict[str, int], List[str]]] = None,
+        # Deprecated...
+        a=None,
+        postargs=None,
+        threads=None,
+        live_dangerously=None,
+        runtime_sortingfn=None,
+    ):
+        # Warn about deprecated arguments
+        if a is not None:
+            deprecation_warning(
+                "The 'a' argument is deprecated, use 'moves' instead"
+            )
+        if threads is not None:
+            deprecation_warning("The 'threads' argument is deprecated")
+        if runtime_sortingfn is not None:
+            deprecation_warning(
+                "The 'runtime_sortingfn' argument is deprecated"
+            )
+        if live_dangerously is not None:
+            deprecation_warning(
+                "The 'live_dangerously' argument is deprecated"
+            )
+
+        # Parse the move schedule
+        if moves is None:
+            self._moves = [StretchMove()]
+            self._weights = [1.0]
+        elif isinstance(moves, Iterable):
+            try:
+                self._moves, self._weights = zip(*moves)
+            except TypeError:
+                self._moves = moves
+                self._weights = np.ones(len(moves))
+        else:
+            self._moves = [moves]
+            self._weights = [1.0]
+        self._weights = np.atleast_1d(self._weights).astype(float)
+        self._weights /= np.sum(self._weights)
+
+        self.pool = pool
+        self.vectorize = vectorize
+        self.blobs_dtype = blobs_dtype
+
+        self.ndim = ndim
+        self.nwalkers = nwalkers
+        self.backend = Backend() if backend is None else backend
+
+        # Deal with re-used backends
+        if not self.backend.initialized:
+            self._previous_state = None
+            self.reset()
+            state = np.random.get_state()
+        else:
+            # Check the backend shape
+            if self.backend.shape != (self.nwalkers, self.ndim):
+                raise ValueError(
+                    (
+                        "the shape of the backend ({0}) is incompatible with the "
+                        "shape of the sampler ({1})"
+                    ).format(self.backend.shape, (self.nwalkers, self.ndim))
+                )
+
+            # Get the last random state
+            state = self.backend.random_state
+            if state is None:
+                state = np.random.get_state()
+
+            # Grab the last step so that we can restart
+            it = self.backend.iteration
+            if it > 0:
+                self._previous_state = self.get_last_sample()
+
+        # This is a random number generator that we can easily set the state
+        # of without affecting the numpy-wide generator
+        self._random = np.random.mtrand.RandomState()
+        self._random.set_state(state)
 
         # Do a little bit of _magic_ to make the likelihood call with
-        # ``args`` pickleable.
-        self.lnprobfn = _function_wrapper(self.lnprobfn, self.args)
+        # ``args`` and ``kwargs`` pickleable.
+        self.log_prob_fn = _FunctionWrapper(log_prob_fn, args, kwargs)
 
-        assert self.k % 2 == 0, "The number of walkers must be even."
-        if not live_dangerously:
-            assert self.k >= 2 * self.dim, (
-                "The number of walkers needs to be more than twice the "
-                "dimension of your parameter space... unless you're "
-                "crazy!")
+        # Save the parameter names
+        self.params_are_named: bool = parameter_names is not None
+        if self.params_are_named:
+            assert isinstance(parameter_names, (list, dict))
 
-        if self.threads > 1 and self.pool is None:
-            self.pool = multiprocessing.Pool(self.threads)
-	    self.daemon = daemon	
+            # Don't support vectorizing yet
+            msg = "named parameters with vectorization unsupported for now"
+            assert not self.vectorize, msg
+
+            # Check for duplicate names
+            dupes = set()
+            uniq = []
+            for name in parameter_names:
+                if name not in dupes:
+                    uniq.append(name)
+                    dupes.add(name)
+            msg = f"duplicate paramters: {dupes}"
+            assert len(uniq) == len(parameter_names), msg
+
+            if isinstance(parameter_names, list):
+                # Check for all named
+                msg = "name all parameters or set `parameter_names` to `None`"
+                assert len(parameter_names) == ndim, msg
+                # Convert a list to a dict
+                parameter_names: Dict[str, int] = {
+                    name: i for i, name in enumerate(parameter_names)
+                }
+
+            # Check not too many names
+            msg = "too many names"
+            assert len(parameter_names) <= ndim, msg
+
+            # Check all indices appear
+            values = [
+                v if isinstance(v, list) else [v]
+                for v in parameter_names.values()
+            ]
+            values = [item for sublist in values for item in sublist]
+            values = set(values)
+            msg = f"not all values appear -- set should be 0 to {ndim-1}"
+            assert values == set(np.arange(ndim)), msg
+            self.parameter_names = parameter_names
+
+    @property
+    def random_state(self):
+        """
+        The state of the internal random number generator. In practice, it's
+        the result of calling ``get_state()`` on a
+        ``numpy.random.mtrand.RandomState`` object. You can try to set this
+        property but be warned that if you do this and it fails, it will do
+        so silently.
+
+        """
+        return self._random.get_state()
+
+    @random_state.setter  # NOQA
+    def random_state(self, state):
+        """
+        Try to set the state of the random number generator but fail silently
+        if it doesn't work. Don't say I didn't warn you...
+
+        """
+        try:
+            self._random.set_state(state)
+        except:
+            pass
+
+    @property
+    def iteration(self):
+        return self.backend.iteration
+
     def reset(self):
         """
-        Clear the ``chain`` and ``lnprobability`` array. Also reset the
-        bookkeeping parameters.
+        Reset the bookkeeping parameters
 
         """
-        super(EnsembleSampler, self).reset()
-        self.naccepted = np.zeros(self.k)
-        self._chain = np.empty((self.k, 0, self.dim))
-        self._lnprob = np.empty((self.k, 0))
+        self.backend.reset(self.nwalkers, self.ndim)
 
-        # Initialize list for storing optional metadata blobs.
-        self._blobs = []
+    def __getstate__(self):
+        # In order to be generally picklable, we need to discard the pool
+        # object before trying.
+        d = self.__dict__
+        d["pool"] = None
+        return d
 
-    def sample(self, p0, lnprob0=None, rstate0=None, blobs0=None,
-               iterations=1, thin=1, storechain=True, mh_proposal=None):
-        """
-        Advance the chain ``iterations`` steps as a generator.
+    def sample(
+        self,
+        initial_state,
+        log_prob0=None,  # Deprecated
+        rstate0=None,  # Deprecated
+        blobs0=None,  # Deprecated
+        iterations=1,
+        tune=False,
+        skip_initial_state_check=False,
+        thin_by=1,
+        thin=None,
+        store=True,
+        progress=False,
+    ):
+        """Advance the chain as a generator
 
-        :param p0:
-            A list of the initial positions of the walkers in the
-            parameter space. It should have the shape ``(nwalkers, dim)``.
+        Args:
+            initial_state (State or ndarray[nwalkers, ndim]): The initial
+                :class:`State` or positions of the walkers in the
+                parameter space.
+            iterations (Optional[int or NoneType]): The number of steps to generate.
+                ``None`` generates an infinite stream (requires ``store=False``).
+            tune (Optional[bool]): If ``True``, the parameters of some moves
+                will be automatically tuned.
+            thin_by (Optional[int]): If you only want to store and yield every
+                ``thin_by`` samples in the chain, set ``thin_by`` to an
+                integer greater than 1. When this is set, ``iterations *
+                thin_by`` proposals will be made.
+            store (Optional[bool]): By default, the sampler stores (in memory)
+                the positions and log-probabilities of the samples in the
+                chain. If you are using another method to store the samples to
+                a file or if you don't need to analyze the samples after the
+                fact (for burn-in for example) set ``store`` to ``False``.
+            progress (Optional[bool or str]): If ``True``, a progress bar will
+                be shown as the sampler progresses. If a string, will select a
+                specific ``tqdm`` progress bar - most notable is
+                ``'notebook'``, which shows a progress bar suitable for
+                Jupyter notebooks.  If ``False``, no progress bar will be
+                shown.
+            skip_initial_state_check (Optional[bool]): If ``True``, a check
+                that the initial_state can fully explore the space will be
+                skipped. (default: ``False``)
 
-        :param lnprob0: (optional)
-            The list of log posterior probabilities for the walkers at
-            positions given by ``p0``. If ``lnprob is None``, the initial
-            values are calculated. It should have the shape ``(k, dim)``.
 
-        :param rstate0: (optional)
-            The state of the random number generator.
-            See the :attr:`Sampler.random_state` property for details.
-
-        :param iterations: (optional)
-            The number of steps to run.
-
-        :param thin: (optional)
-            If you only want to store and yield every ``thin`` samples in the
-            chain, set thin to an integer greater than 1.
-
-        :param storechain: (optional)
-            By default, the sampler stores (in memory) the positions and
-            log-probabilities of the samples in the chain. If you are
-            using another method to store the samples to a file or if you
-            don't need to analyse the samples after the fact (for burn-in
-            for example) set ``storechain`` to ``False``.
-
-        :param mh_proposal: (optional)
-            A function that returns a list of positions for ``nwalkers``
-            walkers given a current list of positions of the same size. See
-            :class:`utils.MH_proposal_axisaligned` for an example.
-
-        At each iteration, this generator yields:
-
-        * ``pos`` — A list of the current positions of the walkers in the
-          parameter space. The shape of this object will be
-          ``(nwalkers, dim)``.
-
-        * ``lnprob`` — The list of log posterior probabilities for the
-          walkers at positions given by ``pos`` . The shape of this object
-          is ``(nwalkers, dim)``.
-
-        * ``rstate`` — The current state of the random number generator.
-
-        * ``blobs`` — (optional) The metadata "blobs" associated with the
-          current position. The value is only returned if ``lnpostfn``
-          returns blobs too.
+        Every ``thin_by`` steps, this generator yields the
+        :class:`State` of the ensemble.
 
         """
+        if iterations is None and store:
+            raise ValueError("'store' must be False when 'iterations' is None")
+        # Interpret the input as a walker state and check the dimensions.
+        state = State(initial_state, copy=True)
+        state_shape = np.shape(state.coords)
+        if state_shape != (self.nwalkers, self.ndim):
+            raise ValueError(f"incompatible input dimensions {state_shape}")
+        if (not skip_initial_state_check) and (
+            not walkers_independent(state.coords)
+        ):
+            raise ValueError(
+                "Initial state has a large condition number. "
+                "Make sure that your walkers are linearly independent for the "
+                "best performance"
+            )
+
         # Try to set the initial value of the random number generator. This
         # fails silently if it doesn't work but that's what we want because
         # we'll just interpret any garbage as letting the generator stay in
         # it's current state.
-        self.random_state = rstate0
-
-        p = np.array(p0)
-        halfk = int(self.k / 2)
+        if rstate0 is not None:
+            deprecation_warning(
+                "The 'rstate0' argument is deprecated, use a 'State' "
+                "instead"
+            )
+            state.random_state = rstate0
+        self.random_state = state.random_state
 
         # If the initial log-probabilities were not provided, calculate them
         # now.
-        lnprob = lnprob0
-        blobs = blobs0
-        if lnprob is None:
-            lnprob, blobs = self._get_lnprob(p)
+        if log_prob0 is not None:
+            deprecation_warning(
+                "The 'log_prob0' argument is deprecated, use a 'State' "
+                "instead"
+            )
+            state.log_prob = log_prob0
+        if blobs0 is not None:
+            deprecation_warning(
+                "The 'blobs0' argument is deprecated, use a 'State' instead"
+            )
+            state.blobs = blobs0
+        if state.log_prob is None:
+            state.log_prob, state.blobs = self.compute_log_prob(state.coords)
+        if np.shape(state.log_prob) != (self.nwalkers,):
+            raise ValueError("incompatible input dimensions")
 
         # Check to make sure that the probability function didn't return
         # ``np.nan``.
-        if np.any(np.isnan(lnprob)):
-            raise ValueError("The initial lnprob was NaN.")
+        if np.any(np.isnan(state.log_prob)):
+            raise ValueError("The initial log_prob was NaN")
 
-        # Store the initial size of the stored chain.
-        i0 = self._chain.shape[1]
+        # Deal with deprecated thin argument
+        if thin is not None:
+            deprecation_warning(
+                "The 'thin' argument is deprecated. " "Use 'thin_by' instead."
+            )
 
-        # Here, we resize chain in advance for performance. This actually
-        # makes a pretty big difference.
-        if storechain:
-            N = int(iterations / thin)
-            self._chain = np.concatenate((self._chain,
-                                          np.zeros((self.k, N, self.dim))),
-                                         axis=1)
-            self._lnprob = np.concatenate((self._lnprob,
-                                           np.zeros((self.k, N))), axis=1)
+            # Check that the thin keyword is reasonable.
+            thin = int(thin)
+            if thin <= 0:
+                raise ValueError("Invalid thinning argument")
 
-        for i in range(int(iterations)):
-            self.iterations += 1
+            yield_step = 1
+            checkpoint_step = thin
+            if store:
+                nsaves = iterations // checkpoint_step
+                self.backend.grow(nsaves, state.blobs)
 
-            # If we were passed a Metropolis-Hastings proposal
-            # function, use it.
-            if mh_proposal is not None:
-                # Draw proposed positions & evaluate lnprob there
-                q = mh_proposal(p)
-                newlnp, blob = self._get_lnprob(q)
+        else:
+            # Check that the thin keyword is reasonable.
+            thin_by = int(thin_by)
+            if thin_by <= 0:
+                raise ValueError("Invalid thinning argument")
 
-                # Accept if newlnp is better; and ...
-                acc = (newlnp > lnprob)
+            yield_step = thin_by
+            checkpoint_step = thin_by
+            if store:
+                self.backend.grow(iterations, state.blobs)
 
-                # ... sometimes accept for steps that got worse
-                worse = np.flatnonzero(~acc)
-                acc[worse] = ((newlnp[worse] - lnprob[worse]) >
-                              np.log(self._random.rand(len(worse))))
-                del worse
+        # Set up a wrapper around the relevant model functions
+        if self.pool is not None:
+            map_fn = self.pool.map
+        else:
+            map_fn = map
+        model = Model(
+            self.log_prob_fn, self.compute_log_prob, map_fn, self._random
+        )
 
-                # Update the accepted walkers.
-                lnprob[acc] = newlnp[acc]
-                p[acc] = q[acc]
-                self.naccepted[acc] += 1
+        # Inject the progress bar
+        total = None if iterations is None else iterations * yield_step
+        with get_progress_bar(progress, total) as pbar:
+            i = 0
+            for _ in count() if iterations is None else range(iterations):
+                for _ in range(yield_step):
+                    # Choose a random move
+                    move = self._random.choice(self._moves, p=self._weights)
 
-                if blob is not None:
-                    assert blobs is not None, (
-                        "If you start sampling with a given lnprob, you also "
-                        "need to provide the current list of blobs at that "
-                        "position.")
-                    ind = np.arange(self.k)[acc]
-                    for j in ind:
-                        blobs[j] = blob[j]
+                    # Propose
+                    state, accepted = move.propose(model, state)
+                    state.random_state = self.random_state
 
-            else:
-                # Loop over the two ensembles, calculating the proposed
-                # positions.
+                    if tune:
+                        move.tune(state, accepted)
 
-                # Slices for the first and second halves
-                first, second = slice(halfk), slice(halfk, self.k)
-                for S0, S1 in [(first, second), (second, first)]:
-                    q, newlnp, acc, blob = self._propose_stretch(p[S0], p[S1],
-                                                                 lnprob[S0])
-                    if np.any(acc):
-                        # Update the positions, log probabilities and
-                        # acceptance counts.
-                        lnprob[S0][acc] = newlnp[acc]
-                        p[S0][acc] = q[acc]
-                        self.naccepted[S0][acc] += 1
+                    # Save the new step
+                    if store and (i + 1) % checkpoint_step == 0:
+                        self.backend.save_step(state, accepted)
 
-                        if blob is not None:
-                            assert blobs is not None, (
-                                "If you start sampling with a given lnprob, "
-                                "you also need to provide the current list of "
-                                "blobs at that position.")
-                            ind = np.arange(len(acc))[acc]
-                            indfull = np.arange(self.k)[S0][acc]
-                            for j in range(len(ind)):
-                                blobs[indfull[j]] = blob[ind[j]]
+                    pbar.update(1)
+                    i += 1
 
-            if storechain and i % thin == 0:
-                ind = i0 + int(i / thin)
-                self._chain[:, ind, :] = p
-                self._lnprob[:, ind] = lnprob
-                if blobs is not None:
-                    self._blobs.append(list(blobs))
+                # Yield the result as an iterator so that the user can do all
+                # sorts of fun stuff with the results so far.
+                yield state
 
-            # Yield the result as an iterator so that the user can do all
-            # sorts of fun stuff with the results so far.
-            if blobs is not None:
-                # This is a bit of a hack to keep things backwards compatible.
-                yield p, lnprob, self.random_state, blobs
-            else:
-                yield p, lnprob, self.random_state
-
-    def _propose_stretch(self, p0, p1, lnprob0):
+    def run_mcmc(self, initial_state, nsteps, **kwargs):
         """
-        Propose a new position for one sub-ensemble given the positions of
-        another.
+        Iterate :func:`sample` for ``nsteps`` iterations and return the result
 
-        :param p0:
-            The positions from which to jump.
+        Args:
+            initial_state: The initial state or position vector. Can also be
+                ``None`` to resume from where :func:``run_mcmc`` left off the
+                last time it executed.
+            nsteps: The number of steps to run.
 
-        :param p1:
-            The positions of the other ensemble.
+        Other parameters are directly passed to :func:`sample`.
 
-        :param lnprob0:
-            The log-probabilities at ``p0``.
+        This method returns the most recent result from :func:`sample`.
+
+        """
+        if initial_state is None:
+            if self._previous_state is None:
+                raise ValueError(
+                    "Cannot have `initial_state=None` if run_mcmc has never "
+                    "been called."
+                )
+            initial_state = self._previous_state
+
+        results = None
+        for results in self.sample(initial_state, iterations=nsteps, **kwargs):
+            pass
+
+        # Store so that the ``initial_state=None`` case will work
+        self._previous_state = results
+
+        return results
+
+    def compute_log_prob(self, coords):
+        """Calculate the vector of log-probability for the walkers
+
+        Args:
+            coords: (ndarray[..., ndim]) The position vector in parameter
+                space where the probability should be calculated.
 
         This method returns:
 
-        * ``q`` — The new proposed positions for the walkers in ``ensemble``.
-
-        * ``newlnprob`` — The vector of log-probabilities at the positions
-          given by ``q``.
-
-        * ``accept`` — A vector of type ``bool`` indicating whether or not
-          the proposed position for each walker should be accepted.
-
-        * ``blob`` — The new meta data blobs or ``None`` if nothing was
-          returned by ``lnprobfn``.
-
-        """
-        s = np.atleast_2d(p0)
-        Ns = len(s)
-        c = np.atleast_2d(p1)
-        Nc = len(c)
-
-        # Generate the vectors of random numbers that will produce the
-        # proposal.
-        zz = ((self.a - 1.) * self._random.rand(Ns) + 1) ** 2. / self.a
-        rint = self._random.randint(Nc, size=(Ns,))
-
-        # Calculate the proposed positions and the log-probability there.
-        q = c[rint] - zz[:, np.newaxis] * (c[rint] - s)
-        newlnprob, blob = self._get_lnprob(q)
-
-        # Decide whether or not the proposals should be accepted.
-
-        accept = ((self.dim - 1.) * np.log(zz) + newlnprob > lnprob0 + np.log(self._random.rand(len(lnprob0))))
-        return q, newlnprob, accept, blob
-
-    def _get_lnprob(self, pos=None):
-        """
-        Calculate the vector of log-probability for the walkers.
-
-        :param pos: (optional)
-            The position vector in parameter space where the probability
-            should be calculated. This defaults to the current position
-            unless a different one is provided.
-
-        This method returns:
-
-        * ``lnprob`` — A vector of log-probabilities with one entry for each
+        * log_prob: A vector of log-probabilities with one entry for each
           walker in this sub-ensemble.
-
-        * ``blob`` — The list of meta data returned by the ``lnpostfn`` at
+        * blob: The list of meta data returned by the ``log_post_fn`` at
           this position or ``None`` if nothing was returned.
 
         """
-        if pos is None:
-            p = self.pos
-        else:
-            p = pos
+        p = coords
 
         # Check that the parameters are in physical ranges.
         if np.any(np.isinf(p)):
-            raise ValueError("At least one parameter value was infinite.")
+            raise ValueError("At least one parameter value was infinite")
         if np.any(np.isnan(p)):
-            raise ValueError("At least one parameter value was NaN.")
+            raise ValueError("At least one parameter value was NaN")
 
-        # If the `pool` property of the sampler has been set (i.e. we want
-        # to use `multiprocessing`), use the `pool`'s map method. Otherwise,
-        # just use the built-in `map` function.
-        if self.pool is not None:
-            M = self.pool.map
-        else:
-            M = map
+        # If the parmaeters are named, then switch to dictionaries
+        if self.params_are_named:
+            p = ndarray_to_list_of_dicts(p, self.parameter_names)
 
         # Run the log-probability calculations (optionally in parallel).
-        results = list(M(self.lnprobfn, [p[i] for i in range(len(p))]))
+        if self.vectorize:
+            results = self.log_prob_fn(p)
+        else:
+            # If the `pool` property of the sampler has been set (i.e. we want
+            # to use `multiprocessing`), use the `pool`'s map method.
+            # Otherwise, just use the built-in `map` function.
+            if self.pool is not None:
+                map_func = self.pool.map
+            else:
+                map_func = map
+            results = list(map_func(self.log_prob_fn, p))
 
         try:
-            lnprob = np.array([float(l[0]) for l in results])
-            blob = [l[1] for l in results]
+            log_prob = np.array([float(l[0]) for l in results])
+            blob = [l[1:] for l in results]
         except (IndexError, TypeError):
-            lnprob = np.array([float(l) for l in results])
+            log_prob = np.array([float(l) for l in results])
             blob = None
+        else:
+            # Get the blobs dtype
+            if self.blobs_dtype is not None:
+                dt = self.blobs_dtype
+            else:
+                try:
+                    with warnings.catch_warnings(record=True):
+                        warnings.simplefilter(
+                            "error", np.VisibleDeprecationWarning
+                        )
+                        try:
+                            dt = np.atleast_1d(blob[0]).dtype
+                        except Warning:
+                            deprecation_warning(
+                                "You have provided blobs that are not all the "
+                                "same shape or size. This means they must be "
+                                "placed in an object array. Numpy has "
+                                "deprecated this automatic detection, so "
+                                "please specify "
+                                "blobs_dtype=np.dtype('object')"
+                            )
+                            dt = np.dtype("object")
+                except ValueError:
+                    dt = np.dtype("object")
+                if dt.kind in "US":
+                    # Strings need to be object arrays or we risk truncation
+                    dt = np.dtype("object")
+            blob = np.array(blob, dtype=dt)
 
-        # Check for lnprob returning NaN.
-        if np.any(np.isnan(lnprob)):
-            raise ValueError("lnprob returned NaN.")
+            # Deal with single blobs properly
+            shape = blob.shape[1:]
+            if len(shape):
+                axes = np.arange(len(shape))[np.array(shape) == 1] + 1
+                if len(axes):
+                    blob = np.squeeze(blob, tuple(axes))
 
-        return lnprob, blob
+        # Check for log_prob returning NaN.
+        if np.any(np.isnan(log_prob)):
+            raise ValueError("Probability function returned NaN")
 
-    @property
-    def blobs(self):
-        """
-        Get the list of "blobs" produced by sampling. The result is a list
-        (of length ``iterations``) of ``list`` s (of length ``nwalkers``) of
-        arbitrary objects. **Note**: this will actually be an empty list if
-        your ``lnpostfn`` doesn't return any metadata.
-
-        """
-        return self._blobs
-
-    @property
-    def chain(self):
-        """
-        A pointer to the Markov chain itself. The shape of this array is
-        ``(k, iterations, dim)``.
-
-        """
-        return super(EnsembleSampler, self).chain
-
-    @property
-    def flatchain(self):
-        """
-        A shortcut for accessing chain flattened along the zeroth (walker)
-        axis.
-
-        """
-        s = self.chain.shape
-        return self.chain.reshape(s[0] * s[1], s[2])
-
-    @property
-    def lnprobability(self):
-        """
-        A pointer to the matrix of the value of ``lnprobfn`` produced at each
-        step for each walker. The shape is ``(k, iterations)``.
-
-        """
-        return super(EnsembleSampler, self).lnprobability
-
-    @property
-    def flatlnprobability(self):
-        """
-        A shortcut to return the equivalent of ``lnprobability`` but aligned
-        to ``flatchain`` rather than ``chain``.
-
-        """
-        return super(EnsembleSampler, self).lnprobability.flatten()
+        return log_prob, blob
 
     @property
     def acceptance_fraction(self):
-        """
-        An array (length: ``k``) of the fraction of steps accepted for each
-        walker.
-
-        """
-        return super(EnsembleSampler, self).acceptance_fraction
+        """The fraction of proposed steps that were accepted"""
+        return self.backend.accepted / float(self.backend.iteration)
 
     @property
-    def acor(self):
-        """
-        The autocorrelation time of each parameter in the chain (length:
-        ``dim``) as estimated by the ``acor`` module.
+    @deprecated("get_chain()")
+    def chain(self):  # pragma: no cover
+        chain = self.get_chain()
+        return np.swapaxes(chain, 0, 1)
 
-        """
-        if acor is None:
-            raise ImportError("acor")
-        s = self.dim
-        t = np.zeros(s)
-        for i in range(s):
-            t[i] = acor.acor(self.chain[:, :, i])[0]
-        return t
+    @property
+    @deprecated("get_chain(flat=True)")
+    def flatchain(self):  # pragma: no cover
+        return self.get_chain(flat=True)
+
+    @property
+    @deprecated("get_log_prob()")
+    def lnprobability(self):  # pragma: no cover
+        log_prob = self.get_log_prob()
+        return np.swapaxes(log_prob, 0, 1)
+
+    @property
+    @deprecated("get_log_prob(flat=True)")
+    def flatlnprobability(self):  # pragma: no cover
+        return self.get_log_prob(flat=True)
+
+    @property
+    @deprecated("get_blobs()")
+    def blobs(self):  # pragma: no cover
+        return self.get_blobs()
+
+    @property
+    @deprecated("get_blobs(flat=True)")
+    def flatblobs(self):  # pragma: no cover
+        return self.get_blobs(flat=True)
+
+    @property
+    @deprecated("get_autocorr_time")
+    def acor(self):  # pragma: no cover
+        return self.get_autocorr_time()
+
+    def get_chain(self, **kwargs):
+        return self.get_value("chain", **kwargs)
+
+    get_chain.__doc__ = Backend.get_chain.__doc__
+
+    def get_blobs(self, **kwargs):
+        return self.get_value("blobs", **kwargs)
+
+    get_blobs.__doc__ = Backend.get_blobs.__doc__
+
+    def get_log_prob(self, **kwargs):
+        return self.get_value("log_prob", **kwargs)
+
+    get_log_prob.__doc__ = Backend.get_log_prob.__doc__
+
+    def get_last_sample(self, **kwargs):
+        return self.backend.get_last_sample()
+
+    get_last_sample.__doc__ = Backend.get_last_sample.__doc__
+
+    def get_value(self, name, **kwargs):
+        return self.backend.get_value(name, **kwargs)
+
+    def get_autocorr_time(self, **kwargs):
+        return self.backend.get_autocorr_time(**kwargs)
+
+    get_autocorr_time.__doc__ = Backend.get_autocorr_time.__doc__
 
 
-class _function_wrapper(object):
+class _FunctionWrapper(object):
     """
     This is a hack to make the likelihood function pickleable when ``args``
-    are also included.
+    or ``kwargs`` are also included.
 
     """
-    def __init__(self, f, args):
+
+    def __init__(self, f, args, kwargs):
         self.f = f
-        self.args = args
+        self.args = args or []
+        self.kwargs = kwargs or {}
 
     def __call__(self, x):
         try:
-            return self.f(x, *self.args)
-        except:
+            return self.f(x, *self.args, **self.kwargs)
+        except:  # pragma: no cover
             import traceback
+
             print("emcee: Exception while calling your likelihood function:")
-#            print("  params:", x)
-#            print("  args:", self.args)
+            print("  params:", x)
+            print("  args:", self.args)
+            print("  kwargs:", self.kwargs)
             print("  exception:")
             traceback.print_exc()
             raise
+
+
+def walkers_independent(coords):
+    if not np.all(np.isfinite(coords)):
+        return False
+    C = coords - np.mean(coords, axis=0)[None, :]
+    C_colmax = np.amax(np.abs(C), axis=0)
+    if np.any(C_colmax == 0):
+        return False
+    C /= C_colmax
+    C_colsum = np.sqrt(np.sum(C ** 2, axis=0))
+    C /= C_colsum
+    return np.linalg.cond(C.astype(float)) <= 1e8
+
+
+def walkers_independent_cov(coords):
+    C = np.cov(coords, rowvar=False)
+    if np.any(np.isnan(C)):
+        return False
+    return _scaled_cond(np.atleast_2d(C)) <= 1e8
+
+
+def _scaled_cond(a):
+    asum = np.sqrt((a ** 2).sum(axis=0))[None, :]
+    if np.any(asum == 0):
+        return np.inf
+    b = a / asum
+    bsum = np.sqrt((b ** 2).sum(axis=1))[:, None]
+    if np.any(bsum == 0):
+        return np.inf
+    c = b / bsum
+    return np.linalg.cond(c.astype(float))
+
+
+def ndarray_to_list_of_dicts(
+    x: np.ndarray, key_map: Dict[str, Union[int, List[int]]]
+) -> List[Dict[str, Union[np.number, np.ndarray]]]:
+    """
+    A helper function to convert a ``np.ndarray`` into a list
+    of dictionaries of parameters. Used when parameters are named.
+
+    Args:
+      x (np.ndarray): parameter array of shape ``(N, n_dim)``, where
+        ``N`` is an integer
+      key_map (Dict[str, Union[int, List[int]]):
+
+    Returns:
+      list of dictionaries of parameters
+    """
+    return [{key: xi[val] for key, val in key_map.items()} for xi in x]
