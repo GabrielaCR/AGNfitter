@@ -382,7 +382,7 @@ def AGN_RAD(path, modelsettings, nRADdata):
     if modelsettings['RADIO']== True:
 
         AGN_RADFdict_4plot = dict()
-        agnrad_nu = 10**np.arange(9, 15, 0.02)#15, 17
+        agnrad_nu = 10**np.arange(7, 15, 0.02)#15, 17
         #alpha == -0.75: 
         #parameters_names = ['alpha', 'Ecutoff']                                                     #Single power law with cutoff
         #parameters_types = ['grid', 'grid']
@@ -407,32 +407,76 @@ def AGN_RAD(path, modelsettings, nRADdata):
         #Fnu1, Fnu2 = (agnrad_nu[agnrad_nu < freq]/1e9)**alpha1, (agnrad_nu[agnrad_nu >= freq]/(freq))**alpha2*np.exp(-agnrad_nu[agnrad_nu >= freq]/5e19)
         #agnrad_Fnu = np.concatenate((Fnu1, Fnu1[-1]*Fnu2))
 
-        if nRADdata < 3:  
-            #If there aren't enough data to find the normalization parameter, alpha1 and alpha2, fit a #Double power law with cutoff with 
-            # alpha1 and alpha2 as fix parameters
+        if nRADdata == 1:  
+            #If there aren't enough data to find the normalization parameter #simple power law
             parameters_names =['None']
             parameters_types =['grid']
-            alpha1 = 0.5               
-            alpha2 = -0.55
+            alpha = -0.75
+            nu_t = 1e9
 
-            agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1-alpha2)))*np.exp(-agnrad_nu/(1e13))  
-            AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+            agnrad_Fnu = ((agnrad_nu/nu_t)**alpha)*np.exp(-agnrad_nu/(1e13))     
+            AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
+
+        elif nRADdata == 2:  
+            #If there aren't enough data to find the normalization parameter and alpha #simple power law
+            parameters_names =['alpha']
+            parameters_types =['grid']
+            alpha = np.arange(-2.0, 1.0, 0.1)
+            nu_t = 1e9
+
+            for i in alpha:
+                agnrad_Fnu = ((agnrad_nu/nu_t)**i)*np.exp(-agnrad_nu/(1e13))     
+                AGN_RADFdict_4plot[str(i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)  
+
+        #elif nRADdata < 3:  
+            #If there aren't enough data to find the normalization parameter, alpha1 and alpha2, fit a #Double power law with cutoff with 
+            # alpha1 and alpha2 as fix parameters
+            #parameters_names =['None']
+            #parameters_types =['grid']
+            #alpha1 = 0.5               
+            #alpha2 = -0.55
+
+            #agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1-alpha2)))*np.exp(-agnrad_nu/(1e13))  
+            #AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+
+
+        elif nRADdata == 3:  
+            #There are enough data to find the normalization parameter, alpha and nu_t #Double power law
+            parameters_names =['curv', 'nut']
+            parameters_types =['grid', 'grid']
+            curv = np.arange(-0.5, 0.8, 0.2)                               
+            nu_t = np.arange(7, 13, 0.2) 
+            alpha1i = -0.75
+            
+            idxs=[curv, nu_t]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                curvi = c[0]
+                nu_ti = c[1]
+
+                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(curvi)))*np.exp(-agnrad_nu/(1e13))
+                AGN_RADFdict_4plot[str(curvi), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
 
         else:                                                                                  #Double power law with cutoff with parameters
-            parameters_names =['alpha1', 'alpha2']
+            parameters_names =['alpha1', 'alpha2', 'nut']
             parameters_types =['grid', 'grid', 'grid']
             alpha1 = np.arange(-1.0, 1.0, 0.2)                               
             alpha2 = np.arange(-1.0, 0, 0.1) 
+            nu_t = np.arange(7, 13, 0.2) 
             
-            idxs=[alpha1, alpha2]
+            idxs=[alpha1, alpha2, nu_t]
             par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
             for c in par_idxs_combinations:
                 alpha1i = c[0]
                 alpha2i = c[1]
 
-                agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1i)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/(1e13))
-                AGN_RADFdict_4plot[str(alpha1i), str(alpha2i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                nu_ti = c[2]
+
+                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/(1e13))
+                AGN_RADFdict_4plot[str(alpha1i), str(alpha2i), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+
 
         return AGN_RADFdict_4plot, parameters_names, parameters_types, model_functions
 
@@ -459,6 +503,10 @@ def BBB(path, modelsettings, nXRaysdata):
         BBBFdict_4plot = dict()
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
+
+        #THB21dict = pickle.load(open(path + 'models/BBB/THB21_new.pickle', 'rb'), encoding='latin1') #Added
+        #bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()   #Added
+
         BBB_functions = BBBfunctions()
 
         if modelsettings['XRAYS']!= True: #If there no x-rays data or priors will be apply, don't use the UV-Xrays correlation to extend SEDs
@@ -758,6 +806,104 @@ def BBB(path, modelsettings, nXRaysdata):
             BBBFdict_4plot[str(Mbhi),str(EddRi), str(WarmIndi), str(ebvi)] = bbb_nu0, bbb_Fnu_red        
 
         return BBBFdict_4plot, parameters_names, parameters_types, model_functions
+
+    elif modelsettings['BBB']=='THB21':
+
+        model_functions = [0]
+        BBBFdict_4plot = dict()
+        THB21dict = pickle.load(open(path + 'models/BBB/THB21.pickle', 'rb'), encoding='latin1') 
+        bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()
+        BBB_functions = BBBfunctions()
+
+        if modelsettings['XRAYS']!= True: #If there no x-rays data or priors will be apply, don't use the UV-Xrays correlation to extend SEDs
+
+            parameters_names =['EBVbbb']
+            parameters_types =['free'] 
+
+            if parameters_types ==['grid']:
+                ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+                for EBV_bbb in ebvbbb_array:
+                    #Apply reddening
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu, EBV_bbb)   
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)            
+            elif parameters_types ==['free']:
+                ebvbbb_array = np.array([0.0,1.0]) # write limits for the free parameter  
+                for EBV_bbb in ebvbbb_array:  
+                    #Apply reddening. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0, bbb_Fnu_red = BBB_functions[0](bbb_nu, bbb_Fnu, ebvbbb_array[0]) 
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(EBV_bbb)] = bbb_nu0, renorm_template('BB', bbb_Fnu_red)
+
+            return BBBFdict_4plot, parameters_names, parameters_types, model_functions
+
+        elif modelsettings['XRAYS']==True and nXRaysdata <= 1:          #Use the UV-Xrays correlation (Just et al. 2007) to extend SEDs
+
+            parameters_names =['EBVbbb', 'alphaScat'] 
+            parameters_types =['free', 'free'] 
+
+            if parameters_types == ['grid', 'grid'] :
+                ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+                alpha_scat =  np.arange(-0.4, 0.44, 0.04)
+                idxs = [ebvbbb_array, alpha_scat] 
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1]  
+                    #Apply reddening + UV-Xrays correlation
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvi, alpha_scati)     
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+            elif parameters_types == ['free', 'free'] :
+                ebvbbb_array = np.array([0.,1.0])
+                alpha_scat =  np.array([-0.4, 0.4]) 
+                idxs = [ebvbbb_array, alpha_scat]
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1] 
+                    #Apply reddening + UV-Xrays correlation. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvbbb_array[0], 0)
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+
+            return BBBFdict_4plot, parameters_names, parameters_types, model_functions
+
+        elif modelsettings['XRAYS']==True and nXRaysdata > 1:          #Use the UV-Xrays correlation (Just et al. 2007) to extend SEDs
+
+            parameters_names =['EBVbbb', 'alphaScat', 'Gamma'] 
+            parameters_types =['free', 'free', 'grid'] 
+
+            if parameters_types == ['grid', 'grid', 'grid'] :
+                ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+                alpha_scat =  np.arange(-0.4, 0.44, 0.04)
+                gamma = np.arange(0.0, 3.15, 0.15)
+                idxs = [ebvbbb_array, alpha_scat, gamma] 
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1]  
+                    gammai = c[2]
+                    #Apply reddening + UV-Xrays correlation
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvi, alpha_scati, gammai)     
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati), str(gammai)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+            elif parameters_types == ['free', 'free', 'grid'] :
+                ebvbbb_array = np.array([0.,1.0])
+                alpha_scat =  np.array([-0.4, 0.4]) 
+                gamma = np.arange(0.0, 3.15, 0.15)
+                idxs = [ebvbbb_array, alpha_scat, gamma]
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+                for c in par_idxs_combinations:
+                    ebvi=c[0]
+                    alpha_scati=c[1] 
+                    gammai = c[2]
+                    #Apply reddening + UV-Xrays correlation. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                    bbb_nu0x, bbb_Fnu_redx = BBB_functions[1](bbb_nu, bbb_Fnu, ebvbbb_array[0], 0, gammai)
+                    #Construct dictionaries
+                    BBBFdict_4plot[str(ebvi), str(alpha_scati), str(gammai)] = bbb_nu0x, renorm_template('BB', bbb_Fnu_redx)      
+
+            return BBBFdict_4plot, parameters_names, parameters_types, model_functions
 
     else:
         print (' ')

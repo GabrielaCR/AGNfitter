@@ -28,6 +28,8 @@ import numpy as np
 from . import corner #Author: Dan Foreman-Mackey (danfm@nyu.edu)
 import scipy
 from astropy import units as u
+import pandas as pd 
+
 
 #AGNfitter IMPORTS
 from . import MODEL_AGNfitter as model
@@ -110,8 +112,9 @@ def main(data, models, P, out, models_settings):
             res_header = '#freq res'
             np.savetxt(data.output_folder + str(data.name)+'/output_residuals100_'+str(data.name)+'.txt' , save_residuals, delimiter = " ",fmt= "%1.4f" ,header= res_header, comments='')
         if out['plotSEDrealizations']:
-            fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'])
-            fig2.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_IR-UV_' +str(data.name)+ '.'+out['plot_format'])
+            fig.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_' +str(data.name)+ '.'+out['plot_format'], bbox_inches='tight')
+            fig2.savefig(data.output_folder+str(data.name)+'/SED_manyrealizations_IR-UV_' +str(data.name)+ '.'+out['plot_format'], bbox_inches='tight')
+
         plt.close(fig)
         plt.close(fig2)
   
@@ -254,11 +257,19 @@ class OUTPUT:
         else:
             fig, ax1, ax2, fig2, ax12, ax22 = SED_plotting_settings(all_nus_rest, data_nuLnu_rest, self.allnus)
         SBcolor, BBcolor, GAcolor, TOcolor, RADcolor, TOTALcolor= SED_colors(combination = 'a')
-        lw= 1.5
+
+
+        lw= 2 #1.5
 
 
         alp = 0.25
         mec='None'
+        area_sb = np.zeros((len(SBnuLnu[0]),3))
+        area_bb = np.zeros((len(BBnuLnu[0]),3))
+        area_ga = np.zeros((len(GAnuLnu[0]),3))
+        area_to = np.zeros((len(TOnuLnu[0]),3))
+        #area_rad = np.zeros((len(RADnuLnu[0]),3))
+        area_total = np.zeros((len(TOTALnuLnu[0]),3))
         if Nrealizations == 1:
             alp = 1.0
         for j in range(2):
@@ -272,10 +283,42 @@ class OUTPUT:
                     lw = 2
                     mec='k'
                     save_residuals= np.column_stack((data_nus, np.array(data_nuLnu_rest-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.])/data_errors_rest))
+                    p2=ax1s[j].plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw, label="Starburst", color= SBcolor, alpha = alp)
+                    p3=ax1s[j].plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="Accretion disk",color= BBcolor, alpha = alp)
+                    p4=ax1s[j].plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="Stellar population",color=GAcolor, alpha = alp)
+                    p5=ax1s[j].plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="Torus",color= TOcolor ,alpha = alp)
+                    #p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="Radio from AGN",color= RADcolor ,alpha = alp)
+                    p1=ax1s[j].plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  color= TOTALcolor, alpha= alp)
+                    ax1s[0].legend(fontsize = 13, shadow = True, loc = 6) #NEW
+
+                    #for k in range(len(SBnuLnu[0])):
+                     #   area_sb[k] = pd.DataFrame(SBnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    #p2 = ax1s[j].fill_between(all_nus, area_sb[:, 0], area_sb[:, 2], color= SBcolor, alpha= 0.3)   
+
+                    #for k in range(len(BBnuLnu[0])):
+                    #    area_bb[k] = pd.DataFrame(BBnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    #p3 = ax1s[j].fill_between(all_nus, area_bb[:, 0], area_bb[:, 2], color= BBcolor, alpha= 0.3)  
+
+                    #for k in range(len(GAnuLnu[0])):
+                    #    area_ga[k] = pd.DataFrame(GAnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    #p4 = ax1s[j].fill_between(all_nus, area_ga[:, 0], area_ga[:, 2], color= GAcolor, alpha= 0.3) 
+
+                    #for k in range(len(TOnuLnu[0])):
+                    #    area_to[k] = pd.DataFrame(TOnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    #p5 = ax1s[j].fill_between(all_nus, area_to[:, 0], area_to[:, 2], color= TOcolor, alpha= 0.3)  
+
+                    #for k in range(len(TOTALnuLnu[0])):
+                    #    area_total[k] = pd.DataFrame(TOTALnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                   # p1 = ax1s[j].fill_between(all_nus, area_total[:, 0], area_total[:, 2], color= TOTALcolor, alpha= 0.3)  
+ 
 
                 #Settings for model lines
-                p2=ax1s[j].plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma", color= SBcolor, alpha = alp)
-                p3=ax1s[j].plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="1 /sigma",color= BBcolor, alpha = alp)
+                p2=ax1s[j].plot(all_nus, SBnuLnu[i], marker="None", linewidth=lw,  color= SBcolor, alpha = alp)#SBnuLnu[Nrealizations -1]
+                #p2 = ax1s[j].fill_between(all_nus, SBnuLnu[i], SBnuLnu[Nrealizations -1], color= SBcolor, label="Starburst",
+        #alpha= alp)
+                p3=ax1s[j].plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw,color= BBcolor, alpha = alp) #label="1 /sigma"
+                #p3 = ax1s[j].fill_between(all_nus, BBnuLnu[i], BBnuLnu[Nrealizations -1], color= BBcolor, 
+        #alpha= alp)
 
 
                 #If some Xray prior was applied, plot the Xray emission according to the UV or midIR flux from models in each realization
@@ -291,7 +334,7 @@ class OUTPUT:
                     xray_nu = np.logspace(16.685, 19.7, 1000)                                          #with a hole between BB template and X-Rays
                     xray_Fnu = a*(h*xray_nu)**(-1.8+1)*np.e**(-xray_nu/(7.2540*1e19))
                     xray_nuLnu = xray_Fnu*xray_nu
-                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= BBcolor, alpha = alp)
+                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', color= BBcolor, alpha = alp) #label="1 /sigma",
 
                 if self.models_settings['XRAYS'] == 'Prior_midIR':
                     to_nuLnu_6microns = TOnuLnu[i][(13.59897 < all_nus) & (all_nus < 13.79897)][0]
@@ -306,33 +349,45 @@ class OUTPUT:
                     xray_nu = np.logspace(16.685, 19.7, 1000)                                           #with a hole between BB template and X-Rays
                     xray_Fnu = a*(h*xray_nu)**(-1.8+1)*np.e**(-xray_nu/(7.2540*1e19))
                     xray_nuLnu = xray_Fnu*xray_nu
-                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', label="1 /sigma",color= TOcolor, alpha = alp)
-                p4=ax1s[j].plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="1 /sigma",color=GAcolor, alpha = alp)
-                p5=ax1s[j].plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= TOcolor ,alpha = alp)
-                p1=ax1s[j].plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  label="1 /sigma", color= TOTALcolor, alpha= alp)
+                    p8=ax1s[j].plot(np.log10(np.logspace(16.685, 19.7, 1000)), xray_nuLnu, marker="None", linewidth=lw, linestyle = '--', color= TOcolor, alpha = alp) #label="1 /sigma",
+                p4=ax1s[j].plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, color=GAcolor, alpha = alp) #label="1 /sigma",
+                #p4 = ax1s[j].fill_between(all_nus, GAnuLnu[i], GAnuLnu[Nrealizations -1], color= GAcolor, 
+        #alpha= alp)
+                p5=ax1s[j].plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, color= TOcolor ,alpha = alp) #label="1 /sigma",
+                #p5 = ax1s[j].fill_between(all_nus, TOnuLnu[i], TOnuLnu[Nrealizations -1], color= TOcolor, 
+        #alpha= alp)
+                p1=ax1s[j].plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  color= TOTALcolor, alpha= alp) #label="1 /sigma", 
+                #p1 = ax1s[j].fill_between(all_nus, TOTALnuLnu[i], TOTALnuLnu[Nrealizations -1], color= TOTALcolor, 
+        #alpha= alp)
 
-                if self.models_settings['RADIO'] == True:
-                    p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="1 /sigma",color= RADcolor ,alpha = alp)
+                if self.models_settings['RADIO'] == True and i == Nrealizations -1:
+                    for k in range(len(RADnuLnu[0])):
+                        area_rad[k] = pd.DataFrame(RADnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    p6 = ax1s[j].fill_between(all_nus, area_rad[:, 0], area_rad[:, 2], color= RADcolor, alpha= 0.3) 
+                    #p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, color= RADcolor ,alpha = alp) #label="1 /sigma",
+                    #p6 = ax1s[j].fill_between(all_nus, RADnuLnu[i], RADnuLnu[Nrealizations -1], color= RADcolor, 
+        #alpha= alp)
 
                 det = [yndflags==1]
                 upp = [yndflags==0]
                 det2 = [yndflags==1 & (data_nus < 15.38)| (data_nus > 16.685)]
 
-                p7 = ax1s[j].plot(data_nus[tuple(det2)], self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
+                #p7 = ax1s[j].plot(data_nus[tuple(det2)], self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
             
-                if plot_residuals:
+                if plot_residuals and i == Nrealizations -1:
                     p6r = axrs[j].plot(data_nus[tuple(det2)], (data_nuLnu_rest[tuple(det2)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)])/data_errors_rest[tuple(det2)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
                 	
             
             upplimits = ax1s[j].errorbar(data_nus[tuple(upp)], 2.*data_nuLnu_rest[tuple(upp)], yerr= data_errors_rest[tuple(upp)]/2, uplims = True, linestyle='',  markersize=5, color="black")
-            (_, caps, _) = ax1s[j].errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=1.5,  marker='o',markersize=5, color="black", alpha = 1)
+            (_, caps, _) = ax1s[j].errorbar(data_nus[tuple(det)], data_nuLnu_rest[tuple(det)], yerr= data_errors_rest[tuple(det)], capsize=4, linestyle="None", linewidth=2,  marker='o',markersize=5, color="black", alpha = 1)
 
 
-            ax1s[j].text(0.04, 0.92, r'id='+str(self.data.name)+r', z ='+ str(self.z), ha='left', transform=ax1s[j].transAxes, fontsize = 15 )
+            ax1s[j].text(0.04, 0.92, r'id='+str(self.data.name)+r', z ='+ str(self.z), ha='left', transform=ax1s[j].transAxes, fontsize = 19 )
             if plot_residuals:
-                ax1s[j].text(0.96, 0.92, 'max ln-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), ha='right', transform=ax1s[j].transAxes, fontsize = 15 )
+                ax1s[j].text(0.96, 0.92, 'max ln-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), ha='right', transform=ax1s[j].transAxes, fontsize = 19 )
         #ax1.annotate(r'XID='+str(self.data.name)+r', z ='+ str(self.z)+'max log-likelihood = {ml:.1f}'.format(ml=np.max(self.chain.lnprob_flat)), xy=(0, 1),  xycoords='axes points', xytext=(20, 310), textcoords='axes points' )#+ ', log $\mathbf{L}_{\mathbf{IR}}$= ' + str(Lir_agn) +', log $\mathbf{L}_{\mathbf{FIR}}$= ' + str(Lfir) + ',  log $\mathbf{L}_{\mathbf{UV}} $= '+ str(Lbol_agn)
         print(' => SEDs of '+ str(Nrealizations)+' different realization were plotted.')
+
 
         return fig, fig2, save_SEDs, save_residuals
 
@@ -396,7 +451,7 @@ class CHAIN:
         #-- Latex -------------------------------------------------
         rc('text', usetex=True)
         rc('font', family='serif')
-        rc('axes', linewidth=1.5)
+        rc('axes', linewidth=2)
         #-------------------------------------------------------------
         self.props()
 
@@ -781,7 +836,10 @@ class FLUXES_ARRAYS:
                         AGNfrac = (Lnusb_int)/(Lnuto_int+Lnusb_int+Lnuga_int)
                         int_lums.append(10**AGNfrac)
                     elif out['intlum_models'][m] == 'AGNfrac_opt':                
-                        AGNfrac = Lnuga_int/Lnubb_int
+
+                        #AGNfrac = Lnuga_int/Lnubb_int
+                        AGNfrac = Lnubb_int/(Lnuga_int+Lnubb_int)
+
                         int_lums.append(10**AGNfrac)
                     elif out['intlum_models'][m] == 'gal+bbb':
                         int_lums.append(Lnuga_int+Lnubb_int)
@@ -817,8 +875,10 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
     - all nus, and data (to make the plot limits depending on the data)
     """
     output_plots = []
-    fig = plt.figure(figsize=(9,6))
-    fig2 = plt.figure(figsize=(9,6))
+
+    fig = plt.figure(figsize=(16,6))
+    fig2 = plt.figure(figsize=(16,6))
+
     for i in [fig, fig2]:
         ax1 = i.add_axes([0.15,0.3,0.8,0.6])
         ax2 = ax1.twiny()
@@ -826,16 +886,16 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
         #-- Latex -------------------------------------------------
         rc('text', usetex=True)
         rc('font', family='serif')
-        rc('axes', linewidth=1.5)
+        rc('axes', linewidth=2)
         #-------------------------------------------------------------
 
     #    ax1.set_title(r"\textbf{SED of Type 2}" + r"\textbf{ AGN }"+ "Source Nr. "+ source + "\n . \n . \n ." , fontsize=17, color='k')    
-        ax1.set_xlabel(r'rest-frame $\mathbf{log \  \nu} [\mathtt{Hz}] $', fontsize=16)
-        ax2.set_xlabel(r'$\mathbf{\lambda} [\mathtt{\mu m}] $', fontsize=16)
-        ax1.set_ylabel(r'$\mathbf{\nu L(\nu) [\mathtt{erg \ } \mathtt{ s}^{-1}]}$',fontsize=16)
+        ax1.set_xlabel(r'rest-frame $\mathbf{log \  \nu} [\mathtt{Hz}] $', fontsize=19)
+        ax2.set_xlabel(r'$\mathbf{\lambda} [\mathtt{\mu m}] $', fontsize=19)
+        ax1.set_ylabel(r'$\mathbf{\nu L(\nu) [\mathtt{erg \ } \mathtt{ s}^{-1}]}$',fontsize=19)
 
-        ax1.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 16)
-        ax1.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 16)
+        ax1.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 19)
+        ax1.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 19)
 
         ax1.set_autoscalex_on(True) 
         ax1.set_autoscaley_on(True) 
@@ -848,7 +908,7 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
             ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*6) 
             ax1.set_xlim(min(np.log10(x)), max(np.log10(x))) 
         else:
-            ax1.set_ylim(min(ydata)*1e1, max(ydata)*2) 
+            ax1.set_ylim(min(ydata)*1e1, max(ydata)*5) 
             ax1.set_xlim(11.7, 15.7) 
 
         ax2.set_xscale('log')
@@ -856,8 +916,9 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
 
         #ax2.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
-        ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 16)
-        ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 16)
+
+        ax2.tick_params(axis='both',reset=False,which='major',length=8,width=1.5, labelsize = 19)
+        ax2.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 19)
 
         x2 = (2.98e14/ x)[::-1] # Wavelenght axis
 
@@ -872,13 +933,14 @@ def SED_plotting_settings(x, ydata, modeldata, plot_residuals= False):
 
         if plot_residuals==True:
             axr = i.add_axes([0.15,0.1,0.8,0.2],sharex=ax1)
-            axr.set_xlabel(r'rest-frame ${\log \  \nu}$ $[\mathrm{Hz}] $', fontsize=16)
-            axr.set_ylabel(r'residual $[\sigma]$', fontsize=16)
-            axr.set_ylabel(r'residual $[\sigma]$', fontsize=16)
+            axr.set_xlabel(r'rest-frame ${\log \  \nu}$ $[\mathrm{Hz}] $', fontsize=19)
+            axr.set_ylabel(r'residual $[\sigma]$', fontsize=19)
+            axr.set_ylabel(r'residual $[\sigma]$', fontsize=19)
             axr.set_autoscalex_on(True) 
             axr.set_xscale('linear')
             axr.minorticks_on()
-            axr.tick_params(labelsize = 16)
+            axr.tick_params(labelsize = 19)
+
             xr = np.log10(x[::-1]) # frequency axis
             axr.plot(xr, np.zeros(len(xr)), 'gray', alpha=1)
             if i == fig:

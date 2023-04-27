@@ -57,7 +57,8 @@ def Pdict (data, models):
 
     if models.settings['BBB']=='R06': #Only the Richards et al. model need normalization parameter
         par_mins.append(-10.)
-        par_maxs.append(10)  
+        # par_maxs.append(10)  
+        par_maxs.append(-9)  
         normpars.append('BB') 
 
     if models.settings['RADIO'] == True:
