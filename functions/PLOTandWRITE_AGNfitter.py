@@ -50,51 +50,18 @@ def main(data, models, P, out, models_settings):
     
     """
 
-    chain_burnin = CHAIN(data.output_folder+str(data.name)+ '/samples_burn1-2-3.sav', out)
-    chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/samples_mcmc.sav',  out)
-    chain_mcmc.props()
+    #chain_burnin = CHAIN(data.output_folder+str(data.name)+ '/samples_burn1-2-3.sav', out)
+    #chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/samples_mcmc.sav',  out)
+    chain_mcmc = CHAIN(data.output_folder+str(data.name)+ '/ultranest/chains/equal_weighted_post.txt', data.output_folder+str(data.name)+ '/ultranest/chains/run.txt',  out)
+    #chain_mcmc.props()
 
-    print( '_________________________________')
-    print( 'Properties of the sampling results:')
-    print( '- Mean acceptance fraction', chain_mcmc.mean_accept)
-    print( '- Mean autocorrelation time', chain_mcmc.mean_autocorr)
+    #print( '_________________________________')
+    #print( 'Properties of the sampling results:')
+    #print( '- Mean acceptance fraction', chain_mcmc.mean_accept)
+    #print( '- Mean autocorrelation time', chain_mcmc.mean_autocorr)
 
     output = OUTPUT(chain_mcmc, data, models, P, models_settings)
 
-    if out['plot_tracesburn-in']:
-        fig, nplot=chain_burnin.plot_trace(P)
-        fig.suptitle('Chain traces for %i of %i walkers.' % (nplot,chain_burnin.nwalkers))
-        fig.savefig(data.output_folder+str(data.name)+'/traces_burnin.' + out['plot_format'])
-        plt.close(fig)
-
-    if out['plot_tracesmcmc']:
-        fig, nplot = chain_mcmc.plot_trace(P)
-        fig.suptitle('Chain traces for %i of %i walkers.'% (nplot,chain_mcmc.nwalkers))
-        fig.savefig(data.output_folder+str(data.name)+'/traces_mcmc.' + out['plot_format'])
-        plt.close(fig)
-
-    if out['plot_posteriortriangle'] :
-        fig = output.plot_PDFtriangle('10pars', P['names'])
-        fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_10pars.' + out['plot_format'])
-        plt.close(fig)
-
-    if out['plot_posteriortrianglewithluminosities']: 
-        fig = output.plot_PDFtriangle('int_lums', out['intlum_names']) 
-        fig.savefig(data.output_folder+str(data.name)+'/PDFtriangle_intlums.' + out['plot_format'])
-        plt.close(fig)
-
-    if out['save_posterior_luminosities']: 
-        int_lums_array =output.save_realizations()
-        np.savetxt(data.output_folder+str(data.name)+'/posterior_intlums_'+str(data.name)+'.txt', int_lums_array.T, fmt= "%1.4f" ,header= str(out['intlum_names']))
-
-    if out['save_posteriors']: 
-        posteriors,posteriors_header = output.save_posteriors(P)
-        np.savetxt(data.output_folder + str(data.name)+'/posteriors_'+str(data.name)+'.txt' , posteriors, delimiter = " ",fmt= "%1.4f" ,header= posteriors_header)
-
-    if out['writepar_meanwitherrors']:
-        outputvalues, outputvalues_header = output.write_parameters_outputvalues(P)
-        comments_ouput= ' # Output for source ' +str(data.name) + '\n' +' Rows are: 2.5, 16, 50, 84, 97.5 percentiles # '+'\n'+ '-----------------------------------------------------'+'\n' 
-        np.savetxt(data.output_folder + str(data.name)+'/parameter_outvalues_'+str(data.name)+'.txt' , outputvalues, delimiter = " ",fmt= "%1.4f" ,header= outputvalues_header, comments =comments_ouput)
 
     if ((out['saveSEDrealizations']) or (out['plotSEDrealizations']) or (out['saveSEDresiduals'])):
         fig, fig2, save_SEDS, save_residuals = output.plot_manyrealizations_SED(plot_residuals=out['plot_residuals'])
@@ -136,7 +103,6 @@ class OUTPUT:
     def __init__(self, chain_obj, data_obj, model_obj, P, models_settings):
 
         self.chain = chain_obj
-        self.chain.props()
 
         self.out = chain_obj.out
         self.data = data_obj
@@ -264,7 +230,8 @@ class OUTPUT:
         area_bb = np.zeros((len(BBnuLnu[0]),3))
         area_ga = np.zeros((len(GAnuLnu[0]),3))
         area_to = np.zeros((len(TOnuLnu[0]),3))
-        #area_rad = np.zeros((len(RADnuLnu[0]),3))
+        if self.models_settings['RADIO'] == True:
+            area_rad = np.zeros((len(RADnuLnu[0]),3))
         area_total = np.zeros((len(TOTALnuLnu[0]),3))
         if Nrealizations == 1:
             alp = 1.0
@@ -283,7 +250,8 @@ class OUTPUT:
                     p3=ax1s[j].plot(all_nus, BBnuLnu[i], marker="None", linewidth=lw, label="Accretion disk",color= BBcolor, alpha = alp)
                     p4=ax1s[j].plot(all_nus, GAnuLnu[i],marker="None", linewidth=lw, label="Stellar population",color=GAcolor, alpha = alp)
                     p5=ax1s[j].plot( all_nus, TOnuLnu[i], marker="None",  linewidth=lw, label="Torus",color= TOcolor ,alpha = alp)
-                    #p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="Radio from AGN",color= RADcolor ,alpha = alp)
+                    if self.models_settings['RADIO'] == True:
+                        p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, label="Radio from AGN",color= RADcolor ,alpha = alp)
                     p1=ax1s[j].plot( all_nus, TOTALnuLnu[i], marker="None", linewidth=lw,  color= TOTALcolor, alpha= alp)
                     ax1s[0].legend(fontsize = 13, shadow = True, loc = 6) #NEW
 
@@ -357,10 +325,10 @@ class OUTPUT:
         #alpha= alp)
 
                 if self.models_settings['RADIO'] == True and i == Nrealizations -1:
-                    for k in range(len(RADnuLnu[0])):
-                        area_rad[k] = pd.DataFrame(RADnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
-                    p6 = ax1s[j].fill_between(all_nus, area_rad[:, 0], area_rad[:, 2], color= RADcolor, alpha= 0.3) 
-                    #p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, color= RADcolor ,alpha = alp) #label="1 /sigma",
+                    #for k in range(len(RADnuLnu[0])):
+                        #area_rad[k] = pd.DataFrame(RADnuLnu[:, k]).quantile([0.16, 0.5, 0.84]).values.ravel()
+                    #p6 = ax1s[j].fill_between(all_nus, area_rad[:, 0], area_rad[:, 2], color= RADcolor, alpha= 0.3) 
+                    p6=ax1s[j].plot( all_nus, RADnuLnu[i], marker="None",  linewidth=lw, color= RADcolor ,alpha = alp) #label="1 /sigma",
                     #p6 = ax1s[j].fill_between(all_nus, RADnuLnu[i], RADnuLnu[Nrealizations -1], color= RADcolor, 
         #alpha= alp)
 
@@ -368,9 +336,9 @@ class OUTPUT:
                 upp = [yndflags==0]
                 det2 = [yndflags==1 & (data_nus < 15.38)| (data_nus > 16.685)]
 
-                #p7 = ax1s[j].plot(data_nus[tuple(det2)], self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
+                p7 = ax1s[j].plot(data_nus[tuple(det2)], self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)],   marker='o', linestyle="None",markersize=5, color="red", alpha =alp)
             
-                if plot_residuals and i == Nrealizations -1:
+                if plot_residuals: # and i == Nrealizations -1:
                     p6r = axrs[j].plot(data_nus[tuple(det2)], (data_nuLnu_rest[tuple(det2)]-self.filtered_modelpoints_nuLnu[i][self.data.fluxes>0.][tuple(det2)])/data_errors_rest[tuple(det2)],   marker='o', mec=mec, linestyle="None",markersize=5, color="red", alpha =alp)
                 	
             
@@ -402,83 +370,45 @@ class CHAIN:
 
     """     
 
-    def __init__(self, outputfilename, out):
+    def __init__(self, outputfilename, runfile, out):
             self.outputfilename = outputfilename
+            self.runfile = runfile
             self.out = out
 
     def props(self):
         if os.path.lexists(self.outputfilename):
             f = open(self.outputfilename, 'rb')
-            samples = pickle.load(f, encoding='latin1')
+            samples = pd.read_csv(f, sep = ' ')
             f.close()
 
-            self.chain = samples['chain']
-            nwalkers, nsamples, npar = samples['chain'].shape
+            f2 = open(self.runfile, 'rb')
+            runfile = pd.read_csv(f2, sep = ' ')
+            f2.close()
 
-            Ns, Nt = self.out['Nsample'], self.out['Nthinning'] 
-            self.lnprob = samples['lnprob']
-            self.lnprob_flat = samples['lnprob'][:,int(nsamples/2):int(nsamples):Nt].ravel() #[:,0:Ns*Nt:Nt]
+            self.chain = samples.iloc[-2000:]
+            self.lnchain = runfile.iloc[-2000:]
+            #nwalkers, nsamples, npar = samples.shape
 
-            isort = (- self.lnprob_flat).argsort() #sort parameter vector for likelihood
-            lnprob_sorted = np.reshape(self.lnprob_flat[isort],(-1,1))
-            self.lnprob_max = lnprob_sorted[0]
+            #Ns, Nt = self.out['Nsample'], self.out['Nthinning'] 
+            self.lnprob_flat = self.lnchain['logl'] #[:,0:Ns*Nt:Nt]
 
+            #sort parameter vector for likelihood
+            idx_sorted = np.argsort(np.array(-self.lnchain['logl']), axis=0)
+            lnprob_sorted = self.lnchain.sort_values(by = ['logl'], ascending=False)['logl']
+            self.lnprob_max = lnprob_sorted.iloc[0]
 
-            self.flatchain = samples['chain'][:,int(nsamples/2):int(nsamples):Nt,:].reshape(-1, npar) #[:,0:Ns*Nt:Nt,:]
+            self.flatchain = self.chain
             chain_length = int(len(self.flatchain))
 
-            self.flatchain_sorted = self.flatchain[isort]
-            self.best_fit_pars = self.flatchain[isort[0]]
+            self.flatchain_sorted = self.flatchain.iloc[idx_sorted]
+            self.best_fit_pars = self.flatchain.iloc[idx_sorted[0]].values
 
-            self.mean_accept =  samples['accept'].mean()
-            self.mean_autocorr = samples['acor'].mean()
 
         else:
 
             'Error: The sampling has not been perfomed yet, or the chains were not saved properly.'
 
 
-
-    def plot_trace(self, P, nwplot=50):
-
-        """ Plot the sample trace for a subset of walkers for each parameter.
-        """
-        #-- Latex -------------------------------------------------
-        rc('text', usetex=True)
-        rc('font', family='serif')
-        rc('axes', linewidth=2)
-        #-------------------------------------------------------------
-        self.props()
-
-        self.nwalkers, nsample, npar = self.chain.shape
-        nrows = npar + 1
-        ncols =1     
-
-        def fig_axes(nrows, ncols, npar, width=13):
-            fig = plt.figure(figsize=(width, nrows*1.8))#*nrows/ncols))      
-            fig.subplots_adjust(hspace=0.9)
-            axes = [fig.add_subplot(nrows, ncols, i+1) for i in range(npar)]
-            return fig, axes
-
-        fig, axes = fig_axes(nrows, ncols, npar+1)
-
-        nwplot = min(nsample, nwplot)
-        for i in range(npar):
-            ax = axes[i]
-            for j in range(0, self.nwalkers, max(1, self.nwalkers // nwplot)):
-                ax.plot(self.chain[j,:,i], lw=0.5,  color = 'black', alpha = 0.3)
-            ax.set_title(r'\textit{Parameter : }'+P['names'][i], fontsize=12)  
-            ax.set_xlabel(r'\textit{Steps}', fontsize=12)
-            ax.set_ylabel(r'\textit{Walkers}',fontsize=12)
-
-        ax = axes[-1]
-        for j in range(0, self.nwalkers, max(1, self.nwalkers // nwplot)):
-            ax.plot(self.lnprob[j,:], lw=0.5, color = 'black', alpha = 0.3)
-        ax.set_title(r'\textit{Likelihood}', fontsize=12)   
-        ax.set_xlabel(r'\textit{Steps}', fontsize=12)
-        ax.set_ylabel(r'\textit{Walkers}',fontsize=12)
-
-        return fig, nwplot
 
 
 """=========================================================="""
@@ -531,16 +461,16 @@ class FLUXES_ARRAYS:
         source = data.name
 
         if self.output_type == 'plot':
-            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2plot'])),:]#.T        
+            par = self.chain_obj.flatchain.iloc[np.random.choice(nsample, (self.out['realizations2plot'])),:].copy()#.T     
             par_best = self.chain_obj.best_fit_pars
-            par[-1]=par_best
+            par.loc[-1]=par_best
 
             realization_nr=self.out['realizations2plot']
         
         elif self.output_type == 'int_lums':
-            par = self.chain_obj.flatchain[np.random.choice(nsample, (self.out['realizations2int'])),:]#.T
+            par = self.chain_obj.flatchain.iloc[np.random.choice(nsample, (self.out['realizations2int'])),:].copy()#.T
             par_best = self.chain_obj.best_fit_pars
-            par[-1]=par_best
+            par.loc[-1] = par_best
             realization_nr=self.out['realizations2int']
         
         elif self.output_type == 'best_fit':
@@ -563,26 +493,26 @@ class FLUXES_ARRAYS:
         
         for g in range(realization_nr):
             ## Pick dictionary key-values, nearest to the MCMC- parameter values
-            gal_obj.pick_nD(par[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
+            gal_obj.pick_nD(par.iloc[g][self.P['idxs'][0]:self.P['idxs'][1]]) 
 
-            tor_obj.pick_nD(par[g][self.P['idxs'][2]:self.P['idxs'][3]])     
+            tor_obj.pick_nD(par.iloc[g][self.P['idxs'][2]:self.P['idxs'][3]])     
             all_tor_nus, tor_Fnus= tor_obj.get_fluxes(tor_obj.matched_parkeys)
 
-            sb_obj.pick_nD(par[g][self.P['idxs'][1]:self.P['idxs'][2]])               
+            sb_obj.pick_nD(par.iloc[g][self.P['idxs'][1]:self.P['idxs'][2]])               
             all_sb_nus, sb_Fnus= sb_obj.get_fluxes(sb_obj.matched_parkeys) 
 
             if models.settings['BBB']=='R06': 
                 if models.settings['RADIO'] == True:
-                    GA, SB, TO, BB, RAD = par[g][-5:]
+                    GA, SB, TO, BB, RAD = par.iloc[g][-5:]
                 else:
-                    GA, SB, TO, BB = par[g][-4:]   
+                    GA, SB, TO, BB = par.iloc[g][-4:]   
             else:
                 if models.settings['RADIO'] == True:
-                    GA, SB, TO, RAD = par[g][-4:]
+                    GA, SB, TO, RAD = par.iloc[g][-4:]
                 elif models.settings['RADIO'] == False:
-                    GA, SB, TO = par[g][-3:]
+                    GA, SB, TO = par.iloc[g][-3:]
                 BB = 0.
-            bbb_obj.pick_nD(par[g][self.P['idxs'][3]:self.P['idxs'][4]])
+            bbb_obj.pick_nD(par.iloc[g][self.P['idxs'][3]:self.P['idxs'][4]])
             all_bbb_nus, bbb_Fnus = bbb_obj.get_fluxes(bbb_obj.matched_parkeys)
 
 
@@ -610,7 +540,7 @@ class FLUXES_ARRAYS:
             if models.settings['RADIO'] == True:
 
                 if (agnrad_obj.pars_modelkeys != ['-99.9']).all() :    #If there is a radio model with fitting parameters
-                    agnrad_obj.pick_nD(par[g][self.P['idxs'][4]:self.P['idxs'][5]])
+                    agnrad_obj.pick_nD(par.iloc[g][self.P['idxs'][4]:self.P['idxs'][5]])
                     all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes(agnrad_obj.matched_parkeys)
                 else:                                                                #If there is a radio model with fix parameters
                     all_agnrad_nus, agnrad_Fnus = agnrad_obj.get_fluxes('-99.9')
@@ -661,7 +591,7 @@ class FLUXES_ARRAYS:
             all_tor_Fnus[self.all_nus_rest<11.7]= 0
 
             if self.output_type == 'plot':
-                par2= par[g]
+                par2= par.iloc[g]
                 filtered_modelpoints, _ = parspace.ymodel(data.nus,data.z, data.dlum, models, self.P, *par2)
             #Using the costumized normalization 
             SBFnu =   all_sb_Fnus *10**float(SB) 

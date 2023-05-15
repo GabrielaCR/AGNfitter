@@ -45,7 +45,7 @@ def PRIORS(data, models, P, *pars):
         """
         prior1= prior_AGNfraction(data, MD.GALAXYFdict, gal_obj, GA, MD.BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
-        all_priors.append(prior1 + prior2) 
+        all_priors.append(prior1 + prior2)
 
     if modelsettings['PRIOR_midIR_UV']==True:  
         """
@@ -95,7 +95,7 @@ def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBUR
     Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB)
 
     if Lsb_emit < Lgal_att:
-        return -np.inf
+        return -9999 #-np.inf
     elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Flexible'):
         return 0
     elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Restrictive'):
@@ -189,13 +189,12 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
     else:                                      ## if blue fluxes are equal or brighter than 10 times the characteristic flux.
                                                ## asume BBB is at least equal to galaxy or dominates.
         if AGNfrac1500<0:
-            prior_AGNfrac=-np.inf
+            prior_AGNfrac= -9999   #-np.inf
         else:
             ### Adding the prior knowledge on AGN fraction only valid for QSO.
             mu = 2
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-
     return prior_AGNfrac
 
 
