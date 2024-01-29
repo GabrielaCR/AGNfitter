@@ -28,17 +28,17 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] = '/home/laura/PCLaura/Materias/Astrofisica_extragalactica/Proyecto_Gabriela/AGNfitter_2.0/AGNfitter/' #'/Users/gcalistr/Documents/AGNfitter/'  #path to the AGNfitter code
-    cat['filename'] = cat['path']+'brown_test/brown2018_test.txt'   # 34_4bands_10errRX.txt
-    cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
-    cat['name'] = 0                 ## If ASCII: Column index (int) of source IDs
-                                    ## If FITS : Column name (str). E.g. 'ID'
-    cat['redshift'] = 1             ## If ASCII:  Column index(int) of redshift 
-                                     ## If FITS : Column name (str). E.g. z'
+    cat['path'] = '/home/laura/PCLaura/Materias/Astrofisica_extragalactica/Proyecto_Gabriela/AGNfitter/' #path to the AGNfitter code
+    cat['filename'] = cat['path']+'brown_test/brown2018_34_4bands_10errRX_2.txt'  
+    cat['filetype'] = 'ASCII'		## catalog file type: 'ASCII' or 'FITS'. 
+    cat['name'] = 0			## If ASCII: Column index (int) of source IDs
+                                   	## If FITS : Column name (str). E.g. 'ID'
+    cat['redshift'] = 1       		## If ASCII:  Column index(int) of redshift 
+                                    	## If FITS : Column name (str). E.g. z'
 
    ##FREQUENCIES/WAVELENGTHS 
     ## if ASCII specify 'freq/wl_list', if FITS specify 'freq/wl_suffix'
-    cat['freq/wl_list'] = np.arange(2,147,3).tolist()  #147 162                         
+    cat['freq/wl_list'] = np.arange(2,147,3).tolist()                         
                                         ## If ASCII: List of column indexes (int), 
                                         ##           corresponding to freq/wl.                                  
     #cat['freq/wl_suffix'] = '_wl'      ## If FITS: common ending to wavelength column names
@@ -76,7 +76,7 @@ def CATALOG_settings():
                                       # and when using an external processor.
                                       # Default: cat['path'] (same as AGNfitter code path) 
                                       
-    cat['output_folder'] =  cat['workingpath'] +'Test_time/' #if no special OUTPUT folder, leave default
+    cat['output_folder'] =  cat['workingpath'] +'THB21/' #if no special OUTPUT folder, leave default
 
 
 
@@ -92,7 +92,7 @@ def FILTERS_settings():
 
     filters = dict()
 
-    filters['dict_zarray'] = np.array([0.033010, 0.158339]) # [0.058900, 0.042170] np.array([0.283, 1.58])  # Deprecated. The grid of redshifts needed to fit your catalog
+    filters['dict_zarray'] = np.array([0.033010, 0.158339]) # Deprecated. The grid of redshifts needed to fit your catalog
     filters['path'] = 'models/FILTERS/' 
     filters['filterset'] = 'example_46datapointa' ## 'filterset_default' (for the test case),
                                                ## for the user's case: customize, eg. filtersv1
@@ -101,16 +101,6 @@ def FILTERS_settings():
     filters['delta2-45keV'] = [True, 47]  #XR_2-4.5
     filters['delta1-2keV'] = [True, 46]  #XR_1-2
     filters['delta05-1keV'] = [True, 45]  #XR_0.5-1
-    #filters['delta45-12keV'] = [True, 53]  #XR_4.5-12
-    #filters['delta2-45keV'] = [True, 52]  #XR_2-4.5
-    #filters['delta1-2keV'] = [True, 51]  #XR_1-2
-    #filters['delta05-1keV'] = [True, 50]  #XR_0.5-1
-    #filters['RAD_111MHz'] = [True, 49]   #RAD_21E8
-    #filters['RAD_154MHz'] = [True, 48]   #RAD_21E8
-    #filters['RAD_177MHz'] = [True, 47]   #RAD_21E8
-    #filters['RAD_365MHz'] = [True, 46]   #RAD_21E8
-    #filters['RAD_750MHz'] = [True, 45]   #RAD_21E8
-    #filters['XR_14-195'] = [True, 45]  #XR_14-195
     filters['RAD_21E8'] = [True, 44]   #RAD_21E8
     filters['RAD_6E8'] = [True, 43]    #RAD_6E8 
     filters['RAD_15GHz'] = [True, 42]  #RAD_15GHz 
@@ -165,9 +155,9 @@ def FILTERS_settings():
     =================================="""
 
     ADDfilters=dict()
-    ADDfilters['names'] = []  #['RAD_6E8']  ## (string/list of strings)User especified filter names. 
+    ADDfilters['names'] = []  ## (string/list of strings)User especified filter names. 
                                 ## If name has been previously used, an error message will appear. 
-    ADDfilters['filenames'] = []  #['Rad_0.60e9.txt'] ## (string/list of strings) File names of the new filters. 
+    ADDfilters['filenames'] = []  ## (string/list of strings) File names of the new filters. 
                                 ## File format: 2 columns of 1) freq/wavelength 2) Throughput. 
                                 ## Path assumed is the cat['path'] especified above. 
                                 ## Example: 'models/FILTERS/my_new_filter.txt'
@@ -203,7 +193,7 @@ def MODELS_settings():
                                 ### 'S17_newmodel'
                                 ### 'S17_radio' 
 
-    models['BBB'] = 'R06' ### Current options:
+    models['BBB'] = 'THB21' ### Current options:
                          ### 'R06' (Richards et al. 2006) ## Needs 2 manual changes in PARAMETERSPACE_AGNfitter.py
                          ### 'SN12' (Slone&Netzer 2012)
                          ### 'D12_S' (Done et al. 2012) for Schwarzschild BH, with x-ray predictions
@@ -211,7 +201,7 @@ def MODELS_settings():
                          ### 'KD18' (Kubota and Done 2018)
                          ### 'THB21' (Temple)
 
-    models['TORUS'] ='SKIRTORM_3P' ### Current options:
+    models['TORUS'] ='CAT3D_3P' ### Current options:
                            ### 'S04' (Silva et al. 2004)
                            ### 'NK0' (Nenkova et al. 2008)
                            ### 'NK0_2P' (Nenkova et al. 2008) with averaged SEDs for each inclination and openning angle
@@ -221,6 +211,7 @@ def MODELS_settings():
                            ### 'SKIRTORC' with parameter values used in X-CIGALE
                            ### 'SKIRTORM' SKIRTOR model with averaged SEDs for each inclination
                            ### 'SKIRTORM_2P' SKIRTOR model with averaged SEDs for each inclination and openning angle
+                           ### 'CAT3D_3P' CAT3D-Wind model with averaged SEDs for each inclination angle, a and fwd parameters.
 
     models['XRAYS'] = True ### If X-ray data is available and informative for the fit
 
@@ -243,6 +234,11 @@ def MODELS_settings():
     models['PRIOR_midIR_UV'] = False
     models['PRIOR_galaxy_only'] = False ### Default:False 
                                         ### True: sets all AGN contribution to 0.ß
+    models['turn_on_AGN'] = True
+    models['Blazar'] = 'SPL'            # 'SPL' for a simple power law
+                                        # 'DPL-3' for a double power law with 3 fitting parameters
+                                        # 'DPL-4' for a double power law with 4 fitting parameters
+                                        # 'None' for non-blazar fit
     return models
 
 def MCMC_settings():
@@ -252,12 +248,22 @@ def MCMC_settings():
     =================================="""
 
     mc = dict()
+    mc['sampling_algorithm'] = 'ultranest' #ultranest or emcee
 
-    mc['Nwalkers'] = 100  ## 100 number of walkers #100
-    mc['Nburnsets']= 2   ## number of burn-in sets
-    mc['Nburn'] = 6000 ## length of each burn-in sets
-    mc['Nmcmc'] = 15000  ## length of each burn-in sets
-    mc['iprint'] = 1000 ## show progress in terminal in steps of this many samples
+    # If mcmc algorithm is emcee, please define the following values, otherwise just keep the current values
+    mc['Nwalkers'] = 100	## number of walkers 
+    mc['Nburnsets']= 2		## number of burn-in sets
+    mc['Nburn'] = 12000		## length of each burn-in sets 
+    mc['Nmcmc'] = 25000		## length of each burn-in sets 
+    mc['iprint'] = 1000		## show progress in terminal in steps of this many samples
+
+   # If mcmc algorithm is ultranest, please define the following values, otherwise just keep the current values
+    mc['direction_generation'] = 'de-mix' # Options: 1) 'de-mix' for mixture random direction
+                                          #          2) 'region-slice' for region oriented vector
+                                          #          3) 'cube-ortho-harm' for random orthogonal direction vector
+    mc['live_points'] = 400	# Number of initial live points to explore the space parameter
+    mc['min_ess'] = 400		# Minimum number of effective samples
+    mc['num_loops'] = 0		# How many times to go back and improve
 
     return mc
 
@@ -269,7 +275,10 @@ def OUTPUT_settings():
 
     out = dict()
 
-    out['plot_format'] = 'pdf'
+    out['plot_format'] = 'pdf'            #pdf
+    out['band_indicators'] = True         #Show tags of the wavelength (e.g.'Radio', 'FIR')
+    out['realizations_format'] = 'shaded' #'shaded' for shaded area given by maximum and minimum fluxes of 100 random realizations 
+                                          # or 'curves' to plot 10 random model combinations (like Calistro Rivera 2016)
 
     #CHAIN TRACES
     out['plot_tracesburn-in'] = False    
@@ -292,15 +301,20 @@ def OUTPUT_settings():
     out['plot_posteriortrianglewithluminosities'] = False  # requires out['calc_intlum']=True 
 
     #INTEGRATION RANGES
-    #out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal', 'tor', 'tor+bbb','AGNfrac','sb']  #leave 'sb' always 
-    #out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal', 'tor', 'tor+bbb','AGNfrac_IR', 'AGNfrac_opt','tor','sb']  #as first element  #NO RAD
-    out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal','AGNfrac_opt', 'tor','agn_rad', 'tor+bbb','AGNfrac_IR', 'gal', 'bbb', 'AGNfrac_opt', 'bbb', 'tor', 'agn_rad', 'sb', 'sb']  #as first element
+
+    out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal', 'AGNfrac_opt', 'tor','tor+bbb','AGNfrac_IR', 'gal', 'bbb', 'AGNfrac_opt', 'AGNfrac_rad', 'bbb','tor','AGNfrac1-10GHz', 'AGNfrac10-30GHz', 'AGNfrac50-200GHz', 'AGNfrac400-1600GHz', 'AGNfrac187-75mu', 'AGNfrac75-20mu', 'AGNfrac20-8mu', 'AGNfrac8-4mu', 'AGNfrac4-2mu', 'AGNfrac2-1mu', 'AGNfrac1-0.5mu', 'AGNfrac0.5-0.3mu', 'AGNfrac0.3-0.06mu','Lx0.5-2keV','Lx2-8keV','sb']  #as first element
+
     out['intlum_freqranges_unit'] = u.micron   #Astropy unit 
-    out['intlum_freqranges'] = np.array([[8.,1000.],[0.1,1.],[0.1,1.],[0.1,1.],[0.1,1.], [1.,30.],[0.1, 15000.], [0.1, 30], [8.,1000.],[0.4, 0.5],[0.4, 0.5], [0.4, 0.5], [1.2398e-4, 6.1992e-4], [6,6],  [2.141375e5, 2.141375e5],  [2.141375e5, 2.141375e5], [1.,30.]])
-    out['intlum_names'] = ['LIR(8-1000)','Lbb(0.1-1)', 'Lbbdered(0.1-1)', 'Lga(01-1)','AGNfrac(0.1-1)', 'Ltor(1-30)','Lagn_rad(0.1-15000)', 'LAGN(0.1-30)', 'AGNfrac(8-1000)', 'Lgal(0.4-0.5)', 'Lbbb(0.4-0.5)', 'AGNfrac(0.4-0.5)', 'Lxr(2-10keV)',  'Ltor(6)', 'Lrad(1.4GHz)', 'Lsb(1.4GHz)', 'Lsb(1-30)']
+
+    out['intlum_freqranges'] = np.array([[8.,1000.],[0.1,1.],[0.1,1.],[0.1,1.], [0.1,1.], [1.,30.], [0.1, 30], [8.,1000.],[0.4, 0.5],[0.4, 0.5], [0.4, 0.5], [2.141375e5, 2.141375e5], [1.2398e-4, 6.1992e-4], [6,6], [2.9979246e4, 2.9979246e5], [9.993082e3, 2.9979246e4],  [1.4989623e3, 5.99585e3], [187.37029, 749.48115], [75.30446, 187.37029], [20., 75.30446], [8., 20.], [4., 8.],  [ 2., 4.], [ 1., 2.], [0.5, 1.], [0.3, 0.5 ], [0.06, 0.3], [1.5498e-4, 6.1992e-4], [6.1992e-4, 2.4797e-3], [1.,30.]])
+
+    out['intlum_names'] = ['LIR(8-1000)','Lbb(0.1-1)', 'Lbbdered(0.1-1)', 'Lga(01-1)', 'AGNfrac(0.1-1)', 'Ltor(1-30)', 'LAGN(0.1-30)', 'AGNfrac(8-1000)', 'Lgal(0.4-0.5)', 'Lbbb(0.4-0.5)', 'AGNfrac(0.4-0.5)', 'AGNfrac(1.4GHz)', 'Lxr(2-10keV)','Ltor(6)', 'AGNfrac(1-10GHz)', 'AGNfrac(10-30GHz)' ,'AGNfrac(50-200GHz)', 'AGNfrac(400-1600GHz)', 'AGNfrac(187-75mu)',  'AGNfrac(75-20mu)', 'AGNfrac(20-8mu)', 'AGNfrac(8-4mu)', 'AGNfrac(4-2mu)', 'AGNfrac(2-1mu)', 'AGNfrac(1-0.5mu)', 'AGNfrac(0.5-0.3mu)','AGNfrac(0.3-0.06mu)', 'Lx(0.5-2keV)','Lx(2-8keV)', 'Lsb(1-30)']
+
 
     #SED PLOTTING
-    out['realizations2plot'] = 10
+    out['realizations2plot'] = 10 #For plotting curves we suggest 10 and for shaded areas 100
+    out['plot_best_fit'] = True
+    out['plot_median_fit'] = False 
     out['plot_residuals']= True
     out['saveSEDresiduals'] = True
     out['plotSEDrealizations'] = True
