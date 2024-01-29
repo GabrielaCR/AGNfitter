@@ -19,12 +19,11 @@ import ultranest
 from ultranest import ReactiveNestedSampler, stepsampler, dychmc, popstepsampler
 import numpy as np
 from ultranest.plot import cornerplot, traceplot
+from ultranest.stepsampler import OrthogonalDirectionGenerator
 
 
 if __name__ == 'main':
     main(sys.argv[1:])
-
-
 
 """==================================================
  SAMPLING FUNCTIONS
@@ -51,14 +50,8 @@ def main(data, models, P, mc):
     print ( mc['Nwalkers'], 'walkers')
 
     Npar = len(P['names'])
-    
-    # Needed for ultranest
-    #print(parspace.ymodel(data.nus, data.z, data.dlum, models, P, *pars))
 
-
-    if not os.path.lexists(data.output_folder+str(data.name)):
-        os.mkdir(data.output_folder+str(data.name))
-
+    # Functions for ultranest
     def my_posterior(params):
         posterior = []
 
@@ -66,7 +59,6 @@ def main(data, models, P, mc):
             posterior.append(parspace.ln_probab(tuple(params[i]), data, models, P))
 
         return np.array(posterior)
-
 
     def my_params_transform(cube):
         params = cube.copy()
@@ -78,26 +70,109 @@ def main(data, models, P, mc):
             params[i] = normalization
         return params
 
-    # Ultranest
-    sampler = ultranest.ReactiveNestedSampler(P['names'], my_posterior, my_params_transform, resume=True, log_dir=  data.output_folder+str(data.name)+'/ultranest', vectorized=True)
+    if mc['sampling_algorithm'] == 'ultranest':
 
-    sampler.stepsampler = ultranest.stepsampler.SliceSampler( nsteps=10,
-         generate_direction=ultranest.stepsampler.generate_mixture_random_direction)  # step sampling technique for high dimensional spaces
-    #without this, my code can take more than 2 hours for 3 sources
+        if not os.path.lexists(data.output_folder+str(data.name)):
+            os.mkdir(data.output_folder+str(data.name))
 
-    #sampler.stepsampler = ultranest.dychmc.DynamicCHMCSampler(scale = 1, nsteps = 20, adaptive_nsteps=False, delta=0.9, nudge=1.04)
-    #sampler.stepsampler =  ultranest.popstepsampler.PopulationSliceSampler(popsize = 10, nsteps = 20, generate_direction = ultranest.stepsampler.generate_mixture_random_direction, scale=1.0, scale_adapt_factor=0.9, log=False, logfile=None)
+        sampler = ultranest.ReactiveNestedSampler(P['names'], my_posterior, my_params_transform, resume=True, log_dir=  data.output_folder+str(data.name)+'/ultranest', vectorized=True)
 
-    sampler.run(
-     min_num_live_points=400,
-     min_ess=400, # number of effective samples
-     max_num_improvement_loops=3, # how many times to go back and improve
- ) 
-
-    sampler.plot_run()
-    sampler.plot_trace()
-    sampler.plot_corner()
+        if mc['direction_generation'] == 'de-mix':
+            direction_stepsampler = ultranest.stepsampler.generate_mixture_random_direction
+        elif mc['direction_generation'] == 'region-slice':
+            direction_stepsampler = ultranest.stepsampler.generate_region_oriented_direction
+        elif mc['direction_generation'] == 'cube-ortho-harm':
+            direction_stepsampler = OrthogonalDirectionGenerator(ultranest.stepsampler.generate_random_direction)
 
 
+        sampler.stepsampler = ultranest.stepsampler.SliceSampler( nsteps=20,
+         generate_direction = direction_stepsampler)  # step sampling technique for high dimensional spaces
+                                                      #without this, the code can take more than 2h for 3 sources
 
+        sampler.run( min_num_live_points= mc['live_points'], min_ess= mc['min_ess'], max_num_improvement_loops = mc['num_loops'] , ) 
+        sampler.plot_run()
+        sampler.plot_trace()
+        sampler.plot_corner()
+
+    elif mc['sampling_algorithm'] == 'emcee':
+        sampler = emcee.EnsembleSampler( mc['Nwalkers'], Npar, parspace.ln_probab, args=[data, models, P])
+
+        ## BURN-IN SETS ##
+        if mc['Nburn'] > 0:
+            t1 = time.time()
+            if not os.path.lexists(data.output_folder+str(data.name)):
+                os.mkdir(data.output_folder+str(data.name))
+
+            p_maxlike = parspace.get_initial_positions(mc['Nwalkers'], P)
+            Nr_BurnIns = mc['Nburnsets']  
+
+            for i in range(Nr_BurnIns):
+                p_maxlike, state = run_burn_in(sampler, mc, p_maxlike, data.name, data.output_folder, i)
+                savedfile = data.output_folder+str(data.name)+'/samples_burn1-2-3.sav'
+                p_maxlike = parspace.get_best_position(savedfile, mc['Nwalkers'], P)
+            print( '%.2g min elapsed' % ((time.time() - t1)/60.))
+
+        ## MCMC SAMPLING ##
+        if mc['Nmcmc'] > 0:
+            t2 = time.time()
+            run_mcmc(sampler, p_maxlike, data.name,data.output_folder, mc)
+            print( '%.2g min elapsed' % ((time.time() - t2)/60.))
+        del sampler.pool  
+
+"""==================================================
+ SAMPLING FUNCTIONS
+=================================================="""
+
+
+def run_burn_in(sampler, mc, p0, sourcename, folder, setnr):
+    """ Run and save a set of burn-in iterations."""
+
+    print( 'Running burn-in nr. '+ str(setnr)+' with %i steps' % mc['Nburn'])
+    
+    iprint = mc['iprint']
+
+    # note the results are saved in the sampler object.
+    for i,(pos, lnprob, state) in enumerate(sampler.sample(p0, iterations=mc['Nburn'])):
+        i += 1
+        if not i % iprint:
+            print( i )
+        
+    save_chains(folder+str(sourcename)+'/samples_burn1-2-3.sav', sampler, pos, state)
+
+    return pos, state   
+
+
+def run_mcmc(sampler, pburn, sourcename, folder, mc):
+    """
+    Run MCMC sampling and save.    
+    """
+
+    sampler.reset()
+
+    iprint = mc['iprint']
+    print( "Running MCMC with %i steps" % mc['Nmcmc'])
+
+    for i,(pos, lnprob, state) in enumerate(sampler.sample(pburn, iterations=mc['Nmcmc'])): 
+        i += 1
+        if not i % iprint:
+            print( i)
+            
+    save_chains(folder+str(sourcename)+'/samples_mcmc.sav', sampler, pos, state)   
+
+
+def save_chains(filename, sampler, pos, state):
+    """
+    Save dictionary which contains:
+    -chains
+    -acceptance_fraction
+    -lnprob
+    -last positions
+    -autocorrelation time 
+    into .sav files, using cPickle.
+    """
+    f = open(filename, 'wb')
+    pickle.dump(dict(
+        chain=sampler.chain, accept=sampler.acceptance_fraction,
+        lnprob=sampler.lnprobability, final_pos=pos, state=state, acor=sampler.acor), f, protocol=2)
+    f.close()
 

@@ -52,17 +52,25 @@ def Pdict (data, models):
 
     ## Add normalization parameters:
     [par_mins.append(i) for i in [-10,-10.,-10]]
-    [par_maxs.append(i)for i in [ 10, 10,10]]  ##ALTERADO
+    [par_maxs.append(i)for i in [ 10, 10,10]]  
     normpars=['GA','SB','TO'] 
+    if models.settings['turn_on_AGN'] != True:
+        par_maxs[-1] = -9.8  
 
-    if models.settings['BBB']=='R06': #Only the Richards et al. model need normalization parameter
+    if models.settings['BBB']=='R06' or models.settings['BBB']=='THB21': #Only the Richards et al. model need normalization parameter
         par_mins.append(-10.)
-        par_maxs.append(-9)  
+        if models.settings['turn_on_AGN'] == True:
+            par_maxs.append(10)  
+        else:
+            par_maxs.append(-9.8) 
         normpars.append('BB') 
 
     if models.settings['RADIO'] == True:
         par_mins.append(-10.)
-        par_maxs.append(10)           
+        if models.settings['turn_on_AGN'] == True:
+            par_maxs.append(10)  
+        else:
+            par_maxs.append(-9.8)         
         normpars.append('RAD')
 
     if models.settings['RADIO'] == True and (agnrad.pars_modelkeys != ['-99.9']).all(): #If there is a radio model with fitting parameters
@@ -106,8 +114,9 @@ def ln_prior(data, models, P, *pars):
          from the galaxy luminosity function as a maximum of the prior.
 
     """
+
     for i,p in enumerate(pars):
-        if not (P['min'][i] < p < P['max'][i]):
+        if not (P['min'][i] <= p <= P['max'][i]):
             return -np.inf
 
     prior= priors.PRIORS(data, models, P, *pars)
@@ -188,7 +197,7 @@ def ymodel(data_nus, z, dlum, models, P, *par):
     gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj = models.dictkey_arrays
 
     if models.settings['RADIO'] == True:
-        if models.settings['BBB']=='R06':
+        if models.settings['BBB']=='R06' or models.settings['BBB']=='THB21':
             GA, SB, TO, BB, RAD = par[-5:]
         else:
             GA, SB, TO, RAD = par[-4:]
@@ -198,7 +207,7 @@ def ymodel(data_nus, z, dlum, models, P, *par):
         else:           #If the model have fix parameters, there aren't included in the exploration of parameters space and there is an unique SED template
             all_agnrad_nus, agnrad_Fnu = agnrad_obj.get_fluxes('-99.9')
     else:
-        if models.settings['BBB']=='R06':
+        if models.settings['BBB']=='R06' or models.settings['BBB']=='THB21':
             GA, SB, TO, BB = par[-4:]
         else:
             GA, SB, TO = par[-3:]
@@ -217,7 +226,7 @@ def ymodel(data_nus, z, dlum, models, P, *par):
     except ValueError:
          print ('Error: Dictionary does not contain some values')
 
-    if models.settings['BBB'] !='R06':  #The other accretion disk models have a different normalization (only during the exploration of the parameters space)
+    if models.settings['BBB'] !='R06' and models.settings['BBB'] !='THB21':  #The other accretion disk models have a different normalization (only during the exploration of the parameters space)
         bbb_Fnu = bbb_Fnu/ (4*np.pi*dlum**2)
         BB=0
 
