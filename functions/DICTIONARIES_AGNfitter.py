@@ -14,16 +14,14 @@ This script contains all functions which are needed to construct the total model
     
 
 """
+import sys,os
 import numpy as np
-import sys
-from collections import defaultdict
-
-import MODEL_AGNfitter as model
+from . import MODEL_AGNfitter as model
+from . import FILTERS_AGNfitter as filterpy
 from scipy.integrate  import trapz
+from scipy.interpolate import interp1d
 import time
-import cPickle
-import shelve
-from astropy import units as u 
+import pickle 
 
 
 class MODELSDICT:
@@ -36,607 +34,475 @@ class MODELSDICT:
 
     ##input: 
     - filename of the dictionary you want to create
-    - the path whre it will be located
+    - the AGNfitter path is in your computer 
+    - the filters settings (dictionary from the settings file)
 
     - Also variables self.ebvgal_array,self.ebvbbb_array, self.z_array
-      can be change by the user, for a finer grid in this parameters.
+      can be changed by the user, for a finer grid in this parameters.
     ##bugs: 
 
     """     
 
-    def __init__(self, filename, path, filters):
+    def __init__(self, filename, path, filters, models, nRADdata, nXRaysdata):
         self.filename = filename
         self.path=path
-        self.ebvgal_array = np.array(np.arange(0.,100.,5.)/100)
-        self.ebvbbb_array = np.array(np.arange(0.,100.,5.)/100)
+        self.modelsettings=models
+        self.nRADdata = nRADdata  #Number of valid radio data
+        self.nXRaysdata = nXRaysdata  #Number of valid Xrays data
+
+        ## To be called form filters
         self.z_array = filters['dict_zarray']
-        self.filterset = filters['Bandset']
-        self.filters = filters
+                    
+        a = dict.fromkeys(filters)
+
+        for i in range(len(list(a.keys()))):
+
+            if list(a.keys())[i] == 'add_filters' or list(a.keys())[i] == 'dict_zarray' or list(a.keys())[i] == 'add_filters_dict' or list(a.keys())[i] == 'path':
+
+                a[list(a.keys())[i]] = filters[list(a.keys())[i]]               
+                
+            else:
+                a[list(a.keys())[i]] = filters[list(a.keys())[i]]
+
+        self.filters_list = a
+        if os.path.lexists(filename):
+            self.fo = pickle.load(open(filename, 'rb'))
+            self.filters = self.fo.filternames
+            self.filterset_name = self.fo.name
+        else:
+            self.fo = filterpy.create_filtersets(a, path)
+            self.filters = self.fo.filternames
+            self.filterset_name = self.fo.name
+
+    def construct_dictionaryarray_filtered(self, z, filterdict):
+
+        """
+        Construct the dictionaries of fluxes at bands (to compare to data), 
+        and dictionaries of fluxes over the whole spectrum, for plotting.
+        All calculations are done at one given redshift.
+        """
+
+        self.GALAXYFdict = dict()
+        self.STARBURSTFdict = dict()        
+        self.BBBFdict = dict()
+        self.TORUSFdict = dict()
+        self.z= z
+        self.filterdict= filterdict
+        self.GALAXYFdict_4plot, self.GALAXY_SFRdict, self.GALAXYatt_dict, galaxy_parnames, galaxy_partypes,self.GALAXYfunctions  = model.GALAXY(self.path, self.modelsettings)
+        for c in self.GALAXYFdict_4plot.keys():
+                    gal_nu, gal_Fnu=self.GALAXYFdict_4plot[c]               
+                    bands,  gal_Fnu_filtered =  filtering_models(gal_nu, gal_Fnu, filterdict, z)            
+                    self.GALAXYFdict[c] = bands, gal_Fnu_filtered.flatten()
+
+        self.STARBURSTFdict_4plot, self.STARBURST_LIRdict, starburst_parnames, starburst_partypes ,self.STARBURSTfunctions = model.STARBURST(self.path, self.modelsettings)
+        for c in self.STARBURSTFdict_4plot.keys():
+                    sb_nu, sb_Fnu=self.STARBURSTFdict_4plot[c]               
+                    bands, sb_Fnu_filtered  =  filtering_models(sb_nu, sb_Fnu, filterdict, z)            
+                    self.STARBURSTFdict[c] = bands, sb_Fnu_filtered.flatten()
+
+        self.BBBFdict_4plot, bbb_parnames, bbb_partypes ,self.BBBfunctions= model.BBB(self.path, self.modelsettings, self.nXRaysdata)
+        for c in self.BBBFdict_4plot.keys():
+                    bbb_nu, bbb_Fnu=self.BBBFdict_4plot[c]             
+                    bands,  bbb_Fnu_filtered =  filtering_models(bbb_nu, bbb_Fnu, filterdict, z)              
+                    self.BBBFdict[c] = bands, bbb_Fnu_filtered.flatten()
+
+        self.TORUSFdict_4plot, torus_parnames, torus_partypes ,self.TORUSfunctions = model.TORUS(self.path, self.modelsettings)
+        for c in self.TORUSFdict_4plot.keys():
+                    tor_nu, tor_Fnu=self.TORUSFdict_4plot[c]               
+                    bands, tor_Fnu_filtered  =  filtering_models(tor_nu, tor_Fnu, filterdict, z)            
+                    self.TORUSFdict[c] = bands, tor_Fnu_filtered.flatten()
+
+        norm_parnames = ['GA', 'SB', 'BB', 'TO' ]
+        norm_partypes = ['free', 'free', 'free', 'free' ]
+        self.all_parnames = [galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames]
+        self.all_partypes = [galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes]
+
+
+        if self.modelsettings['RADIO']== True:  #If there are radio data available, the SEDfitting consider 5 components (AGN radio is the 5th)
+            self.AGN_RADFdict = dict()
+            self.AGN_RADFdict_4plot, agnrad_parnames, agnrad_partypes, self.AGN_RADfunctions  = model.AGN_RAD(self.path, self.modelsettings, self.nRADdata)
+            for c in self.AGN_RADFdict_4plot.keys():
+                agnrad_nu, agnrad_Fnu = self.AGN_RADFdict_4plot[c]               
+                bands, agnrad_Fnu_filtered  =  filtering_models(agnrad_nu, agnrad_Fnu, filterdict, z)            
+                self.AGN_RADFdict[c] = bands, agnrad_Fnu_filtered.flatten()
+            norm_parnames.append('RAD')
+            norm_partypes.append('free')
+            self.all_parnames.extend((agnrad_parnames, norm_parnames))
+            self.all_partypes.extend((agnrad_partypes, norm_partypes))
+
+        else:
+            self.all_parnames.append(norm_parnames)
+            self.all_partypes.append(norm_partypes)
+
 
     def build(self):
 
-        f = open(self.filename, 'wb')
-
-        COSMOS_modelsdict = dict()
-
-        print 'MODELSDICT.build'
-        print 'Constructing Dictionary of models.' 
-        print '--------------------------------------'
-        print 'Make sure the filterset contains all the photometric bands'
-        print 'needed by your catalog.'
-        print 'This process might take a while, but you have to do it only once.'
-        print 'If you interrupt it, please trash the empty file created.'
-        print ''
+        Modelsdict = dict()
 
         i=0
         dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
     
         for z in self.z_array:                
             i += 1
-            filterdict = filter_dictionaries(self.filterset, self.path, self.filters)
-            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict, self.path)
-            COSMOS_modelsdict[str(z)] = dict_modelsfiltered
-
+            filterdict = [self.fo.central_nu_array, self.fo.lambdas_dict, self.fo.factors_dict]
+            dict_modelsfiltered = self.construct_dictionaryarray_filtered(z, filterdict)          #Models SEDs are redshifted and filtered
+            Modelsdict[str(z)] = dict_modelsfiltered
             time.sleep(0.01)
             dictionary_progressbar(i, len(self.z_array), prefix = 'Dict:', suffix = 'Complete', barLength = 50)
 
+        self.MD = Modelsdict
 
-
-        print 'Dictionary has been created in :', self.filename
-
-        cPickle.dump(COSMOS_modelsdict, f, protocol=2)
-        f.close()
-
-
-
-    def construct_dictionaryarray_filtered(self, z, filterdict,path):
-
-        """
-        Construct the dictionaries of fluxes at bands (to compare to data), 
-        and dictionaries of fluxes over the whole spectrum, for plotting.
-        """
-
-        GALAXYFdict_filtered = dict()
-        GALAXY_SFRdict = dict()
-        STARBURSTFdict_filtered = dict()        
-        BBBFdict_filtered = dict()
-        TORUSFdict_filtered = dict()
-
-        GALAXYFdict_4plot = dict()
-        STARBURSTFdict_4plot = dict()        
-        BBBFdict_4plot = dict()
-        TORUSFdict_4plot = dict()
-
-
-
-        #OPENING TEMPLATES AND BUILDING DICTIONARIES
-
-
-        #Call object containing all galaxy models     
-        galaxy_object = cPickle.load(file(path + 'models/GALAXY/bc03_275templates.pickle', 'rb')) 
-        _, ageidx, tauidx, _, _,_ =  np.shape(galaxy_object.SED)
-        #Construct dictionaries 
-        for taui in range(tauidx):
-            for agei in range(ageidx):
-                t1= time.time()
-                gal_wl, gal_Fwl =  galaxy_object.wave, galaxy_object.SED[:,agei,taui,:,:,:].squeeze()
-                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
-                gal_Fnu= (gal_Fwl * 3.34e-19 * gal_wl**2.)[::-1]  
-                gal_SFR= galaxy_object.SFR[:,agei,taui,:,:].squeeze()
-                GALAXY_SFRdict[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei])] = gal_SFR
-
-                for EBV_gal in self.ebvgal_array:
-                    #Apply reddening            
-                    gal_nu, gal_Fnu_red = model.GALAXYred_Calzetti(gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], EBV_gal)                    
-                    GALAXYFdict_4plot[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei]), str(EBV_gal)] = \
-                                                                                            np.log10(gal_nu), gal_Fnu_red
-                    #Projection of filter curves on models
-                    bands,  gal_Fnu_filtered =  model.filters1(np.log10(gal_nu), gal_Fnu_red, filterdict, z)            
-                    GALAXYFdict_filtered[str(galaxy_object.tau.value[taui]),str(galaxy_object.tg.value[agei]), str(EBV_gal)] = \
-                                                                                                        bands, gal_Fnu_filtered
-        #Call object containing all starburst models     
-        starburst_object = cPickle.load(file(path + 'models/STARBURST/dalehelou_charyelbaz_v1.pickle', 'rb')) 
-        irlumidx = len(starburst_object.SED)
-        #Construct dictionaries 
-        for irlumi in range(irlumidx):
-            sb_nu0, sb_Fnu0 = starburst_object.wave[irlumi], starburst_object.SED[irlumi].squeeze()
-            STARBURSTFdict_4plot[str(starburst_object.irlum[irlumi])] = sb_nu0, sb_Fnu0
-            bands, sb_Fnu_filtered = model.filters1(sb_nu0, sb_Fnu0, filterdict, z)
-            STARBURSTFdict_filtered[str(starburst_object.irlum[irlumi])] = bands, sb_Fnu_filtered
-            if np.amax(sb_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of STARBURST flux'
-
-
-
-        #No object to call since bbb is only one model     
-        bbb_object = cPickle.load(file(path + 'models/BBB/richards.pickle', 'rb')) 
-
-        bbb_nu, bbb_Fnu = bbb_object.wave, bbb_object.SED.squeeze()
-        #Construct dictionaries
-        for EBV_bbb in self.ebvbbb_array:
-            bbb_nu0, bbb_Fnu_red = model.BBBred_Prevot(bbb_nu, bbb_Fnu, EBV_bbb, z )
-            BBBFdict_4plot[str(EBV_bbb)] =bbb_nu0, bbb_Fnu_red
-            bands, bbb_Fnu_filtered = model.filters1(bbb_nu0, bbb_Fnu_red, filterdict,z)
-            BBBFdict_filtered[str(EBV_bbb)] = bands, bbb_Fnu_filtered
-            if np.amax(bbb_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of BBB flux'            
-
-
-
-        #Call object containing all torus models     
-        torus_object = cPickle.load(file(path + 'models/TORUS/silva_v1.pickle', 'rb')) 
-        nhidx=len(torus_object.SED)
-        #Construct dictionaries 
-        for nhi in range(nhidx):
-
-            tor_nu0, tor_Fnu0 = torus_object.wave[nhi], torus_object.SED[nhi].squeeze()
-            TORUSFdict_4plot[str(torus_object.nh[nhi])] = tor_nu0, tor_Fnu0
-
-            bands, tor_Fnu_filtered = model.filters1(tor_nu0, tor_Fnu0, filterdict, z)
-            TORUSFdict_filtered[str(torus_object.nh[nhi])] = bands, tor_Fnu_filtered
-            if np.amax(tor_Fnu_filtered) == 0:
-                print 'Error: something is wrong in the calculation of TORUS flux'
-
-
-
-
-        return STARBURSTFdict_filtered , BBBFdict_filtered, GALAXYFdict_filtered, TORUSFdict_filtered, \
-               STARBURSTFdict_4plot , BBBFdict_4plot, GALAXYFdict_4plot, TORUSFdict_4plot,GALAXY_SFRdict
-               
-
-
-
-
-def dictkey_arrays(MODELSdict):
+def dictkey_arrays(MD):
 
     """
-    Construct the dictionaries of fluxes at bands (to campare to data), 
-    and dictionaries of fluxes over the whole spectrum, for plotting.
+    Summarizes the model dictionary keys and does the interpolation to nearest value in grid.
+    used to be transporte to data
 
     ##input:
 
     ##output:
     """
 
-    STARBURSTFdict , BBBFdict, GALAXYFdict, TORUSFdict, _,_,_,_,GALAXY_SFRdict= MODELSdict
-    tau_dict= np.array(list(GALAXYFdict.keys()))[:,0]
-    age_dict= np.array(list(GALAXYFdict.keys()))[:,1]
-    ebvg_dict = np.array(list(GALAXYFdict.keys()))[:,2]
+    galaxy_parkeys= np.array(list(MD.GALAXYFdict.keys()))
+    starburst_parkeys = np.array(list(MD.STARBURSTFdict.keys()))
+    torus_parkeys = np.array(list(MD.TORUSFdict.keys()))
+    bbb_parkeys = np.array(list(MD.BBBFdict.keys()))
 
-    irlum_dict = np.array(list(STARBURSTFdict.keys()))
-    nh_dict = np.array(list(TORUSFdict.keys()))
-    ebvb_dict = np.array(list(BBBFdict.keys()))
+    class get_model:
+            def __init__(self, par_names, par_types, pars_modelkeys, modelsdict, z, functionidxs, functions):
+
+                self.pars_modelkeys=pars_modelkeys.T
+                self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
+                self.par_names = par_names
+                self.par_types = par_types
+                self.modelsdict = modelsdict
+                self.functions = functions
+                self.functionidxs=functionidxs
+                self.z= z
+
+            def pick_nD(self, pars_mcmc): 
+                self.matched_parkeys = []
+                self.matched_parkeys_grid = []
+
+                if len(pars_mcmc)==1:
+                    for i in range(len(pars_mcmc)):   
+                        if self.par_types[i] == 'grid':
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin()  #Choose the parameter value closest to that found by mcmc
+                            matched_parkey = self.pars_modelkeys[matched_idx]
+                            self.matched_parkeys =matched_parkey
+                            self.matched_parkeys_grid=self.matched_parkeys
+                        elif self.par_types[i] == 'free':
+                            self.matched_parkeys=pars_mcmc[i]                                    #Values found by mcmc in case of free parameters
+                            self.matched_parkeys_grid=self.pars_modelkeys[0]
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                else:
+                    for i in range(len(pars_mcmc)):
+                        if self.par_types[i] == 'grid': 
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
+                            matched_parkey = self.pars_modelkeys[i][matched_idx]
+                            self.matched_parkeys.append(matched_parkey)
+                            self.matched_parkeys_grid.append(matched_parkey)     
+                        elif self.par_types[i] == 'free':
+                            self.matched_parkeys.append(pars_mcmc[i])                               #Values found by mcmc in case of free parameters
+                            self.matched_parkeys_grid.append(self.pars_modelkeys[i,0]) 
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                    self.matched_parkeys=tuple(self.matched_parkeys)
+
+            def get_fluxes(self,  matched_parkeys):  #From the dictionary of redshifted and filtered models
+                    
+                    if 'free' not in self.par_types:   
+                        return self.modelsdict[matched_parkeys]
 
 
-    #For computational reasons (to be used in PARAMETERspace_AGNfitter.py)
-    class gal_class:
-        def __init__(self, tau_dict, age_dict, ebvg_dict):
-            self.tau_dict =tau_dict
-            self.age_dict= age_dict
-            self.ebvg_dict = ebvg_dict
-            self.tau_dict_float =tau_dict.astype(float)
-            self.age_dict_float= age_dict.astype(float)
-            self.ebvg_dict_float = ebvg_dict.astype(float)
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':  #This is for the case of EBVgal == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                        #Rest frame frequency
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])       #Calzetti function need normal frequency (not log)
+                        bandsf = np.log10(bandsf) - np.log10((1+self.z))                 #Come back to frequency corrected by redshift
+                        return bandsf, Fnuf
 
-        def nearest_par2dict(self, tau, age, ebvg):    
-            taui =np.abs(self.tau_dict_float-tau).argmin()
-            agei= np.abs(self.age_dict_float-age).argmin()
-            ebvgi = np.abs(self.ebvg_dict_float-ebvg).argmin()
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        #R06 without X-Rays only have 1 parameter (EBV_bbb) and not a list of parameters so tuple() produce problems
+                        if type(self.matched_parkeys_grid) != list:         
+                            bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                            matched_parkeys = [matched_parkeys]
+                        else:
+                            bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])  
+                        bandsf = bandsf - np.log10((1+self.z))                            #Come back to frequency corrected by redshift
 
-            self.t = tau_dict[taui]
-            self.a= age_dict[agei]
-            self.e= ebvg_dict[ebvgi]
+                        return bandsf, Fnuf
 
-    gal_obj = gal_class(tau_dict, age_dict, ebvg_dict)
+                    elif self.par_types[-2: ] == ['free', 'free'] and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']: 
+                        fcts=self.functions()
+                        idxs= 0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))     #Add the effect of alpha_ox scatter
 
-    return gal_obj, irlum_dict, nh_dict, ebvb_dict, GALAXY_SFRdict
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs= 0
+                        f=fcts[self.functionidxs[idxs]]
+                        bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        rest_bands = bands + np.log10((1+self.z))                         #Rest frame frequency
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) - np.log10((1+self.z))   #Come back to redshifted frequency
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))     #Add the effect of alpha_ox scatter
+
+                        return bandsf, Fnuf
+                    else: 
+                        print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+    if MD.modelsettings['RADIO']== True:
+        agnrad_parkeys = np.array(list(MD.AGN_RADFdict.keys()))
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, agnrad_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, agnrad_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj=get_model(agnrad_parnames,agnrad_partypes,agnrad_parkeys,MD.AGN_RADFdict,MD.z, MD.AGN_RADfunctions ,model.AGN_RADfunctions)
+
+    else:     
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
+
+    gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
+    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
+    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict,MD.z, MD.TORUSfunctions, model.TORUSfunctions)
+    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict,MD.z, MD.BBBfunctions ,model.BBBfunctions)
+
+    return gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj
+
+
+def dictkey_arrays_4plot(MD):
+    """
+    Summarizes the model dictionary keys and does the interpolation to nearest value in grid.
+    used to be transporte to data
+
+    ##input:
+
+    ##output:
+    """
+
+    galaxy_parkeys= np.array(list(MD.GALAXYFdict.keys()))
+    starburst_parkeys = np.array(list(MD.STARBURSTFdict.keys()))
+    torus_parkeys = np.array(list(MD.TORUSFdict.keys()))
+    bbb_parkeys = np.array(list(MD.BBBFdict.keys()))
+
+#    class pick_obj:
+    class get_model:
+            def __init__(self, par_names, par_types, pars_modelkeys, modelsdict, z, functionidxs, functions):
+
+                self.pars_modelkeys=pars_modelkeys.T
+                self.pars_modelkeys_float =self.pars_modelkeys.astype(float)
+                self.par_names = par_names
+                self.par_types = par_types
+                self.modelsdict = modelsdict
+                self.functions = functions
+                self.functionidxs=functionidxs
+                self.z= z
+
+            def pick_nD(self, pars_mcmc): 
+                self.matched_parkeys = []
+                self.matched_parkeys_grid = []
+
+                if len(pars_mcmc)==1:
+                    for i in range(len(pars_mcmc)):   
+                        if self.par_types[i] == 'grid':
+                            matched_idx =np.abs(self.pars_modelkeys_float-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
+                            matched_parkey = self.pars_modelkeys[matched_idx]
+                            self.matched_parkeys =matched_parkey
+                            self.matched_parkeys_grid=self.matched_parkeys
+                        elif self.par_types[i] == 'free':
+                            self.matched_parkeys=pars_mcmc[i]                                   #Values found by mcmc in case of free parameters
+                            self.matched_parkeys_grid = self.pars_modelkeys[0]
+                        else: 
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                else:
+                    for i in range(len(pars_mcmc)):
+                        if self.par_types[i] == 'grid': #if not 'grid'  
+                            matched_idx =np.abs(self.pars_modelkeys_float[i]-pars_mcmc[i]).argmin() #Choose the parameter value closest to that found by mcmc
+                            matched_parkey = self.pars_modelkeys[i][matched_idx]
+                            self.matched_parkeys.append(matched_parkey)
+                            self.matched_parkeys_grid.append(matched_parkey)
+                        elif self.par_types[i] == 'free':
+                            #print ('line 206 dic : Free partype')
+                            self.matched_parkeys.append(pars_mcmc[i])                              #Values found by mcmc in case of free parameters
+                            self.matched_parkeys_grid.append(self.pars_modelkeys[i, 0])
+                        else:
+                            print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+                    self.matched_parkeys=tuple(self.matched_parkeys)
+
+            def get_fluxes(self,  matched_parkeys):    #From the dictionary of original models (without redshifting and filtering)
+                    
+                    if 'free' not in self.par_types:  
+                        return self.modelsdict[matched_parkeys]
+
+
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVgal':   #This is for the case of EBVgal == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(10**rest_bands, Fnu, matched_parkeys[-1])    #Calzetti function need normal frequency (not log)
+
+                        return np.log10(bandsf), Fnuf
+
+                    elif 'free' in self.par_types and self.par_names[-1] == 'EBVbbb':  #This is for the case of EBVbbb == free
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        #R06 without X-Rays only have 1 parameter (EBV_bbb) and not a list of parameters so tuple() produce problems
+                        if type(self.matched_parkeys_grid) != list:          
+                            rest_bands, Fnu = self.modelsdict[self.matched_parkeys_grid] 
+                            matched_parkeys = [matched_parkeys]
+                        else:
+                            rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)] 
+                        bandsf, Fnuf = f(rest_bands, Fnu, matched_parkeys[-1])    
+
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-2: ] == ['free', 'free'] and self.par_names[-2: ] == ['EBVbbb', 'alphaScat']:
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-2])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-1]/0.3838)))   #Add the effect of alpha_ox scatter
+                        return bandsf, Fnuf
+
+                    elif self.par_types[-3: ] == ['free', 'free', 'grid'] and self.par_names[-3: ] == ['EBVbbb', 'alphaScat', 'Gamma']: 
+                        fcts=self.functions()
+                        idxs=0
+                        f=fcts[self.functionidxs[idxs]]
+                        rest_bands, Fnu = self.modelsdict[tuple(self.matched_parkeys_grid)]
+                        bandsf0, Fnuf0 = f(rest_bands[rest_bands < 16.685], Fnu[rest_bands < 16.685], matched_parkeys[-3])
+                        bandsf =  np.concatenate((bandsf0, rest_bands[rest_bands >= 16.685])) 
+                        Fnuf = np.concatenate((Fnuf0, Fnu[rest_bands >= 16.685]*10**(matched_parkeys[-2]/0.3838)))   #Add the effect of alpha_ox scatter
+                        return bandsf, Fnuf
+
+                    else: 
+                        print('Error DICTIONARIES_AGNfitter.py: parameter type ',self.par_types, ' is unknown.')
+
+    if MD.modelsettings['RADIO']== True:
+        agnrad_parkeys = np.array(list(MD.AGN_RADFdict.keys()))
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, agnrad_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, agnrad_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj=get_model(agnrad_parnames,agnrad_partypes,agnrad_parkeys,MD.AGN_RADFdict_4plot,MD.z, MD.AGN_RADfunctions, model.AGN_RADfunctions)
+
+    else:     
+        galaxy_parnames, starburst_parnames,torus_parnames, bbb_parnames, norm_parnames = MD.all_parnames
+        galaxy_partypes, starburst_partypes,torus_partypes, bbb_partypes, norm_partypes = MD.all_partypes 
+        agnrad_obj = '-99.9'   #If there isn't AGN radio model create a false object, so the get model class always return 5 elements
+
+    gal_obj =get_model(galaxy_parnames,galaxy_partypes,galaxy_parkeys, MD.GALAXYFdict_4plot, MD.z, MD.GALAXYfunctions, model.GALAXYfunctions)
+    sb_obj =get_model(starburst_parnames,starburst_partypes,starburst_parkeys, MD.STARBURSTFdict_4plot,MD.z, MD.STARBURSTfunctions, model.STARBURSTfunctions)
+    tor_obj=get_model(torus_parnames,torus_partypes,torus_parkeys, MD.TORUSFdict_4plot,MD.z, MD.TORUSfunctions, model.TORUSfunctions)
+    bbb_obj=get_model(bbb_parnames,bbb_partypes,bbb_parkeys,MD.BBBFdict_4plot,MD.z, MD.BBBfunctions ,model.BBBfunctions)
+
+    return gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj
 
 
 
-
-
-def filter_dictionaries(filterset, path, filters):
+def filtering_models( model_nus, model_fluxes, filterdict, z ):    
 
     """
-    Constructs the dictionaries of fluxes 
-    1) specifically for your photometric bands (to campare to data), and
-    2) dictionaries of fluxes for the whole spectrum, for plotting.
+    Projects the model SEDs into the filter curves of each photometric band.
 
-    input
-    -------
-    - filterset: Here we have two types of filterset: 
-    'BANDSET_default' or 'BANDSET_settings'.
-    This was specified from the RUN_AGNfitter_multi.py script.
+    ##input:
+    - model_nus: template frequencies [log10(nu)]
+    - model_fluxes: template fluxes [F_nu]
+    - filterdict: dictionary with all band filter curves' information.
+                  To change this, add one band and filter curve, etc,
+                  look at DICTIONARIES_AGNfitter.py
+    - z: redshift
 
-    'BANDSET_default' includes bands needed for the example.
-    'BANDSET_settings' includes all bands you specify in RUN_AGNfitter_multi.py. 
-
-    dependency
-    ----------
-    This function is called in the CLASS MODELSDICT
-
+    ##output:
+    - bands [log10(nu)]
+    - Filtered fluxes at these bands [F_nu]
     """
-    H500band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_500mu.txt'
-    H500_lambda, H500_factor =  np.loadtxt(H500band_file, usecols=(0,1),unpack= True)
 
-    H350band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_350mu.txt'
-    H350_lambda, H350_factor =  np.loadtxt(H350band_file, usecols=(0,1),unpack= True)
+    bands, lambdas_dict, factors_dict = filterdict
+    filtered_model_Fnus = []
+
+
+    # Costumize model frequencies and fluxes [F_nu]
+    # to same units as filter curves (to wavelengths [angstrom] and F_lambda)
+    model_lambdas = nu2lambda_angstrom(model_nus) * (1+z)
+    model_lambdas =  model_lambdas[::-1]
+    model_fluxes_nu =  model_fluxes[::-1]
+    model_fluxes_lambda = fluxnu_2_fluxlambda(model_fluxes_nu, model_lambdas) 
+    mod2filter_interpol = interp1d(model_lambdas, model_fluxes_lambda, kind = 'nearest', bounds_error=False, fill_value=0.)            
+
+    # For filter curve at each band. 
+    # (Vectorised integration was not possible -> different filter-curve-arrays' sizes)
+    for iband in bands:
+
+        # Read filter curves info for each data point 
+        # (wavelengths [angstrom] and factors [non])
+        lambdas_filter = np.array(lambdas_dict[iband])
+        factors_filter = np.array(factors_dict[iband])
+        iband_angst = nu2lambda_angstrom(iband)
+        # Interpolate the model fluxes to 
+        #the exact wavelengths of filter curves
+        modelfluxes_at_filterlambdas = mod2filter_interpol(lambdas_filter)
+        # Compute the flux ratios, equivalent to the filtered fluxes: 
+        # F = int(model)/int(filter)
+        integral_model = trapz(modelfluxes_at_filterlambdas*factors_filter, x= lambdas_filter)
+        integral_filter = trapz(factors_filter, x= lambdas_filter)     
+        filtered_modelF_lambda = (integral_model/integral_filter)
+
+        # Convert all from lambda, F_lambda  to Fnu and nu    
+        filtered_modelFnu_atfilter_i = fluxlambda_2_fluxnu(filtered_modelF_lambda, iband_angst)
+        filtered_model_Fnus.append(filtered_modelFnu_atfilter_i)
+  
+    return bands, np.array(filtered_model_Fnus)
+
+
+
+## ---------------------------------------------------
+c = 2.997e8
+Angstrom = 1.e10
+
+def fluxlambda_2_fluxnu (flux_lambda, wl_angst):
+    """
+    Calculate F_nu from F_lambda.
+    """
+    flux_nu = flux_lambda * (wl_angst**2. ) / c /Angstrom
+    return flux_nu
+def fluxnu_2_fluxlambda (flux_nu, wl_angst):
+    """
+    Calculate F_lambda from  F_nu.
+    """
+    flux_lambda = flux_nu / wl_angst**2 *c * Angstrom
+    return flux_lambda #in angstrom
+def nu2lambda_angstrom(nus):
+    """
+    Calculate wavelength [angstrom] from frequency [log Hz].
+    """
+    lambdas = c / (10**nus) * Angstrom
+    return lambdas
+## ------------------------------------------------
 
-    H250band_file = path + 'models/FILTERS/HERSCHEL/SPIRE_250mu.txt'
-    H250_lambda, H250_factor =  np.loadtxt(H250band_file, usecols=(0,1),unpack= True)
 
-    H160band_file = path + 'models/FILTERS/HERSCHEL/PACS_160mu.txt'
-    H160_lambda, H160_factor =  np.loadtxt(H160band_file, usecols=(0,1),unpack= True)
-
-    H100band_file =path + 'models/FILTERS/HERSCHEL/PACS_100mu.txt'
-    H100_lambda, H100_factor =  np.loadtxt(H100band_file, usecols=(0,1),unpack= True)
-
-    #SPITZER
-    M160band_file = path + 'models/FILTERS/SPITZER/mips160.res'
-    M160_lambda, M160_factor =  np.loadtxt(M160band_file, usecols=(0,1),unpack= True)
-
-    M70band_file = path + 'models/FILTERS/SPITZER/mips70.res'
-    M70_lambda, M70_factor =  np.loadtxt(M70band_file, usecols=(0,1),unpack= True)
-
-    M24band_file =  path + 'models/FILTERS/SPITZER/mips24.res'
-    M24_lambda, M24_factor =  np.loadtxt(M24band_file, usecols=(0,1),unpack= True)
-
-    #IRAC
-    I4band_file = path + 'models/FILTERS/SPITZER/irac_ch4.res'
-    I4_lambda, I4_factor =  np.loadtxt(I4band_file, usecols=(0,1),unpack= True)
-
-    I3band_file =  path + 'models/FILTERS/SPITZER/irac_ch3.res'
-    I3_lambda, I3_factor =  np.loadtxt(I3band_file, usecols=(0,1),unpack= True)
-
-    I2band_file = path + 'models/FILTERS/SPITZER/irac_ch2.res'
-    I2_lambda, I2_factor =  np.loadtxt(I2band_file, usecols=(0,1),unpack= True)
-
-    I1band_file = path + 'models/FILTERS/SPITZER/irac_ch1.res'
-    I1_lambda, I1_factor =  np.loadtxt(I1band_file, usecols=(0,1),unpack= True)
-
-    #WISE
-    W4band_file = path + 'models/FILTERS/WISE/NRSR-W4.txt'
-    W4_lambda, W4_factor =  np.loadtxt(W4band_file, usecols=(0,1),unpack= True)
-
-    W3band_file =  path + 'models/FILTERS/WISE/NRSR-W3.txt'
-    W3_lambda, W3_factor =  np.loadtxt(W3band_file, usecols=(0,1),unpack= True)
-
-    W2band_file = path + 'models/FILTERS/WISE/NRSR-W2.txt'
-    W2_lambda, W2_factor =  np.loadtxt(W2band_file, usecols=(0,1),unpack= True)
-
-    W1band_file = path + 'models/FILTERS/WISE/NRSR-W1.txt'
-    W1_lambda, W1_factor =  np.loadtxt(W1band_file, usecols=(0,1),unpack= True)
-
-    #2mass
-    Kband_file = path + 'models/FILTERS/2MASS/Ks_2mass.res'
-    K_lambda, K_factor =  np.loadtxt(Kband_file, usecols=(0,1),unpack= True)
-
-    Hband_file = path + 'models/FILTERS/2MASS/H_2mass.res'
-    H_lambda, H_factor =  np.loadtxt(Hband_file, usecols=(0,1),unpack= True)
-
-    Jband_file = path + 'models/FILTERS/2MASS/J_2mass.res'
-    J_lambda, J_factor =  np.loadtxt(Jband_file, usecols=(0,1),unpack= True)
-
-    #VISTA
-
-    Huvband_file = path + 'models/FILTERS/VISTA/H_uv.res'
-    Huv_lambda, Huv_factor =  np.loadtxt(Huvband_file, usecols=(0,1),unpack= True)
-
-    Juvband_file = path + 'models/FILTERS/VISTA/J_uv.res'
-    Juv_lambda, Juv_factor =  np.loadtxt(Juvband_file, usecols=(0,1),unpack= True)
-
-    Kuvband_file = path + 'models/FILTERS/VISTA/K_uv.res'
-    Kuv_lambda, Kuv_factor =  np.loadtxt(Kuvband_file, usecols=(0,1),unpack= True)
-
-    Yuvband_file = path + 'models/FILTERS/VISTA/Y_uv.res'
-    Yuv_lambda, Yuv_factor =  np.loadtxt(Yuvband_file, usecols=(0,1),unpack= True)
-
-    #CHFT ugriz
-    uband_file_CHFT = path + 'models/FILTERS/CHFT/u_megaprime_sagem.res'
-    u_lambda_CHFT, u_factor_CHFT =  np.loadtxt(uband_file_CHFT, usecols=(0,1),unpack= True)
-
-    gband_file_CHFT = path + 'models/FILTERS/CHFT/g_megaprime_sagem.res'
-    g_lambda_CHFT, g_factor_CHFT =  np.loadtxt(gband_file_CHFT, usecols=(0,1),unpack= True)
-
-    rband_file_CHFT = path + 'models/FILTERS/CHFT/r_megaprime_sagem.res'
-    r_lambda_CHFT, r_factor_CHFT =  np.loadtxt(rband_file_CHFT, usecols=(0,1),unpack= True)
-
-    iband_file_CHFT = path + 'models/FILTERS/CHFT/i_megaprime_sagem.res'
-    i_lambda_CHFT, i_factor_CHFT =  np.loadtxt(iband_file_CHFT, usecols=(0,1),unpack= True)
-
-    zband_file_CHFT = path + 'models/FILTERS/CHFT/z_megaprime_sagem.res'
-    z_lambda_CHFT, z_factor_CHFT =  np.loadtxt(zband_file_CHFT, usecols=(0,1),unpack= True)
-
-    #SDSS ugriz
-    uband_file_SDSS = path + 'models/FILTERS/SDSS/u_SDSS.res'
-    u_lambda_SDSS, u_factor_SDSS =  np.loadtxt(uband_file_SDSS, usecols=(0,1),unpack= True)
-
-    gband_file_SDSS = path + 'models/FILTERS/SDSS/g_SDSS.res'
-    g_lambda_SDSS, g_factor_SDSS =  np.loadtxt(gband_file_SDSS, usecols=(0,1),unpack= True)
-
-    rband_file_SDSS = path + 'models/FILTERS/SDSS/r_SDSS.res'
-    r_lambda_SDSS, r_factor_SDSS =  np.loadtxt(rband_file_SDSS, usecols=(0,1),unpack= True)
-
-    iband_file_SDSS = path + 'models/FILTERS/SDSS/i_SDSS.res'
-    i_lambda_SDSS, i_factor_SDSS =  np.loadtxt(iband_file_SDSS, usecols=(0,1),unpack= True)
-
-    zband_file_SDSS = path + 'models/FILTERS/SDSS/z_SDSS.res'
-    z_lambda_SDSS, z_factor_SDSS =  np.loadtxt(zband_file_SDSS, usecols=(0,1),unpack= True)
-
-    #SUBARU
-
-    gband_file =path + 'models/FILTERS/SUBARU/g_subaru.res'
-    g_lambda,g_factor =  np.loadtxt(gband_file, usecols=(0,1),unpack= True)
-
-    rband_file = path + 'models/FILTERS/SUBARU/r_subaru.res'
-    r_lambda,r_factor =  np.loadtxt(rband_file, usecols=(0,1),unpack= True)
-
-    iband_file = path + 'models/FILTERS/SUBARU/i_subaru.res'
-    i_lambda,i_factor =  np.loadtxt(iband_file, usecols=(0,1),unpack= True)
-
-    zband_file =path + 'models/FILTERS/SUBARU/z_subaru.res'
-    z_lambda, z_factor =  np.loadtxt(zband_file, usecols=(0,1),unpack= True)
-
-    Bband_file = path + 'models/FILTERS/SUBARU/B_subaru.res'
-    B_lambda, B_factor =  np.loadtxt(Bband_file, usecols=(0,1),unpack= True)
-
-    Vband_file = path + 'models/FILTERS/SUBARU/V_subaru.res'
-    V_lambda, V_factor =  np.loadtxt(Vband_file, usecols=(0,1),unpack= True)
-
-    #GALEX
-    NUVband_file = path + 'models/FILTERS/GALEX/galex2500.res'
-    NUV_lambda, NUV_factor =  np.loadtxt(NUVband_file, usecols=(0,1),unpack= True)
-
-    FUVband_file = path + 'models/FILTERS/GALEX/galex1500.res'
-    FUV_lambda, FUV_factor =  np.loadtxt(FUVband_file, usecols=(0,1),unpack= True)
-
-
-                
-    if filterset == 'BANDSET_default':
-
-
-        #List of file names
-        files = [ H500band_file, H350band_file, H250band_file, M24band_file, I4band_file ,\
-         I3band_file, I2band_file, I1band_file, Kband_file, Hband_file, Jband_file,\
-          Yuvband_file, zband_file , iband_file, rband_file,  Bband_file,  uband_file_CHFT, \
-          NUVband_file]
-
-        #List of all lambdas
-        lambdas = [H500_lambda, H350_lambda, H250_lambda, M24_lambda, I4_lambda , I3_lambda, \
-        I2_lambda, I1_lambda,  K_lambda, H_lambda, J_lambda, Yuv_lambda,  z_lambda, i_lambda, \
-        r_lambda, B_lambda,  u_lambda_CHFT, NUV_lambda]
-
-        #list of all factors corresponding to the lambdas
-        factors = [ H500_factor, H350_factor, H250_factor, M24_factor, I4_factor , I3_factor, \
-        I2_factor, I1_factor, K_factor, H_factor, J_factor, Yuv_factor, z_factor, i_factor, \
-        r_factor,  B_factor,  u_factor_CHFT, NUV_factor]
-
-
-        #dictionaries lambdas_dict, factors_dict
-        files_dict = defaultdict(list)
-        lambdas_dict = defaultdict(list)
-        factors_dict = defaultdict(list)
-        central_nu_list=[]
-
-        for i in range(len(files)):
-
-            c=    2.997e8
-            Angstrom = 1e10
-
-            central_lamb = np.sum(lambdas[i]*factors[i])/np.sum(factors[i])
-            central_nu = float(np.log10((Angstrom*c)/central_lamb))
-
-            files_dict[central_nu].append(files[i])
-            lambdas_dict[central_nu].append(lambdas[i])
-            factors_dict[central_nu].append(factors[i])
-
-            central_nu_list.append(central_nu)
-
-
-    if filterset == 'BANDSET_settings':
-
-        files =[]
-        lambdas = []
-        factors = []
-
-        if filters['SPIRE500']:
-            files.append(H500band_file)
-            lambdas.append(H500_lambda)
-            factors.append(H500_factor)
-        if filters['SPIRE350']:
-            files.append(H350band_file)
-            lambdas.append(H350_lambda)
-            factors.append(H350_factor)
-        if filters['SPIRE250']:
-            files.append(H250band_file)
-            lambdas.append(H250_lambda)
-            factors.append(H250_factor)
-        if filters['PACS160']:
-            files.append(H160band_file)
-            lambdas.append(H160_lambda)
-            factors.append(H160_factor)
-        if filters['PACS100']:
-            files.append(H100band_file)
-            lambdas.append(H100_lambda)
-            factors.append(H100_factor)
-
-        if filters['MIPS160']:      
-            files.append(M160band_file)
-            lambdas.append(M160_lambda)
-            factors.append(M160_factor)
-        if filters['MIPS70']:    
-            files.append(M70band_file)
-            lambdas.append(M70_lambda)
-            factors.append(M70_factor)
-        if filters['MIPS24']:
-            files.append(M24band_file)
-            lambdas.append(M24_lambda)
-            factors.append(M24_factor)
-
-        if filters['IRAC4']:   
-            files.append(I4band_file)
-            lambdas.append(I4_lambda)
-            factors.append(I4_factor)         
-        if filters['IRAC3']:
-            files.append(I3band_file)
-            lambdas.append(I3_lambda)
-            factors.append(I3_factor)    
-        if filters['IRAC2']:
-            files.append(I2band_file)
-            lambdas.append(I2_lambda)
-            factors.append(I2_factor)                
-        if filters['IRAC1']:
-            files.append(I1band_file)
-            lambdas.append(I1_lambda)
-            factors.append(I1_factor)    
-
-        if filters['WISE4']:
-            files.append(W4band_file)
-            lambdas.append(W4_lambda)
-            factors.append(W4_factor)    
-        if filters['WISE3']:
-            files.append(W3band_file)
-            lambdas.append(W3_lambda)
-            factors.append(W3_factor)    
-        if filters['WISE2']:
-            files.append(W2band_file)
-            lambdas.append(W2_lambda)
-            factors.append(W2_factor)    
-        if filters['WISE1']:
-            files.append(W1band_file)
-            lambdas.append(W1_lambda)
-            factors.append(W1_factor)    
-
-        if filters['Ks_2mass']:
-            files.append(Kband_file)
-            lambdas.append(K_lambda)
-            factors.append(K_factor)    
-        if filters['H_2mass']:
-            files.append(Hband_file)
-            lambdas.append(H_lambda)
-            factors.append(H_factor)    
-        if filters['J_2mass']:
-            files.append(Jband_file)
-            lambdas.append(J_lambda)
-            factors.append(J_factor)    
-
-        if filters['H_VISTA']:
-            files.append(Huvband_file)
-            lambdas.append(Huv_lambda)
-            factors.append(Huv_factor)    
-        if filters['J_VISTA']:
-            files.append(Juvband_file)
-            lambdas.append(Juv_lambda)
-            factors.append(Juv_factor)    
-        if filters['K_VISTA']:
-            files.append(Kuvband_file)
-            lambdas.append(Kuv_lambda)
-            factors.append(Kuv_factor)        
-        if filters['Y_VISTA']:
-            files.append(Yuvband_file)
-            lambdas.append(Yuv_lambda)
-            factors.append(Yuv_factor)    
-
-        if filters['g_SUBARU']:
-            files.append(gband_file)
-            lambdas.append(g_lambda)
-            factors.append(g_factor)    
-        if filters['r_SUBARU']:
-            files.append(rband_file)
-            lambdas.append(r_lambda)
-            factors.append(r_factor)    
-        if filters['i_SUBARU']:  
-            files.append(iband_file)
-            lambdas.append(i_lambda)
-            factors.append(i_factor)    
-        if filters['z_SUBARU']:
-            files.append(zband_file)
-            lambdas.append(z_lambda)
-            factors.append(z_factor)    
-        if filters['B_SUBARU']:
-            files.append(Bband_file)
-            lambdas.append(B_lambda)
-            factors.append(B_factor)    
-        if filters['V_SUBARU']:  
-            files.append(Vband_file)
-            lambdas.append(V_lambda)
-            factors.append(V_factor)    
-
-        if filters['u_CHFT']:  
-            files.append(uband_file_CHFT)
-            lambdas.append(u_lambda_CHFT)
-            factors.append(u_factor_CHFT)    
-        if filters['g_CHFT']:
-            files.append(gband_file_CHFT)
-            lambdas.append(g_lambda_CHFT)
-            factors.append(g_factor_CHFT)    
-        if filters['r_CHFT']:
-            files.append(rband_file_CHFT)
-            lambdas.append(r_lambda_CHFT)
-            factors.append(r_factor_CHFT)    
-        if filters['i_CHFT']:  
-            files.append(iband_file_CHFT)
-            lambdas.append(i_lambda_CHFT)
-            factors.append(i_factor_CHFT)    
-        if filters['z_CHFT']:
-            files.append(zband_file_CHFT)
-            lambdas.append(z_lambda_CHFT)
-            factors.append(z_factor_CHFT)    
-
-        if filters['u_SDSS']:  
-            files.append(uband_file_SDSS)
-            lambdas.append(u_lambda_SDSS)
-            factors.append(u_factor_SDSS)    
-        if filters['g_SDSS']:
-            files.append(gband_file_SDSS)
-            lambdas.append(g_lambda_SDSS)
-            factors.append(g_factor_SDSS)    
-        if filters['r_SDSS']:
-            files.append(rband_file_SDSS)
-            lambdas.append(r_lambda_SDSS)
-            factors.append(r_factor_SDSS)    
-        if filters['i_SDSS']:  
-            files.append(iband_file_SDSS)
-            lambdas.append(i_lambda_SDSS)
-            factors.append(i_factor_SDSS)    
-        if filters['z_SDSS']:
-            files.append(zband_file_SDSS)
-            lambdas.append(z_lambda_SDSS)
-            factors.append(z_factor_SDSS)    
-
-        if filters['GALEX_2500']:
-            files.append(NUVband_file)
-            lambdas.append(NUV_lambda)
-            factors.append(NUV_factor)    
-        if filters['GALEX_1500']:
-            files.append(FUVband_file)
-            lambdas.append(FUV_lambda)
-            factors.append(FUV_factor)    
-
-
-        # make dictionaries lambdas_dict, factors_dict
-        files_dict = defaultdict(list)
-        lambdas_dict = defaultdict(list)
-        factors_dict = defaultdict(list)
-        central_nu_list=[]        
-
-        for i in range(len(files)):
-
-            c=    2.997e8
-            Angstrom = 1e10
-
-            central_lamb = np.sum(lambdas[i]*factors[i])/np.sum(factors[i])
-            central_nu = float(np.log10((Angstrom*c)/central_lamb))
-
-            files_dict[central_nu].append(files[i])
-            lambdas_dict[central_nu].append(lambdas[i])
-            factors_dict[central_nu].append(factors[i])
-
-            central_nu_list.append(central_nu)
-
-        central_nu_list = sorted(central_nu_list)
-            
-    return np.array(central_nu_list), files_dict, lambdas_dict, factors_dict
 
 
 
