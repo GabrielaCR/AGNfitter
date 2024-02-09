@@ -53,7 +53,7 @@ After installation, let's do a quick test:
 
 .. code::   
 
-cat['path'] ='/Users/USER/AGNfitter/'
+   cat['path'] ='/Users/USER/AGNfitter/'
     
 to your AGNfitter path. These test settings point to the example catalog contained in  `data/catalog_example.txt`.
     
@@ -61,7 +61,7 @@ to your AGNfitter path. These test settings point to the example catalog contain
 
  .. code::   
 
-./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
+   ./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
     
 You should have a nice example in your `cat['path']/OUTPUT` folder. 
 
@@ -76,7 +76,7 @@ Quick start
 
 .. code::    
 
-cat['workingpath'] = cat['path']
+   cat['workingpath'] = cat['path']
     
 to your costumized working path.
 
@@ -89,7 +89,7 @@ To get AGNfitter running this is the ONLY file you need to modify.
 
 .. code::    
 
-def CATALOG_settings()
+   def CATALOG_settings()
         cat['path'] ='/Users/USER/AGNfitter/'
         cat['filename'] = 'data/catalog_example.txt
         cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
@@ -100,7 +100,7 @@ def CATALOG_settings()
 
 .. code::
  
-def FILTERS_settings():
+   def FILTERS_settings():
         filters['dict_zarray'] = np.arange(zmin, zmax, zinterval)
 
 Here you can specify the redshift ranges or a redshift array you need for you catalog.
@@ -112,13 +112,13 @@ You can use the default combination of photometric bands by leaving
 
 .. code::
   
-filters['Bandset'] = 'BANDSET_default'.
+   filters['Bandset'] = 'BANDSET_default'.
 
 Otherwise, if you like, you can specify the photometric bands included in your catalog by setting 
 
 .. code::
 
-def FILTERS_settings():
+   def FILTERS_settings():
         ...
         filters['Bandset'] = 'BANDSET_settings' 
         
@@ -132,7 +132,7 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
 
 .. code::
 
-./RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
+   ./RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
    
 This will run AGNfitter in series. In general there are a few more runtime options (see below).
 
