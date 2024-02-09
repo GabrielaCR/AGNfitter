@@ -254,9 +254,9 @@ class DATA_all:
                 freq_wl_cat_ALL = \
                                 np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
             flux_cat_ALL =\
-                np.array([fitstable[ca] for ca in  flux_cols ])*self.cat['flux_unit']
+                np.array([fitstable[ca] for ca in  flux_cols ]).astype(np.float)*self.cat['flux_unit']
             fluxerr_cat_ALL = \
-                np.array([fitstable[ce] for ce in flux_err_cols ])*self.cat['flux_unit']
+                np.array([fitstable[ce] for ce in flux_err_cols ]).astype(np.float)*self.cat['flux_unit']
             if self.cat['ndflag_bool'] == True: 
                 ndflag_cat_ALL = np.array(fitstable[self.cat['ndflag_list']])
 

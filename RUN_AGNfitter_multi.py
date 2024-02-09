@@ -220,7 +220,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
 
             t1= time.time()
             #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings, mc_settings)
 
             try:            
                 PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings, mc_settings)
