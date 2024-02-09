@@ -3,7 +3,7 @@
 # -- Project information
 
 project = 'AGNfitter'
-copyright = '2024, Calistro Rivera, Martinez Ramirez'
+copyright = '2024, Martinez Ramirez, Calistro Rivera'
 author = 'Gabriela, Laura'
 
 release = '1.5'
