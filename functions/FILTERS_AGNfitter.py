@@ -53,9 +53,9 @@ class FILTER:
 		print ('Done')
 
 		if freqwl_format == 'frequency':
-		    newfilter_lambdas = wl_or_freq* freqwl_unit.to(u.Angstrom, equivalencies=u.spectral())
+		    newfilter_lambdas = (wl_or_freq* freqwl_unit).to(u.Angstrom, equivalencies=u.spectral())
 		elif freqwl_format == 'wavelength':
-		    newfilter_lambdas = wl_or_freq* freqwl_unit.to(u.Angstrom)
+		    newfilter_lambdas = (wl_or_freq* freqwl_unit).to(u.Angstrom)
 		else:
 		    print ('ERROR: Please enter the strings "frequency" or "wavelength" for the ADDfilters[freq/wl_format].')
 
@@ -64,7 +64,7 @@ class FILTER:
 		Angstrom = 1e10
 
 		self.central_lambda = np.sum(self.lambdas*self.factors)/np.sum(self.factors)
-		self.central_nu = float(np.log10((Angstrom*c)/self.central_lambda))
+		self.central_nu = float(np.log10((Angstrom*c)/self.central_lambda.value))
 
 
 class FILTER_SET:
@@ -93,6 +93,13 @@ class FILTER_SET:
 			# filters_objects_chosen = [o for o in filters_objects_all.values() \
 			# 						  if filtersdict[o.filtername]==True]
 			filters_objects_chosen = []
+
+			for o in filtersdict.keys():
+				if o not in filters_objects_all.keys():
+					if o not in ['dict_zarray', 'path', 'filterset', 'add_filters','add_filters_dict']:
+						print ('Filter ',o, ' still needs to be added.')
+						exit() 
+
 			for o in filters_objects_all.values():
 				try:
 					if o.filtername in filtersdict.keys():

@@ -26,6 +26,7 @@ import scipy
 import astropy.constants as const
 import astropy.units as u
 import itertools
+import pandas as pd
 import functions.DICTIONARIES_AGNfitter as dicts
 from scipy.interpolate import interp1d
 from astropy.cosmology import FlatLambdaCDM       #Cosmology that we assume for estimate luminosity distance   
@@ -190,7 +191,7 @@ def GALAXY(path, modelsettings):
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
         elif parameters_types[3] == 'free':
-            ebvgal_array = np.array([0.,0.6]) 
+            ebvgal_array = np.array([0.,0.8]) 
 
             ## produce all combinations of parameter values (indices)
             idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
@@ -218,6 +219,87 @@ def GALAXY(path, modelsettings):
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
         return  GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types, model_functions
+
+
+
+    elif modelsettings['GALAXY']=='BC03_metal_rxLARGE':
+
+        GALAXYFdict_4plot = dict()
+        GALAXY_SFRdict = dict()
+        GALAXYatt_dict = dict()
+        ## Call object containing all galaxy models     
+
+        BC03dict = pickle.load(open(path + 'models/GALAXY/BC03_metal_rxLARGE.pickle', 'rb'), encoding='latin1')    
+
+        ## specify the sizes of the array of parameter values: Here two parameters
+        tau_array = BC03dict['tau-values']
+        age_array = BC03dict['age-values']
+        metal_array = BC03dict['metallicity-values']
+        metalidx, ageidx, tauidx, _, _,_ =  np.shape(BC03dict['SED'])
+        GALAXY_functions = GALAXYfunctions()
+
+        ## Name the parameters that compose the keys of the dictionary: GALAXYFdict_4plot[key]. 
+        ## Add the names in the same order as their values are arranged in the dictionary key above.    
+        parameters_names =['metal','tau', 'age','EBVgal']
+        parameters_types =['grid','grid', 'grid','free']  
+
+        if parameters_types[3] == 'grid':
+            ebvgal_array = np.array(np.arange(0.,60.,5.)/100)
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                metali=c[0]
+                agei=c[1]
+                taui=c[2]
+                ebvi=c[3]
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][metali,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
+                gal_Fnu= (gal_Fwl.value * 3.34e-19 * gal_wl**2.)[::-1]  
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[ebvi])                    
+                ###!!! gal_Fnu_red
+                GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)       
+
+                gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
+                GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
+                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_att_int = gal_Fnu_int.value - gal_Fnured_int
+                GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
+
+        elif parameters_types[3] == 'free':
+            ebvgal_array = np.array([0.,0.8]) 
+
+            ## produce all combinations of parameter values (indices)
+            idxs = [np.arange(metalidx), np.arange(ageidx), np.arange(tauidx), np.arange(len(ebvgal_array))]
+            par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+
+            for c in par_idxs_combinations:
+                metali=c[0]
+                agei=c[1]
+                taui=c[2]
+                ebvi=c[3]
+                gal_wl, gal_Fwl =  BC03dict['wavelength'],BC03dict['SED'][metali,agei,taui,:,:,:].squeeze()
+                gal_nus= gal_wl.to(u.Hz, equivalencies=u.spectral())[::-1]#invert
+                gal_Fnu= (gal_Fwl.value * 3.34e-19 * gal_wl**2.)[::-1]  
+                #Apply reddening. Using free parameters the templates must be saved without the effect of that/those parameter/s.
+                gal_nu, gal_Fnu_red = GALAXY_functions[0](gal_nus.value[0:len(gal_nus):3], gal_Fnu.value[0:len(gal_nus):3], ebvgal_array[0])                    
+                ###!!! gal_Fnu_red
+                GALAXYFdict_4plot[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
+                                                                                        np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)       
+
+                gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
+                GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
+                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_att_int = gal_Fnu_int.value - gal_Fnured_int
+                GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
+
+        return  GALAXYFdict_4plot, GALAXY_SFRdict, GALAXYatt_dict, parameters_names, parameters_types, model_functions
+
 
 
 def STARBURSTfunctions():
@@ -1266,14 +1348,15 @@ def BBBred_Prevot(bbb_x, bbb_y, BBebv ):
 
     #    Define prevots function for the reddening law redd_k    
     def function_prevot(x, RV):
-           y=1.39*pow((pow(10.,-4.)*x),-1.2)-0.38 ;
-           return y 
+        y=1.39*pow((pow(10.,-4.)*x),-1.2)-0.38 ;
+        return y 
 
     bbb_k[w0] = function_prevot(redd_x[w0], RV)
     bbb_k[w1] = 0                   #If wavelenghts correspond to energies higher than UV, there is no reddening
     bbb_k= bbb_k[::-1]
     bbb_Lnu_red = bbb_y * 10**(-0.4 * bbb_k * BBebv)
     bbb_Lnu_red[np.isnan(bbb_Lnu_red)]=bbb_y[np.isnan(bbb_Lnu_red)]
+    #bbb_Lnu_red[pd.isnull(bbb_Lnu_red)]=bbb_y[pd.isnull(bbb_Lnu_red)]
 
     return bbb_x, bbb_Lnu_red
 
