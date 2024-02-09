@@ -113,20 +113,24 @@ Please cite `Calistro Rivera et al. (2016)`_and `Martinez-Ramirez et al (2024)` 
 research. 
 The BibTeX entry for the paper is:
 
-    @ARTICLE{2016arXiv160605648C,
-    author = {{Calistro Rivera}, G. and {Lusso}, E. and {Hennawi}, J.~F. and {Hogg}, D.~W.},
-    title = "{AGNfitter: A Bayesian MCMC approach to fitting spectral energy distributions of AGN}",
-    journal = {ArXiv e-prints},
-    archivePrefix = "arXiv",
-    eprint = {1606.05648},
-    keywords = {Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
-    year = 2016,
-    month = jun,
-    adsurl = {http://adsabs.harvard.edu/abs/2016arXiv160605648C},
-    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-    }
-
-
+@ARTICLE{2016ApJ...833...98C,
+       author = {{Calistro Rivera}, Gabriela and {Lusso}, Elisabeta and {Hennawi}, Joseph F. and {Hogg}, David W.},
+        title = "{AGNfitter: A Bayesian MCMC Approach to Fitting Spectral Energy Distributions of AGNs}",
+      journal = {\apj},
+     keywords = {galaxies: active, galaxies: nuclei, galaxies: statistics, methods: statistical, quasars: general, Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
+         year = 2016,
+        month = dec,
+       volume = {833},
+       number = {1},
+          eid = {98},
+        pages = {98},
+          doi = {10.3847/1538-4357/833/1/98},
+archivePrefix = {arXiv},
+       eprint = {1606.05648},
+ primaryClass = {astro-ph.GA},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2016ApJ...833...98C},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
 
 AGNfitter is an open-source software made available under the MIT License. See
 the LICENSE file for details.
