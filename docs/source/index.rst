@@ -2,17 +2,17 @@ Welcome to AGNfitter's documentation!
 ===================================
 
 **AGNfitter** is a Python code for modelling the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies.
-While AGNfitter can be applied on the photometry of any galaxy, the code includes a state-of-the-art library of AGN physical models and is ideal to infer detailed physical properties for quasars, Seyfert galaxies, blazars, and other AGNs. 
-AGNfitter implements Bayesian methodologies, allowing to robustly recover the physical parameters driving the emission, as well as their uncertainties and degeneracies.
-In this documentation you should find everything you need to get the code running for your sources.
+While AGNfitter can be applied on the photometry of any galaxy, the code includes a state-of-the-art library of AGN physical models and is ideal to infer detailed physical properties for AGNs, such as quasars, Seyfert galaxies, etc. 
 
 The AGNfitter-rx release
 --------
 
+The first version of AGNfitter (Calistro-Rivera et al. 2016) has been recently expanded to model radio-to-X-ray photometry in the AGNfitter-rx release (Martinez-Ramirez et al. 2024).
+
 .. image:: SED_manyrealizations_Mrk876.jpg
 
 
-The first version of AGNfitter (Calistro-Rivera et al. 2016) has been recently expanded to model radio-to-X-ray photometry in the AGNfitter-rx release (Martinez-Ramirez et al. 2024).
+
 Here is the SED-fitting output of the code for the radio-to-X-ray photometry of the nearby AGN Mrk876. The black markers represent the photometric data and the lines of different colours represent the best-fit model and uncertainties for the different physical components listed in the legend. Below we also show the residuals. Additionally the code provides the user with tables with the output values of the physical parameters for the AGN and host galaxy, as well as many other optional output information.
 
 
