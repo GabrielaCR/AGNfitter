@@ -8,7 +8,7 @@ In this documentation you should find everything you need to get the code runnin
 
 The AGNfitter-rx release
 --------
-.. image:: SED_manyrealizations_Mrk876.pdf
+.. image:: SED_manyrealizations_Mrk876.jpg
 
 
 The first version of AGNfitter (Calistro-Rivera et al 2016) has been recently expanded to model radio-to-X-ray photometry in the AGNfitter-rx release (Martinez-Ramirez et al. 2024). Here a list of the main features of the latest release of the code.
