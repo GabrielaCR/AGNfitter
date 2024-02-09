@@ -2,12 +2,12 @@
 
 # -- Project information
 
-project = 'Lumache'
-copyright = '2021, Graziella'
-author = 'Graziella'
+project = 'AGNfitter'
+copyright = '2024, Calistro Rivera, Martinez Ramirez'
+author = 'Gabriela, Laura'
 
-release = '0.1'
-version = '0.1.0'
+release = '1.5'
+version = '1.5'
 
 # -- General configuration
 
