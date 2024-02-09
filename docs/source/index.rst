@@ -41,11 +41,12 @@ Here a list of the main features of the code, highlighting the new addition in t
 Requirements
 -------------
 
-* Numpy version 1.6 or later
-* Matplotlib version 1.4.0 or later
+* Numpy 
+* Matplotlib 
 * Scipy
-* Astropy version 1.2 or later (pip install --no-deps astropy)
-* acor (pip install acor)
+* Astropy 
+* emcee
+* cPickle
 
 Installation
 ----------------
