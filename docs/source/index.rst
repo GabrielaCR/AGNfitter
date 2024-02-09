@@ -1,5 +1,10 @@
+AGNfitter 
+========
+**A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
+
+
 Welcome to AGNfitter's documentation!
-===================================
+--------
 
 **AGNfitter** is a Python code for modelling the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies.
 While AGNfitter can be applied on the photometry of any galaxy, the code includes a state-of-the-art library of AGN physical models and is ideal to infer detailed physical properties for AGNs, such as quasars, Seyfert galaxies, etc. 
@@ -169,6 +174,7 @@ You can find the bibtex entries here:
 
 Contents
 --------
+
 .. toctree::
 
    usage
