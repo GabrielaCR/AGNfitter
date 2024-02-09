@@ -8,16 +8,20 @@ In this documentation you should find everything you need to get the code runnin
 
 The AGNfitter-rx release
 --------
+The first version of AGNfitter (Calistro-Rivera et al. 2016) has been recently expanded to model radio-to-X-ray photometry in the AGNfitter-rx release (Martinez-Ramirez et al. 2024).
+Here is the SED-fitting output of the code for the radio-to-X-ray photometry of the nearby AGN Mrk876. The black markers represent the photometric data and the lines of different colours represent the best-fit model and uncertainties for the different physical components listed in the legend. Below we also show the residuals. Additionally the code provides the user with tables with the output values of the physical parameters for the AGN and host galaxy, as well as many other optional output information.
+
 .. image:: SED_manyrealizations_Mrk876.jpg
 
 
-The first version of AGNfitter (Calistro-Rivera et al 2016) has been recently expanded to model radio-to-X-ray photometry in the AGNfitter-rx release (Martinez-Ramirez et al. 2024). Here a list of the main features of the latest release of the code.
+ Here a list of the main features of the code, highlighting the new addition in the AGNfitter-rx release.
 
-- Radio-to-X-ray modelling *(new)*
+- Radio-to-X-ray SED modelling *(new)*
 - Easy inclusion of your favorite new models toallow model comparison *(new)*
+- Easy inclusion of filters  *(new)*
+- Easy inclusion of user-tailored priors  *(new)*
 - Energy balance prior between the stellar population and IR dust emission components *(new)*
--
-- 
+- Sampled Probability Density Functions (PDFs) for all physical parameters
 
 Check out the :doc:`usage` section for further information, including
 how to :ref:`installation` the project.
@@ -25,6 +29,10 @@ how to :ref:`installation` the project.
 .. note::
 
    This project is under active development.
+
+The AGNfitter-rx release
+--------
+
 
 Citing the code
 --------
