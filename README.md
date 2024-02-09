@@ -1,24 +1,27 @@
-AGNfitter (beta_version - July 22)
+AGNfitter 2.0 (AGNfitter-rx release)
 ========
 **A Bayesian MCMC approach to fitting Spectral Energy Distributions of AGN and galaxies**
 
 Welcome to AGNfitter! 
 
-AGNfitter is a Python algorithm implementing a fully Bayesian MCMC method to fit the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies from the sub-mm to the UV.
+AGNfitter is a Python algorithm implementing a Bayesian methods to fit the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies from the galaxy **radio to the X-rays**.
 Through this method, you will be able to robustly disentangle the physical processes responsible for the emission of your sources.
 
 You only need a catalog of photometric data (wavelengths, fluxes and errors), take a few decisions (if you wish), and you are ready to go (see Example).
 
-AGNfitter makes use of a large library of theoretical, empirical, and semi-empirical models to characterize both the nuclear and host galaxy emission simultaneously. The model consists of four physical emission components: an accretion disk, a torus of AGN heated dust, stellar populations, and cold dust in star forming regions.  A detailed presentation, test and discussion of AGNfitter can be found in `https://arxiv.org/abs/1606.05648#`
+AGNfitter makes use of a large library of theoretical, empirical, and semi-empirical models to characterize both the nuclear and host galaxy emission simultaneously. The model consists of four physical emission components: the X-ray corona, an accretion disk, a torus of AGN heated dust, stellar populations, cold dust in star forming regions and synchroton emission from the AGN and star forming regions.  
+
 
 Requirements
 -------------
 
-* Numpy version 1.6 or later
-* Matplotlib version 1.4.0 or later
+* Numpy 
+* Matplotlib
 * Scipy
-* Astropy version 1.2 or later (pip install --no-deps astropy)
-* acor (pip install acor)
+* Astropy 
+* emcee
+* ultranest
+* 
 
 Installation
 ----------------
@@ -106,7 +109,7 @@ A careful documentation will be soon available. In the meantime, some notes are 
 
 Citation and License
 ----------------
-Please cite `Calistro Rivera et al. (2016)`_ if this code has achieved its purpose and contributed to your
+Please cite `Calistro Rivera et al. (2016)`_and `Martinez-Ramirez et al (2024)` if this code has achieved its purpose and contributed to your
 research. 
 The BibTeX entry for the paper is:
 
