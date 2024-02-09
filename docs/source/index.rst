@@ -28,8 +28,8 @@ Here a list of the main features of the code, highlighting the new addition in t
 - Customized output: including integrated luminosities and AGN fractions at the desired wavelength (ranges)
 - Sampled Probability Density Functions (PDFs) for all physical parameters
 
-
-.. note::  This project is under active development.
+.. note::  
+   This project is under active development.
 
 Requirements
 -------------
