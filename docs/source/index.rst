@@ -29,9 +29,7 @@ Here a list of the main features of the code, highlighting the new addition in t
 - Sampled Probability Density Functions (PDFs) for all physical parameters
 
 
-.. note::
-
-   This project is under active development.
+.. note::  This project is under active development.
 
 Requirements
 -------------
