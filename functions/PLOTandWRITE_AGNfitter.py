@@ -267,13 +267,15 @@ self.chain.logz_flat.iloc[np.random.choice(nsample, (self.out['realizations2int'
             alp = 1.0
 
         if self.out['band_indicators'] == True:
-            ax1.axvspan(9, 11.5, 0.965, 1, color='gray', alpha=0.15, lw=0) #Radio
+            if self.models_settings['RADIO'] == True:
+                ax1.axvspan(9, 11.5, 0.965, 1, color='gray', alpha=0.15, lw=0) #Radio
             ax1.axvspan(11.5, 12.47, 0.965, 1, color='gray', alpha=0.6, lw=0) #FIR
             ax1.axvspan(12.47, 13.48, 0.965, 1, color='gray', alpha=0.15, lw=0) #MIR
             ax1.axvspan(13.48, 14.68, 0.965, 1, color='gray', alpha=0.6, lw=0) #NIR
             ax1.axvspan(14.68, 14.87, 0.965, 1, color='gray', alpha=0.15, lw=0) #OPT
             ax1.axvspan(14.87, 16.48, 0.965, 1, color='gray', alpha=0.6, lw=0) #UV
-            ax1.axvspan(16.48, 19.48,0.965, 1, color='gray', alpha=0.15, lw=0) #x-ray
+            if self.models_settings['XRAYS'] != False:
+                ax1.axvspan(16.48, 19.48,0.965, 1, color='gray', alpha=0.15, lw=0) #x-ray
             
         for i in range(Nrealizations):
             # last one is the max likelihood fit  

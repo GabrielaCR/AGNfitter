@@ -248,53 +248,12 @@ def STARBURST(path, modelsettings):
 
         return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types, model_functions
 
-    elif modelsettings['STARBURST']=='S17':
-
-        STARBURSTFdict_4plot = dict()
-        STARBURST_LIRdict = dict()
-
-        #Call object containing all starburst models     
-        dusttable = Table.read(path + 'models/STARBURST/s17_dust.fits')
-        pahstable = Table.read(path + 'models/STARBURST/s17_pah.fits')
-        
-        Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
-        Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
-        Tdust = np.array(dusttable['TDUST'])[0] #K
-        Lir=  np.array(dusttable['LIR'])[0] *3.826e33
-        fracPAH = np.arange(0.25, 6.25, 0.25)/100
-        idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
-        Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
-        DLnu= np.array(DnuLnu[0])/Dnu ###!!!*1e-6 #* u.Lsun.to(u.W)
-        PLnu=np.array(PnuLnu[0])/Pnu ###!!!*1e-6 #* u.Lsun.to(u.W)
-
-
-        #Construct dictionaries 
-        for c in par_idxs_combinations:
-            t=c[0]
-            fp=c[1]
-
-            sb_nu0 = np.array(Dnu[t,:])[::-1]
-            sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
-
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
-            STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = Lir[t]
-
-        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
-        ## Add the names in the same order as their values are arranged in the dictionary key above.    
-        parameters_names =['Tdust', 'fracPAH']
-        parameters_types =['grid', 'grid']
-
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types, model_functions
-
-    elif modelsettings['STARBURST']=='S17_newmodel':  #Model created specifically for AGNfitter
+    elif modelsettings['STARBURST']=='S17':  #Model created specifically for AGNfitter, corrected by very small grains (VSG correction)
 
         STARBURSTFdict_4plot = dict()
         STARBURST_LIRdict = dict()
         #Call object containing all starburst models     
-        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits')
+        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits') 
         pahstable = Table.read(path + 'models/STARBURST/s17_lowvsg_pah.fits')
         
         Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
@@ -605,7 +564,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()     
-        SN12dict = pickle.load(open(path + 'models/BBB/SN12_new.pickle', 'rb'), encoding='latin1') 
+        SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1') 
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']   
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
@@ -811,7 +770,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()
-        THB21dict = pickle.load(open(path + 'models/BBB/THB21_new.pickle', 'rb'), encoding='latin1') #THB21_new.pickle
+        THB21dict = pickle.load(open(path + 'models/BBB/THB21.pickle', 'rb'), encoding='latin1') #THB21_new.pickle
         bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()
         BBB_functions = BBBfunctions()
 
@@ -939,7 +898,7 @@ def TORUS(path, modelsettings):
         
         TORUSFdict_4plot  = dict()
 
-        NK0dict = pickle.load(open(path + 'models/TORUS/nenkova_v0.pickle', 'rb'), encoding='latin1')  
+        NK0dict = pickle.load(open(path + 'models/TORUS/NK0_mean_1p.pickle', 'rb'), encoding='latin1')  
         incl_idx=len(NK0dict['SED']) 
         #Construct dictionaries 
         for incl_i in range(incl_idx): 
@@ -1004,94 +963,13 @@ def TORUS(path, modelsettings):
         parameters_types = ['grid', 'grid', 'grid']
         return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
-    ## Model from Nenkova et al. 2008
-    elif modelsettings['TORUS']=='NK0_4P':
-        # Nenkova model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
-
-        TORUSFdict_4plot  = dict()
-        NK0_4Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_4p.pickle', 'rb'), encoding='latin1')  
-        
-        oa_array = NK0_4Pdict['oa-values'].unique()
-        incl_array = NK0_4Pdict['incl-values'].unique()
-        tv_array = NK0_4Pdict['tv-values'].unique()
-        N0_array = NK0_4Pdict['N0-values'].unique()
-
-        ## produce all combinations of parameter values (indices)
-        idxs = [oa_array, incl_array, tv_array, N0_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-            oai=c[0]
-            incli=c[1]
-            tvi = c[2]
-            N0i = c[3]
-            model = NK0_4Pdict[(NK0_4Pdict['oa-values'] == oai) & (NK0_4Pdict['incl-values'] == incli) & (NK0_4Pdict['tv-values'] == tvi) & (NK0_4Pdict['N0-values'] == N0i)] 
-            tor_nu0, tor_Fnu0 =  model['wavelength'].values.item(), model['SED'].values.item()             
-            TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(N0i)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['oa', 'incl', 'tv', 'N0']
-        parameters_types = ['grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-
 
     ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTOR':  #This model has too many parameters --> The code can't find the parameters
-        
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR.pickle', 'rb'), encoding='latin1')  
-        
-        tv_array = SKIRTORdict['tv-values'].unique()
-        p_array = SKIRTORdict['p-values'].unique()
-        q_array = SKIRTORdict['q-values'].unique()
-        oa_array = SKIRTORdict['oa-values'].unique()
-        r_array = SKIRTORdict['r-values'].unique()
-        mcl_array = SKIRTORdict['mcl-values'].unique()
-        incl_array = SKIRTORdict['incl-values'].unique()
-
-        ## produce all combinations of parameter values (indices)
-        idxs = [tv_array, p_array, q_array, oa_array, r_array, mcl_array, incl_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-                tvi=c[0]
-                pi=c[1]
-                qi=c[2]
-                oai=c[3]
-                ri=c[4]
-                mcli=c[5]
-                incli=c[6]
-                model = SKIRTORdict[(SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)& (SKIRTORdict['q-values'] == qi)& (SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['r-values'] == ri) & (SKIRTORdict['mcl-values'] == mcli) & (SKIRTORdict['incl-values'] == incli)] 
-                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
-                TORUSFdict_4plot[str(tvi),str(pi), str(qi), str(oai), str(ri), str(mcli), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['tv', 'p', 'q', 'oa', 'r', 'mcl', 'incl']
-        parameters_types = ['grid', 'grid', 'grid', 'grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORC': 
-        #SKIRTOR model with the parameter values used in X-CIGALE (Yang, Guang, et al. 2020) and inclination as free parameter
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORCdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_CIGALE.pickle', 'rb'), encoding='latin1')  
-        incl_array = SKIRTORCdict['incl-values']
-        #Construct dictionaries 
-        for incl_i in incl_array: 
-            tor_nu0, tor_Fnu0 = SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['wavelength'].values.item().to_numpy(), SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['SED'].values.item().to_numpy()
-            TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
-
-        parameters_names = ['incl']
-        parameters_types = ['grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM': 
+    elif modelsettings['TORUS']=='SKIRTORM_1P': 
         # SKIRTOR model with averaged SEDs for each inclination (the only parameter)
         TORUSFdict_4plot  = dict()
 
-        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean.pickle', 'rb'), encoding='latin1')  
+        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_1p.pickle', 'rb'), encoding='latin1')  
         incl_array = SKIRTORMdict['incl-values']
         #Construct dictionaries 
         for incl_i in incl_array: 
@@ -1154,41 +1032,13 @@ def TORUS(path, modelsettings):
         parameters_types = ['grid', 'grid', 'grid']
         return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM_4P':
-        # SKIRTOR model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_4p.pickle', 'rb'), encoding='latin1')  
-        
-        oa_array = SKIRTORdict['oa-values'].unique()
-        incl_array = SKIRTORdict['incl-values'].unique()
-        tv_array = SKIRTORdict['tv-values'].unique()
-        p_array = SKIRTORdict['p-values'].unique()
-
-        ## produce all combinations of parameter values
-        idxs = [oa_array, incl_array, tv_array, p_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-                oai=c[0]
-                incli=c[1]
-                tvi = c[2]
-                pi = c[3]
-                model = SKIRTORdict[(SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['incl-values'] == incli) & (SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)] 
-                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
-                TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(pi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['oa', 'incl', 'tv', 'p']
-        parameters_types = ['grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
     ## Model from Stalevski et al. 2016
     elif modelsettings['TORUS']=='CAT3D_3P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
         TORUSFdict_4plot  = dict()
 
-        CAT3Ddict = pickle.load(open(path + 'models/TORUS/CAT3D_mean_3p_new.pickle', 'rb'), encoding='latin1')  
+        CAT3Ddict = pickle.load(open(path + 'models/TORUS/CAT3D_mean_3p.pickle', 'rb'), encoding='latin1')  
         
         incl_array = CAT3Ddict['incl-values'].unique()
         a_array = CAT3Ddict['a-values'][210: ].unique()  #Value of the 2nd set of 168 SEDs 

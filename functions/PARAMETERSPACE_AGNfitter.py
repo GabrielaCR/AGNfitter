@@ -144,6 +144,7 @@ def ln_likelihood(x, y, ysigma, z, ymodel, models):
         x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) & (y>-99.e-23)]
     else:                                                                    #Ignore only UV data because of IGM absorption  
         x_valid = np.arange(len(x))[(x< np.log10(10**(15.38)/(1+z))) | (x > np.log10(10**(16.685)/(1+z))) & (y>-99.e-23)]
+
     resid = [(y[i] - ymodel[i])/ysigma[i] for i in x_valid]
     return -0.5 * np.dot(resid, resid)
 
