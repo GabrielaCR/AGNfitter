@@ -51,13 +51,17 @@ After installation, let's do a quick test:
 
 **1)** In `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
 
-.. code::    cat['path'] ='/Users/USER/AGNfitter/'
+.. code::   
+
+cat['path'] ='/Users/USER/AGNfitter/'
     
 to your AGNfitter path. These test settings point to the example catalog contained in  `data/catalog_example.txt`.
     
 **2)** In the terminal, go to your AGNfitter path  and start
 
- .. code::   ./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
+ .. code::   
+
+./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
     
 You should have a nice example in your `cat['path']/OUTPUT` folder. 
 
