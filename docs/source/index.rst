@@ -51,13 +51,13 @@ After installation, let's do a quick test:
 
 **1)** In `example/SETTINGS_AGNfitter.py`, go to `def CATALOG_settings()` and change 
 
-    cat['path'] ='/Users/USER/AGNfitter/'
+.. code::    cat['path'] ='/Users/USER/AGNfitter/'
     
 to your AGNfitter path. These test settings point to the example catalog contained in  `data/catalog_example.txt`.
     
 **2)** In the terminal, go to your AGNfitter path  and start
 
-    ./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
+ .. code::   ./RUN_AGNfitter_multi.py  example/SETTINGS_AGNfitter.py
     
 You should have a nice example in your `cat['path']/OUTPUT` folder. 
 
@@ -70,7 +70,7 @@ Quick start
 
 **TASK 0 (optional):** If you wish to have a working path other than the AGNfitter code path, please change 
 
-    cat['workingpath'] = cat['path']
+.. code::    cat['workingpath'] = cat['path']
     
 to your costumized working path.
 
@@ -81,7 +81,7 @@ To get AGNfitter running this is the ONLY file you need to modify.
 
 *TASK 1a:* Specify your catalog's format in:
 
-    def CATALOG_settings()
+.. code::    def CATALOG_settings()
         cat['path'] ='/Users/USER/AGNfitter/'
         cat['filename'] = 'data/catalog_example.txt
         cat['filetype'] = 'ASCII' ## catalog file type: 'ASCII' or 'FITS'. 
@@ -90,6 +90,7 @@ To get AGNfitter running this is the ONLY file you need to modify.
 
 *TASK 1b:* To construct the dictionary  please go to
 
+.. code::
     def FILTERS_settings():
         filters['dict_zarray'] = np.arange(zmin, zmax, zinterval)
 
@@ -100,10 +101,12 @@ This process might be lengthy but you only have to do it once.
 
 You can use the default combination of photometric bands by leaving
 
+.. code::
         filters['Bandset'] = 'BANDSET_default'.
 
 Otherwise, if you like, you can specify the photometric bands included in your catalog by setting 
 
+.. code::
     def FILTERS_settings():
         ...
         filters['Bandset'] = 'BANDSET_settings' 
@@ -115,7 +118,7 @@ and assigning 'True' to the keys corresponding to the photometric bands in your 
     
     
 **TASK 2:** Run AGNfitter with
-
+.. code::
     ./RUN_AGNfitter_multi.py my_SETTINGS_AGNfitter.py
    
 This will run AGNfitter in series. In general there are a few more runtime options (see below).
