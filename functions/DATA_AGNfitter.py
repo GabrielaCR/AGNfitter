@@ -57,8 +57,7 @@ class DATA_all:
             self.name = column.iloc[:, self.cat['name']]
             self.z = [float(i) for i in column.iloc[:, self.cat['redshift']]]
             self.dlum = np.array(model.z2Dlum(self.z))
-
-
+            
             if self.cat['use_central_wavelength']:
                 ### If central wavelengths are *not* given in catalog and need to be extracted automatically from chosen filters. 
 
@@ -99,12 +98,11 @@ class DATA_all:
                 ### If central wavelengths are given in catalog with itw own order
                 freq_wl_cat_ALL = \
                     np.array([column.iloc[:, c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
- 
-
+            
             flux_cat_ALL =\
-                np.array(column.iloc[:, self.cat['flux_list']])*self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['flux_list']]).astype(np.float) *self.cat['flux_unit']
             fluxerr_cat_ALL = \
-                np.array(column.iloc[:, self.cat['fluxerr_list']])*self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['fluxerr_list']]).astype(np.float)*self.cat['flux_unit']
             if self.cat['ndflag_bool'] == True: 
                 ndflag_cat_ALL = np.array(column.iloc[:, self.cat['ndflag_list']])
 
