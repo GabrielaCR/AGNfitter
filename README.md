@@ -109,7 +109,7 @@ A careful documentation will be soon available. In the meantime, some notes are 
 
 Citation and License
 ----------------
-Please cite `Calistro Rivera et al. (2016)`_and `Martinez-Ramirez et al (2024)` if this code has achieved its purpose and contributed to your
+Please cite `Calistro Rivera et al. (2016)` and `Martinez-Ramirez et al (2024, submitted)` if this code has achieved its purpose and contributed to your
 research. 
 The BibTeX entry for the paper is:
 
