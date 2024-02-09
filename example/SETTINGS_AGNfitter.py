@@ -28,8 +28,8 @@ def CATALOG_settings():
 
 
     ##GENERAL
-    cat['path'] = '/home/laura/PCLaura/Materias/Astrofisica_extragalactica/Proyecto_Gabriela/AGNfitter/' #path to the AGNfitter code
-    cat['filename'] = cat['path']+'brown_test/brown2018_34_4bands_10errRX_2.txt'  
+    cat['path'] = '/home/user/AGNfitter/' #path to the AGNfitter code
+    cat['filename'] = cat['path']+ 'example/AGN_SED_example.txt'  
     cat['filetype'] = 'ASCII'		## catalog file type: 'ASCII' or 'FITS'. 
     cat['name'] = 0			## If ASCII: Column index (int) of source IDs
                                    	## If FITS : Column name (str). E.g. 'ID'
@@ -302,13 +302,13 @@ def OUTPUT_settings():
 
     #INTEGRATION RANGES
 
-    out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal', 'AGNfrac_opt', 'tor','tor+bbb','AGNfrac_IR', 'gal', 'bbb', 'AGNfrac_opt', 'AGNfrac_rad', 'bbb','tor','AGNfrac1-10GHz', 'AGNfrac10-30GHz', 'AGNfrac50-200GHz', 'AGNfrac400-1600GHz', 'AGNfrac187-75mu', 'AGNfrac75-20mu', 'AGNfrac20-8mu', 'AGNfrac8-4mu', 'AGNfrac4-2mu', 'AGNfrac2-1mu', 'AGNfrac1-0.5mu', 'AGNfrac0.5-0.3mu', 'AGNfrac0.3-0.06mu','Lx0.5-2keV','Lx2-8keV','sb']  #as first element
+    out['intlum_models'] = ['sb','bbb', 'bbbdered', 'gal', 'AGNfrac_opt', 'tor','tor+bbb','AGNfrac_IR', 'gal', 'bbb', 'AGNfrac_opt', 'AGNfrac_rad', 'bbb','tor','Lx0.5-2keV','Lx2-8keV','sb']  #as first element
 
     out['intlum_freqranges_unit'] = u.micron   #Astropy unit 
 
-    out['intlum_freqranges'] = np.array([[8.,1000.],[0.1,1.],[0.1,1.],[0.1,1.], [0.1,1.], [1.,30.], [0.1, 30], [8.,1000.],[0.4, 0.5],[0.4, 0.5], [0.4, 0.5], [2.141375e5, 2.141375e5], [1.2398e-4, 6.1992e-4], [6,6], [2.9979246e4, 2.9979246e5], [9.993082e3, 2.9979246e4],  [1.4989623e3, 5.99585e3], [187.37029, 749.48115], [75.30446, 187.37029], [20., 75.30446], [8., 20.], [4., 8.],  [ 2., 4.], [ 1., 2.], [0.5, 1.], [0.3, 0.5 ], [0.06, 0.3], [1.5498e-4, 6.1992e-4], [6.1992e-4, 2.4797e-3], [1.,30.]])
+    out['intlum_freqranges'] = np.array([[8.,1000.],[0.1,1.],[0.1,1.],[0.1,1.], [0.1,1.], [1.,30.], [0.1, 30], [8.,1000.],[0.4, 0.5],[0.4, 0.5], [0.4, 0.5], [2.141375e5, 2.141375e5], [1.2398e-4, 6.1992e-4], [6,6], [1.5498e-4, 6.1992e-4], [6.1992e-4, 2.4797e-3], [1.,30.]])
 
-    out['intlum_names'] = ['LIR(8-1000)','Lbb(0.1-1)', 'Lbbdered(0.1-1)', 'Lga(01-1)', 'AGNfrac(0.1-1)', 'Ltor(1-30)', 'LAGN(0.1-30)', 'AGNfrac(8-1000)', 'Lgal(0.4-0.5)', 'Lbbb(0.4-0.5)', 'AGNfrac(0.4-0.5)', 'AGNfrac(1.4GHz)', 'Lxr(2-10keV)','Ltor(6)', 'AGNfrac(1-10GHz)', 'AGNfrac(10-30GHz)' ,'AGNfrac(50-200GHz)', 'AGNfrac(400-1600GHz)', 'AGNfrac(187-75mu)',  'AGNfrac(75-20mu)', 'AGNfrac(20-8mu)', 'AGNfrac(8-4mu)', 'AGNfrac(4-2mu)', 'AGNfrac(2-1mu)', 'AGNfrac(1-0.5mu)', 'AGNfrac(0.5-0.3mu)','AGNfrac(0.3-0.06mu)', 'Lx(0.5-2keV)','Lx(2-8keV)', 'Lsb(1-30)']
+    out['intlum_names'] = ['LIR(8-1000)','Lbb(0.1-1)', 'Lbbdered(0.1-1)', 'Lga(01-1)', 'AGNfrac(0.1-1)', 'Ltor(1-30)', 'LAGN(0.1-30)', 'AGNfrac(8-1000)', 'Lgal(0.4-0.5)', 'Lbbb(0.4-0.5)', 'AGNfrac(0.4-0.5)', 'AGNfrac(1.4GHz)', 'Lxr(2-10keV)','Ltor(6)', 'Lx(0.5-2keV)','Lx(2-8keV)', 'Lsb(1-30)']
 
 
     #SED PLOTTING
