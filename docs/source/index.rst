@@ -144,24 +144,27 @@ Citing the code
 If AGNfitter is useful for your research project, please include a citation to Calistro-Rivera et al. (2016) *and* Martinez-Ramirez et al. (2024)  in any publications. 
 You can find the bibtex entries here:
 
-@ARTICLE{2016ApJ...833...98C,
-       author = {{Calistro Rivera}, Gabriela and {Lusso}, Elisabeta and {Hennawi}, Joseph F. and {Hogg}, David W.},
-        title = "{AGNfitter: A Bayesian MCMC Approach to Fitting Spectral Energy Distributions of AGNs}",
-      journal = {\apj},
-     keywords = {galaxies: active, galaxies: nuclei, galaxies: statistics, methods: statistical, quasars: general, Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
-         year = 2016,
-        month = dec,
-       volume = {833},
-       number = {1},
-          eid = {98},
-        pages = {98},
-          doi = {10.3847/1538-4357/833/1/98},
-archivePrefix = {arXiv},
-       eprint = {1606.05648},
- primaryClass = {astro-ph.GA},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2016ApJ...833...98C},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
+
+.. code::    
+
+   @ARTICLE{2016ApJ...833...98C,
+          author = {{Calistro Rivera}, Gabriela and {Lusso}, Elisabeta and {Hennawi}, Joseph F. and {Hogg}, David W.},
+           title = "{AGNfitter: A Bayesian MCMC Approach to Fitting Spectral Energy Distributions of AGNs}",
+         journal = {\apj},
+        keywords = {galaxies: active, galaxies: nuclei, galaxies: statistics, methods: statistical, quasars: general, Astrophysics - Astrophysics of Galaxies, Astrophysics - Instrumentation and Methods for Astrophysics},
+            year = 2016,
+           month = dec,
+          volume = {833},
+          number = {1},
+             eid = {98},
+           pages = {98},
+             doi = {10.3847/1538-4357/833/1/98},
+   archivePrefix = {arXiv},
+          eprint = {1606.05648},
+    primaryClass = {astro-ph.GA},
+          adsurl = {https://ui.adsabs.harvard.edu/abs/2016ApJ...833...98C},
+         adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+   }
 
 
 Contents
