@@ -151,7 +151,7 @@ def MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobb
     return mydict
 
 
-def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settings, clobbermodel=False):
+def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settings, mc_settings, clobbermodel=False):
     """
     Main function for fitting a single source in line and create it's modelsdict independently.
     """
@@ -159,7 +159,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     mc = MCMC_settings()
     out = OUTPUT_settings()
     data = DATA(data_obj,line)
-    models = MODELS(data.z, models_settings)
+    models = MODELS(data.z, models_settings, mc_settings)
 
     print ( '')
     print ( '________________________'    )
@@ -185,7 +185,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         os.system('rm -rf '+dictz)
         print ( "removing source model dictionary "+dictz )
     
-    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav'):           
+    if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav') or os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/ultranest/chains/weighted_post.txt'):           
         print('Done')
         dictz = str.encode(dictz)  #Added by Laura
         with open(dictz, 'rb') as f:
@@ -193,7 +193,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         Modelsdictz = zdict
         models.DICTS(filtersz, Modelsdictz)
         P = parspace.Pdict (data, models)
-        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+        PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings, mc_settings)
         
     else:
 
@@ -220,15 +220,15 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
 
             t1= time.time()
             #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
+            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings, mc_settings)
 
             try:            
-                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings)
+                PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings, mc_settings)
                 print ( 'Done already'  )      
             except:
                 print ( 'Not done yet')
                 MCMC_AGNfitter.main(data, models, P, mc) 
-                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings)        
+                PLOTandWRITE_AGNfitter.main(data, models, P, out, models_settings, mc_settings)        
 
             print ( '_____________________________________________________')
             print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
@@ -288,7 +288,7 @@ def multi_run_wrapper_indep(args):
     """
     return RUN_AGNfitter_onesource_independent(*args)
 
-def RUN_AGNfitter_multiprocessing(processors, data_obj, models_settings, indep_bool=False, filters='None'):
+def RUN_AGNfitter_multiprocessing(processors, data_obj, models_settings, mc_settings, indep_bool=False, filters='None'):
     """
     Main function for fitting all sources in a large catalog.
     Splits the job of running the large number of sources
@@ -302,16 +302,16 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, models_settings, indep_b
         
         pool = mp.Pool(processes = processors)
         #py2 catalog_fitting = pool.map(multi_run_wrapper, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(models_settings)))
-        catalog_fitting = pool.map(multi_run_wrapper, zip(range(nsources), itertools.repeat(data_obj), itertools.repeat(models_settings)))
+        catalog_fitting = pool.map(multi_run_wrapper, zip(range(nsources), itertools.repeat(data_obj), itertools.repeat(models_settings), itertools.repeat(mc_settings) ))
         pool.close()
-        pool.join()
+        pool.join() 
     else:
         nsources = data_obj.cat['nsources']
         
         print ( "processing all {0:d} sources with {1:d} cpus".format(nsources, processors) )
         
         pool = mp.Pool(processes = processors)
-        catalog_fitting = pool.map(multi_run_wrapper_indep, zip(range(nsources), itertools.repeat(data_obj), itertools.repeat(filters), itertools.repeat(models_settings) ))
+        catalog_fitting = pool.map(multi_run_wrapper_indep, zip(range(nsources), itertools.repeat(data_obj), itertools.repeat(filters), itertools.repeat(models_settings), itertools.repeat(mc_settings) ))
         pool.close()
         pool.join()
 
@@ -344,6 +344,7 @@ if __name__ == "__main__":
         cat_settings = CATALOG_settings()
         filters_settings= FILTERS_settings()
         models_settings= MODELS_settings()
+        mc_settings= MCMC_settings()
     except NameError:
         print ( "Something is wrong with your setting file")
         sys.exit(1)
@@ -367,26 +368,26 @@ if __name__ == "__main__":
     if args.independent:
         if args.ncpu>1.:
             
-            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, indep_bool=True, filters=filters_settings)
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, mc_settings, indep_bool=True, filters=filters_settings)
 
         elif args.sourcenumber >= 0:
-            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
         else:
             for i in range(0, 110, 1):
-                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
             
     else:
         print('Option of one single dictionary for a whole catalogue is deprecated. Running "independent, -i" option.')
 
         if args.ncpu>1.:
             
-            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, indep_bool=True, filters=filters_settings)
+            RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings, mc_settings, indep_bool=True, filters=filters_settings)
 
         elif args.sourcenumber >= 0:
-            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+            RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
         else:
             for i in range(0, 110, 1):
-                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, clobbermodel=clobbermodel)
+                RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
        
     # else:
     #     # make/read the model dictionary

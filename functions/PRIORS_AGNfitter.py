@@ -10,7 +10,7 @@ def PRIORS(data, models, P, *pars):
     MD = models.dict_modelfluxes
     gal_obj,sb_obj,tor_obj, bbb_obj, agnrad_obj = models.dictkey_arrays
 
-    if modelsettings['BBB']=='R06':
+    if modelsettings['BBB']=='R06' or modelsettings['BBB']=='THB21':
         if models.settings['RADIO'] == True:
             GA, SB, TO, BB, RAD = pars[-5:]
         else:
@@ -45,7 +45,7 @@ def PRIORS(data, models, P, *pars):
         """
         prior1= prior_AGNfraction(data, MD.GALAXYFdict, gal_obj, GA, MD.BBBFdict, bbb_obj, BB)
         prior2= prior_stellar_mass(GA)
-        all_priors.append(prior1 + prior2) 
+        all_priors.append(prior1 + prior2)
 
     if modelsettings['PRIOR_midIR_UV']==True:  
         """
@@ -95,7 +95,7 @@ def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBUR
     Lsb_emit = STARBURST_LIRdict[sb_obj.matched_parkeys] * 10**(SB)
 
     if Lsb_emit < Lgal_att:
-        return -np.inf
+        return -9999 #-np.inf
     elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Flexible'):
         return 0
     elif (Lsb_emit >= Lgal_att) and (models.settings['PRIOR_energy_balance'] == 'Restrictive'):
@@ -189,13 +189,12 @@ def prior_AGNfraction(data, GALAXYFdict, gal_obj,GA, BBBFdict, bbb_obj, BB):
     else:                                      ## if blue fluxes are equal or brighter than 10 times the characteristic flux.
                                                ## asume BBB is at least equal to galaxy or dominates.
         if AGNfrac1500<0:
-            prior_AGNfrac=-np.inf
+            prior_AGNfrac= -9999   #-np.inf
         else:
             ### Adding the prior knowledge on AGN fraction only valid for QSO.
             mu = 2
             sigma = 2.
             prior_AGNfrac = Gaussian_prior(mu, sigma, AGNfrac1500)
-
     return prior_AGNfrac
 
 
@@ -265,7 +264,7 @@ def prior_UV_xrays(data, BBBFdict, bbb_obj, BB, models):
 
         return log_L2500A_alphaox
 
-    if models.settings['BBB']=='R06':
+    if models.settings['BBB']=='R06' or modelsettings['BBB']=='THB21':
         all_bbb_nus, bbb_Fnus_dered = BBBFdict['0.0']                                                    #Intrinsic fluxes without reddening
     elif models.settings['BBB']=='SN12':
         all_bbb_nus, bbb_Fnus_dered = BBBFdict[tuple(np.append(bbb_obj.matched_parkeys_grid[:-1], 0.0))] #Intrinsic fluxes without reddening
@@ -334,7 +333,7 @@ def prior_midIR_UV(data, BBBFdict, bbb_obj, BB, TORUSFdict, tor_obj, TO, models)
     x = np.log10(tor_flux_6microns * lumfactor) -27.30103
     log_L2500A_tomodel = (16.2530786 + 1.024*x - 0.047*x**2)/0.643                 #correlations by Stern 2015 + Just et al. 2007
 
-    if models.settings['BBB']=='R06' and models.settings['XRAYS'] != True:
+    if (models.settings['BBB']=='R06' or models.settings['BBB']=='THB21') and models.settings['XRAYS'] != True:
         all_bbb_nus, bbb_Fnus_dered = BBBFdict['0.0']                                                    #Intrinsic fluxes without reddening
 
     else: 
@@ -363,7 +362,7 @@ def prior_low_AGNfraction(data, models, P, *pars):
     MD = models.dict_modelfluxes
     gal_obj,_,_, bbb_obj = models.dictkey_arrays
 
-    if models.settings['BBB']=='R06': 
+    if models.settings['BBB']=='R06' or  models.settings['BBB']=='THB21': 
         if models.settings['RADIO'] == True:
             GA, SB, TO, BB, RAD = pars[-5:]
         else:

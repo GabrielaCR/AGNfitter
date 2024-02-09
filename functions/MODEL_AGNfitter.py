@@ -330,53 +330,12 @@ def STARBURST(path, modelsettings):
 
         return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types, model_functions
 
-    elif modelsettings['STARBURST']=='S17':
-
-        STARBURSTFdict_4plot = dict()
-        STARBURST_LIRdict = dict()
-
-        #Call object containing all starburst models     
-        dusttable = Table.read(path + 'models/STARBURST/s17_dust.fits')
-        pahstable = Table.read(path + 'models/STARBURST/s17_pah.fits')
-        
-        Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
-        Pwl, PnuLnu = pahstable['LAM'],pahstable['SED'] #micron, Lsun
-        Tdust = np.array(dusttable['TDUST'])[0] #K
-        Lir=  np.array(dusttable['LIR'])[0] *3.826e33
-        fracPAH = np.arange(0.25, 6.25, 0.25)/100
-        idxs=[np.arange(len(Tdust)), np.arange(len(fracPAH))]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        Dnu= (Dwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
-        Pnu= (Pwl[0] * u.micron).to(u.Hz, equivalencies=u.spectral())
-        DLnu= np.array(DnuLnu[0])/Dnu ###!!!*1e-6 #* u.Lsun.to(u.W)
-        PLnu=np.array(PnuLnu[0])/Pnu ###!!!*1e-6 #* u.Lsun.to(u.W)
-
-
-        #Construct dictionaries 
-        for c in par_idxs_combinations:
-            t=c[0]
-            fp=c[1]
-
-            sb_nu0 = np.array(Dnu[t,:])[::-1]
-            sb_Fnu0 = np.array( (1-fracPAH[fp]) * DLnu[t,:] + (fracPAH[fp]) * PLnu[t,:])[::-1]
-
-            STARBURSTFdict_4plot[str(Tdust[t]), str(fracPAH[fp])] = np.log10(sb_nu0), renorm_template('SB',sb_Fnu0)
-            STARBURST_LIRdict[str(Tdust[t]), str(fracPAH[fp])] = Lir[t]
-
-        ## Name the parameters that compose the keys of the dictionary: STARBURSTFdict_4plot[key]. 
-        ## Add the names in the same order as their values are arranged in the dictionary key above.    
-        parameters_names =['Tdust', 'fracPAH']
-        parameters_types =['grid', 'grid']
-
-        return STARBURSTFdict_4plot, STARBURST_LIRdict, parameters_names, parameters_types, model_functions
-
-    elif modelsettings['STARBURST']=='S17_newmodel':  #Model created specifically for AGNfitter
+    elif modelsettings['STARBURST']=='S17':  #Model created specifically for AGNfitter, corrected by very small grains (VSG correction)
 
         STARBURSTFdict_4plot = dict()
         STARBURST_LIRdict = dict()
         #Call object containing all starburst models     
-        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits')
+        dusttable = Table.read(path + 'models/STARBURST/s17_lowvsg_dust.fits') 
         pahstable = Table.read(path + 'models/STARBURST/s17_lowvsg_pah.fits')
         
         Dwl, DnuLnu = dusttable['LAM'],dusttable['SED'] #micron, Lsun
@@ -464,32 +423,13 @@ def AGN_RAD(path, modelsettings, nRADdata):
     if modelsettings['RADIO']== True:
 
         AGN_RADFdict_4plot = dict()
-        agnrad_nu = 10**np.arange(7, 15, 0.02)#15, 17
-        #alpha == -0.75: 
-        #parameters_names = ['alpha', 'Ecutoff']                                                     #Single power law with cutoff
-        #parameters_types = ['grid', 'grid']
-        #alpha = np.arange(-2.0, 1.0, 0.1)
-        #E_cutoff = np.linspace(13, 14, 150)
+        if modelsettings['Blazar'] != 'None':
+            agnrad_nu = 10**np.arange(7, 18.5, 0.02)
+        else:
+            agnrad_nu = 10**np.arange(7, 15, 0.02)
 
-        #idxs=[alpha, E_cutoff]
-        #par_idxs_combinations = np.array(list(itertools.product(*idxs)))
+        if nRADdata == 1: #1 
 
-        #for c in par_idxs_combinations:
-         #   alphai = c[0]
-         #   E_cutoffi = c[1]
-         #   agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alphai)*np.exp(-agnrad_nu/10**E_cutoffi)     
-         #   AGN_RADFdict_4plot[str(alphai), str(E_cutoffi)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
-
-
-        #for i in alpha:
-          #  agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**i)*np.exp(-agnrad_nu/(1e13))     
-          #  AGN_RADFdict_4plot[str(i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
-
-        #alpha1, alpha2, freq = 0, -0.6, 3.2*1e9                                           #Broken power law with cutoff
-        #Fnu1, Fnu2 = (agnrad_nu[agnrad_nu < freq]/1e9)**alpha1, (agnrad_nu[agnrad_nu >= freq]/(freq))**alpha2*np.exp(-agnrad_nu[agnrad_nu >= freq]/5e19)
-        #agnrad_Fnu = np.concatenate((Fnu1, Fnu1[-1]*Fnu2))
-
-        if nRADdata == 1:  
             #If there aren't enough data to find the normalization parameter #simple power law
             parameters_names =['None']
             parameters_types =['grid']
@@ -499,30 +439,33 @@ def AGN_RAD(path, modelsettings, nRADdata):
             agnrad_Fnu = ((agnrad_nu/nu_t)**alpha)*np.exp(-agnrad_nu/(1e13))     
             AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu) 
 
-        elif nRADdata == 2:  
-            #If there aren't enough data to find the normalization parameter and alpha #simple power law
+        elif nRADdata == 2 or modelsettings['Blazar'] == 'SPL': 
             parameters_names =['alpha']
             parameters_types =['grid']
             alpha = np.arange(-2.0, 1.0, 0.1)
             nu_t = 1e9
 
-            for i in alpha:
-                agnrad_Fnu = ((agnrad_nu/nu_t)**i)*np.exp(-agnrad_nu/(1e13))     
-                AGN_RADFdict_4plot[str(i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)  
+            if modelsettings['Blazar'] == 'SPL':
+                parameters_names.append('Ecutoff')
+                parameters_types.append('grid')
+                E_cutoff = np.arange(14, 17, 0.2)
+                idxs = [alpha, E_cutoff]
+                par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
-        #elif nRADdata < 3:  
-            #If there aren't enough data to find the normalization parameter, alpha1 and alpha2, fit a #Double power law with cutoff with 
-            # alpha1 and alpha2 as fix parameters
-            #parameters_names =['None']
-            #parameters_types =['grid']
-            #alpha1 = 0.5               
-            #alpha2 = -0.55
+                for c in par_idxs_combinations:
+                    alpha_i = c[0]
+                    E_cutoffi = c[1]
 
-            #agnrad_Fnu = ((agnrad_nu/agnrad_nu[0])**alpha1)*(1-np.exp(-(agnrad_nu[0]/agnrad_nu)**(alpha1-alpha2)))*np.exp(-agnrad_nu/(1e13))  
-            #AGN_RADFdict_4plot['-99.9'] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                    agnrad_Fnu = ((agnrad_nu/nu_t)**alpha_i)*np.exp(-agnrad_nu/(10**E_cutoffi))     
+                    AGN_RADFdict_4plot[str(alpha_i), str(E_cutoffi)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+
+            else:
+                for i in alpha:
+                    agnrad_Fnu = ((agnrad_nu/nu_t)**i)*np.exp(-agnrad_nu/(1e13))     
+                    AGN_RADFdict_4plot[str(i)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)  
 
 
-        elif nRADdata == 3:  
+        elif nRADdata == 3 or modelsettings['Blazar'] == 'DPL-3' :  
             #There are enough data to find the normalization parameter, alpha and nu_t #Double power law
             parameters_names =['curv', 'nut']
             parameters_types =['grid', 'grid']
@@ -531,23 +474,41 @@ def AGN_RAD(path, modelsettings, nRADdata):
             alpha1i = -0.75
             
             idxs=[curv, nu_t]
+            if modelsettings['Blazar'] == 'DPL-3':
+                parameters_names.append('Ecutoff')
+                parameters_types.append('grid')
+                E_cutoff = np.arange(14, 17, 0.2)
+                idxs.append(E_cutoff)
             par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
             for c in par_idxs_combinations:
                 curvi = c[0]
                 nu_ti = c[1]
+                if modelsettings['Blazar'] == 'DPL-3':
+                    E_cutoffi = c[3]
+                else:
+                    E_cutoffi = 13
 
-                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(curvi)))*np.exp(-agnrad_nu/(1e13))
-                AGN_RADFdict_4plot[str(curvi), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(curvi)))*np.exp(-agnrad_nu/(10**E_cutoffi))
+                if modelsettings['Blazar'] == 'DPL-3':
+                    AGN_RADFdict_4plot[str(curvi), str(nu_ti), str(E_cutoffi)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                else:
+                    AGN_RADFdict_4plot[str(curvi), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
 
-        else:                                                                                  #Double power law with cutoff with parameters
+        elif nRADdata > 3 or modelsettings['Blazar'] == 'DPL-4':  #Double power law with cutoff with parameters
             parameters_names =['alpha1', 'alpha2', 'nut']
             parameters_types =['grid', 'grid', 'grid']
             alpha1 = np.arange(-1.0, 1.0, 0.2)                               
             alpha2 = np.arange(-1.0, 0, 0.1) 
             nu_t = np.arange(7, 13, 0.2) 
-            
+
             idxs=[alpha1, alpha2, nu_t]
+            if modelsettings['Blazar'] == 'DPL-4':
+                parameters_names.append('Ecutoff')
+                parameters_types.append('grid')
+                E_cutoff = np.arange(14, 17, 0.2)
+                idxs.append(E_cutoff)
+            
             par_idxs_combinations = np.array(list(itertools.product(*idxs)))
 
             for c in par_idxs_combinations:
@@ -555,13 +516,18 @@ def AGN_RAD(path, modelsettings, nRADdata):
                 alpha2i = c[1]
 
                 nu_ti = c[2]
-
-                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/(1e13))
-                AGN_RADFdict_4plot[str(alpha1i), str(alpha2i), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                if modelsettings['Blazar'] == 'DPL-4':
+                    E_cutoffi = c[3]
+                else:
+                    E_cutoffi = 13
+                agnrad_Fnu = ((agnrad_nu/10**nu_ti)**alpha1i)*(1-np.exp(-(10**nu_ti/agnrad_nu)**(alpha1i-alpha2i)))*np.exp(-agnrad_nu/(10**E_cutoffi))
+                if modelsettings['Blazar'] == 'DPL-4':
+                    AGN_RADFdict_4plot[str(alpha1i), str(alpha2i), str(nu_ti), str(E_cutoffi)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
+                else:
+                    AGN_RADFdict_4plot[str(alpha1i), str(alpha2i), str(nu_ti)] = np.log10(agnrad_nu), renorm_template('AGN_RAD', agnrad_Fnu)
 
 
         return AGN_RADFdict_4plot, parameters_names, parameters_types, model_functions
-
 
 def BBBfunctions():
     def apply_reddening (bbb_nu, bbb_Fnu, EBV_bbb):
@@ -585,9 +551,6 @@ def BBB(path, modelsettings, nXRaysdata):
         BBBFdict_4plot = dict()
         R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
-
-        #THB21dict = pickle.load(open(path + 'models/BBB/THB21_new.pickle', 'rb'), encoding='latin1') #Added
-        #bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()   #Added
 
         BBB_functions = BBBfunctions()
 
@@ -687,7 +650,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()     
-        SN12dict = pickle.load(open(path + 'models/BBB/SN12_new.pickle', 'rb'), encoding='latin1') 
+        SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1') 
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']   
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
@@ -893,7 +856,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()
-        THB21dict = pickle.load(open(path + 'models/BBB/THB21.pickle', 'rb'), encoding='latin1') 
+        THB21dict = pickle.load(open(path + 'models/BBB/THB21.pickle', 'rb'), encoding='latin1') #THB21_new.pickle
         bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()
         BBB_functions = BBBfunctions()
 
@@ -1021,7 +984,7 @@ def TORUS(path, modelsettings):
         
         TORUSFdict_4plot  = dict()
 
-        NK0dict = pickle.load(open(path + 'models/TORUS/nenkova_v0.pickle', 'rb'), encoding='latin1')  
+        NK0dict = pickle.load(open(path + 'models/TORUS/NK0_mean_1p.pickle', 'rb'), encoding='latin1')  
         incl_idx=len(NK0dict['SED']) 
         #Construct dictionaries 
         for incl_i in range(incl_idx): 
@@ -1086,95 +1049,13 @@ def TORUS(path, modelsettings):
         parameters_types = ['grid', 'grid', 'grid']
         return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
-    ## Model from Nenkova et al. 2008
-    elif modelsettings['TORUS']=='NK0_4P':
-        # Nenkova model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
-
-        TORUSFdict_4plot  = dict()
-        NK0_4Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_4p.pickle', 'rb'), encoding='latin1')  
-        
-        oa_array = NK0_4Pdict['oa-values'].unique()
-        incl_array = NK0_4Pdict['incl-values'].unique()
-        tv_array = NK0_4Pdict['tv-values'].unique()
-        N0_array = NK0_4Pdict['N0-values'].unique()
-
-        ## produce all combinations of parameter values (indices)
-        idxs = [oa_array, incl_array, tv_array, N0_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-            oai=c[0]
-            incli=c[1]
-            tvi = c[2]
-            N0i = c[3]
-            model = NK0_4Pdict[(NK0_4Pdict['oa-values'] == oai) & (NK0_4Pdict['incl-values'] == incli) & (NK0_4Pdict['tv-values'] == tvi) & (NK0_4Pdict['N0-values'] == N0i)] 
-            tor_nu0, tor_Fnu0 =  model['wavelength'].values.item(), model['SED'].values.item()             
-            TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(N0i)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['oa', 'incl', 'tv', 'N0']
-        parameters_types = ['grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-
 
     ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTOR':  #This model has too many parameters --> The code can't find the parameters
-        
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR.pickle', 'rb'), encoding='latin1')  
-        
-        tv_array = SKIRTORdict['tv-values'].unique()
-        p_array = SKIRTORdict['p-values'].unique()
-        q_array = SKIRTORdict['q-values'].unique()
-        oa_array = SKIRTORdict['oa-values'].unique()
-        r_array = SKIRTORdict['r-values'].unique()
-        mcl_array = SKIRTORdict['mcl-values'].unique()
-        incl_array = SKIRTORdict['incl-values'].unique()
-
-        ## produce all combinations of parameter values (indices)
-        idxs = [tv_array, p_array, q_array, oa_array, r_array, mcl_array, incl_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-                tvi=c[0]
-                pi=c[1]
-                qi=c[2]
-                oai=c[3]
-                ri=c[4]
-                mcli=c[5]
-                incli=c[6]
-                model = SKIRTORdict[(SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)& (SKIRTORdict['q-values'] == qi)& (SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['r-values'] == ri) & (SKIRTORdict['mcl-values'] == mcli) & (SKIRTORdict['incl-values'] == incli)] 
-                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
-                TORUSFdict_4plot[str(tvi),str(pi), str(qi), str(oai), str(ri), str(mcli), str(incli)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['tv', 'p', 'q', 'oa', 'r', 'mcl', 'incl']
-        parameters_types = ['grid', 'grid', 'grid', 'grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORC': 
-        #SKIRTOR model with the parameter values used in X-CIGALE (Yang, Guang, et al. 2020) and inclination as free parameter
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORCdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_CIGALE.pickle', 'rb'), encoding='latin1')  
-        incl_array = SKIRTORCdict['incl-values']
-        #Construct dictionaries 
-        for incl_i in incl_array: 
-
-            tor_nu0, tor_Fnu0 = SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['wavelength'].values.item().to_numpy(), SKIRTORCdict[SKIRTORCdict['incl-values'] == incl_i]['SED'].values.item().to_numpy()
-            TORUSFdict_4plot[str(incl_i)] = tor_nu0, renorm_template('TO',tor_Fnu0)
-
-        parameters_names = ['incl']
-        parameters_types = ['grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
-
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM': 
+    elif modelsettings['TORUS']=='SKIRTORM_1P': 
         # SKIRTOR model with averaged SEDs for each inclination (the only parameter)
         TORUSFdict_4plot  = dict()
 
-        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean.pickle', 'rb'), encoding='latin1')  
+        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_1p.pickle', 'rb'), encoding='latin1')  
         incl_array = SKIRTORMdict['incl-values']
         #Construct dictionaries 
         for incl_i in incl_array: 
@@ -1237,41 +1118,13 @@ def TORUS(path, modelsettings):
         parameters_types = ['grid', 'grid', 'grid']
         return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
-    ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM_4P':
-        # SKIRTOR model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
-        TORUSFdict_4plot  = dict()
-
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_4p.pickle', 'rb'), encoding='latin1')  
-        
-        oa_array = SKIRTORdict['oa-values'].unique()
-        incl_array = SKIRTORdict['incl-values'].unique()
-        tv_array = SKIRTORdict['tv-values'].unique()
-        p_array = SKIRTORdict['p-values'].unique()
-
-        ## produce all combinations of parameter values
-        idxs = [oa_array, incl_array, tv_array, p_array]
-        par_idxs_combinations = np.array(list(itertools.product(*idxs)))
-
-        for c in par_idxs_combinations:
-                oai=c[0]
-                incli=c[1]
-                tvi = c[2]
-                pi = c[3]
-                model = SKIRTORdict[(SKIRTORdict['oa-values'] == oai) & (SKIRTORdict['incl-values'] == incli) & (SKIRTORdict['tv-values'] == tvi) & (SKIRTORdict['p-values'] == pi)] 
-                tor_nu0, tor_Fnu0 =  model['wavelength'].values.item().to_numpy(), model['SED'].values.item().to_numpy()               
-                TORUSFdict_4plot[str(oai), str(incli), str(tvi), str(pi)] = tor_nu0, renorm_template('TO',tor_Fnu0)  
-
-        parameters_names = ['oa', 'incl', 'tv', 'p']
-        parameters_types = ['grid', 'grid', 'grid', 'grid']
-        return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
     ## Model from Stalevski et al. 2016
     elif modelsettings['TORUS']=='CAT3D_3P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
         TORUSFdict_4plot  = dict()
 
-        CAT3Ddict = pickle.load(open(path + 'models/TORUS/CAT3D_mean_3p_new.pickle', 'rb'), encoding='latin1')  
+        CAT3Ddict = pickle.load(open(path + 'models/TORUS/CAT3D_mean_3p.pickle', 'rb'), encoding='latin1')  
         
         incl_array = CAT3Ddict['incl-values'].unique()
         a_array = CAT3Ddict['a-values'][210: ].unique()  #Value of the 2nd set of 168 SEDs 
@@ -1447,30 +1300,51 @@ def fluxlambda_2_fluxnu (flux_lambda, wl_angst):
              COMPUTED QUANTITIES
 -----------------------------------------------"""
 
-def stellar_info(chain, data, models):
+def stellar_info(chain, data, models, mc):
 
     """
     computes stellar masses and SFRs
     """
     gal_obj,_,_,_,_ = models.dictkey_arrays
-    if models.settings['RADIO'] == False and models.settings['BBB'] == 'R06':
-        GA = chain[:, -4]
-    elif models.settings['RADIO'] == False and models.settings['BBB'] != 'R06':
-        GA = chain[:, -3]
-    elif models.settings['RADIO'] == True and models.settings['BBB'] == 'R06':
-        GA = chain[:, -5] 
-    elif models.settings['RADIO'] == True and models.settings['BBB'] != 'R06':
-        GA = chain[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
-                            ## in order to have comparable NORMfactors  
-    MD= models.dict_modelfluxes
 
-    if len(gal_obj.par_names)==3:
-        tau_mcmc = chain[:,0]  
-        age_mcmc = chain[:,1] 
-    elif len(gal_obj.par_names)==4:
-        metal_mcmc = chain[:,0] 
-        tau_mcmc = chain[:,1]     
-        age_mcmc = chain[:,2] 
+    if mc['sampling_algorithm'] == 'ultranest':
+        if models.settings['RADIO'] == False and (models.settings['BBB'] == 'R06' or models.settings['BBB'] == 'THB21'):
+            GA = chain.iloc[:, -4]
+        elif models.settings['RADIO'] == False and (models.settings['BBB'] != 'R06' and models.settings['BBB'] != 'THB21'):
+            GA = chain.iloc[:, -3]
+        elif models.settings['RADIO'] == True and (models.settings['BBB'] == 'R06' or models.settings['BBB'] == 'THB21'):
+            GA = chain.iloc[:, -5] 
+        elif models.settings['RADIO'] == True and (models.settings['BBB'] != 'R06' and models.settings['BBB'] != 'THB21'):
+            GA = chain.iloc[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
+                            ## in order to have comparable NORMfactors  
+        MD= models.dict_modelfluxes
+
+        if len(gal_obj.par_names)==3:
+            tau_mcmc = chain.iloc[:,0]  
+            age_mcmc = chain.iloc[:,1] 
+        elif len(gal_obj.par_names)==4:
+            metal_mcmc = chain.iloc[:,0] 
+            tau_mcmc = chain.iloc[:,1]     
+            age_mcmc = chain.iloc[:,2] 
+    else:
+        if models.settings['RADIO'] == False and (models.settings['BBB'] == 'R06' or models.settings['BBB'] == 'THB21'):
+            GA = chain[:, -4]
+        elif models.settings['RADIO'] == False and (models.settings['BBB'] != 'R06' and models.settings['BBB'] != 'THB21'):
+            GA = chain[:, -3]
+        elif models.settings['RADIO'] == True and (models.settings['BBB'] == 'R06' or models.settings['BBB'] == 'THB21'):
+            GA = chain[:, -5] 
+        elif models.settings['RADIO'] == True and (models.settings['BBB'] != 'R06' and models.settings['BBB'] != 'THB21'):
+            GA = chain[:, -4] #- 18. ## 1e18 is the common normalization factor used in parspace.ymodel 
+                            ## in order to have comparable NORMfactors  
+        MD= models.dict_modelfluxes
+
+        if len(gal_obj.par_names)==3:
+            tau_mcmc = chain[:,0]  
+            age_mcmc = chain[:,1] 
+        elif len(gal_obj.par_names)==4:
+            metal_mcmc = chain[:,0] 
+            tau_mcmc = chain[:,1]     
+            age_mcmc = chain[:,2] 
   
     z = data.z
     distance = z2Dlum(z)
@@ -1481,46 +1355,73 @@ def stellar_info(chain, data, models):
     Mstar_list=[]
     SFR_list=[]
 
-    for i in range (len (tau_mcmc)):        
-        N = 10**GA[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
-        N = renorm_template('GA', N)
+    if mc['sampling_algorithm'] == 'ultranest':
+        for i in range(len(tau_mcmc)):        
+            N = 10**GA.iloc[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
+            N = renorm_template('GA', N)
 
-        if len(gal_obj.par_names)==3:
-            gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
-            tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
-            SFR_mcmc =MD.GALAXY_SFRdict[tau_dct, age_dct]
-        elif len(gal_obj.par_names)==4:
-            gal_obj.pick_nD(tuple([metal_mcmc[i], tau_mcmc[i], age_mcmc[i], 0.]))
-            metal_dct,tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
-            SFR_mcmc =MD.GALAXY_SFRdict[metal_dct,tau_dct, age_dct]
+            if len(gal_obj.par_names)==3:
+                gal_obj.pick_nD(tuple([tau_mcmc.iloc[i], age_mcmc.iloc[i], 0.]))
+                tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+                SFR_mcmc =MD.GALAXY_SFRdict[tau_dct, age_dct]
+            elif len(gal_obj.par_names)==4:
+                gal_obj.pick_nD(tuple([metal_mcmc.iloc[i], tau_mcmc.iloc[i], age_mcmc.iloc[i], 0.]))
+                metal_dct,tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+                SFR_mcmc =MD.GALAXY_SFRdict[metal_dct,tau_dct, age_dct]
 
-        # Calculate Mstar. BC03 templates are normalized to M* = 1 M_sun. 
-        # Thanks to Kenneth Duncan, and his python version of BC03, smpy
-        Mstar = np.log10(N * 1) 
-        #Calculate SFR. output is in [Msun/yr]. 
-        #print tau_mcmc[i], age_mcmc[i], (N * SFR_mcmc), np.log10(N), SFR_mcmc 
-        SFR = N * SFR_mcmc
-        SFR_list.append(SFR.value)    
-        Mstar_list.append(Mstar)    
+            Mstar = np.log10(N * 1) 
+            #Calculate SFR. output is in [Msun/yr]. 
+            #print tau_mcmc[i], age_mcmc[i], (N * SFR_mcmc), np.log10(N), SFR_mcmc 
+            SFR = N * SFR_mcmc
+            SFR_list.append(SFR.value)    
+            Mstar_list.append(Mstar)  
+    else:
+        for i in range (len (tau_mcmc)):        
+            N = 10**GA[i]* 4* pi* distance**2 / (solarlum.value)/ (1+z)
+            N = renorm_template('GA', N)
+
+            if len(gal_obj.par_names)==3:
+                gal_obj.pick_nD(tuple([tau_mcmc[i], age_mcmc[i], 0.]))
+                tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+                SFR_mcmc =MD.GALAXY_SFRdict[tau_dct, age_dct]
+            elif len(gal_obj.par_names)==4:
+                gal_obj.pick_nD(tuple([metal_mcmc[i], tau_mcmc[i], age_mcmc[i], 0.]))
+                metal_dct,tau_dct, age_dct, ebvg_dct=gal_obj.matched_parkeys
+                SFR_mcmc =MD.GALAXY_SFRdict[metal_dct,tau_dct, age_dct]
+
+            # Calculate Mstar. BC03 templates are normalized to M* = 1 M_sun. 
+            # Thanks to Kenneth Duncan, and his python version of BC03, smpy
+            Mstar = np.log10(N * 1) 
+            #Calculate SFR. output is in [Msun/yr]. 
+            #print tau_mcmc[i], age_mcmc[i], (N * SFR_mcmc), np.log10(N), SFR_mcmc 
+            SFR = N * SFR_mcmc
+            SFR_list.append(SFR.value)    
+            Mstar_list.append(Mstar)    
 
     return np.array(Mstar_list) , np.array(SFR_list)
 
 
-def stellar_info_array(chain_flat, data, models, Nthin_compute):
+def stellar_info_array(chain_flat, data, models, Nthin_compute, mc):
 
     """
     computes arrays of stellar masses and SFRs
     """
     import random
-    Ns, Npar = np.shape(chain_flat) 
-    chain_thinned = chain_flat[random.sample(list(np.arange(Ns)), Nthin_compute),:]
 
-    Mstar, SFR = stellar_info(chain_thinned, data, models)
+    Ns, Npar = np.shape(chain_flat) 
+    if mc['sampling_algorithm'] == 'ultranest':
+        chain_thinned = chain_flat.iloc[random.sample(list(np.arange(Ns)), Nthin_compute)]
+
+    else:
+        chain_thinned = chain_flat[random.sample(list(np.arange(Ns)), Nthin_compute),:]
+
+    Mstar, SFR = stellar_info(chain_thinned, data, models, mc)
+
     Mstar_list = []
     SFR_list = []
 
     for i in range(Nthin_compute):
-        for j in range(int(Ns/Nthin_compute)):
+        for j in range(int(Ns/Nthin_compute)): 
             Mstar_list.append(Mstar[i])
             SFR_list.append(SFR[i])
 
@@ -1573,10 +1474,11 @@ def renorm_template(model, Fnu):
 
 class MODELS: #is this used somewhere else?
 
-    def __init__(self, z, models_settings):
+    def __init__(self, z, models_settings, mc_settings):
         self.name= 'models'
         self.z=z
         self.settings = models_settings
+        self.mc = mc_settings
 
     def DICTS(self, filters, Modelsdict):
         """
