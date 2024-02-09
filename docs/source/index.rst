@@ -20,17 +20,19 @@ Here is the SED-fitting output of the code for the radio-to-X-ray photometry of 
 
 Here a list of the main features of the code, highlighting the new addition in the AGNfitter-rx release.
 
-- Radio-to-X-ray SED modelling *(new)*
-- Easy inclusion of your favorite new models to allow model comparison *(new, :doc:`usage`)*  
-- Easy inclusion of filters  *(new, :doc:`usage`)*
-- Easy inclusion of user-tailored priors  *(new, :doc:`usage`)*
-- Energy balance prior between the stellar population and IR dust emission components *(new)*
-- Customized output: including integrated luminosities and AGN fractions at the desired wavelength (ranges)
-- Sampled Probability Density Functions (PDFs) for all physical parameters
+* Radio-to-X-ray SED modelling *(new)*
+* Easy inclusion of your favorite new models to allow model comparison *(new, :doc:`usage`)*  
+* Easy inclusion of filters  *(new, :doc:`usage`)*
+* Easy inclusion of user-tailored priors  *(new, :doc:`usage`)*
+* Energy balance prior between the stellar population and IR dust emission components *(new)*
+* Customized output: including integrated luminosities and AGN fractions at the desired wavelength (ranges)
+* Sampled Probability Density Functions (PDFs) for all physical parameters
+
 
 .. note::  
 
    This project is under active development.
+
 
 Requirements
 -------------
