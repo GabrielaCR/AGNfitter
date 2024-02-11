@@ -23,7 +23,7 @@ Here is the SED-fitting output of the code for the radio-to-X-ray photometry of 
 
 .. note::
 
-   AAA
+   The AGNfitter-rx includes all capabilities from the original AGNfitter 1.0, but with many new models to choose, substantially more flexibility to customize models, filters and priors, of course now covering the spectrum from the radio-to-X-rays!
 
 Here a list of the main features of the code, highlighting the new addition in the AGNfitter-rx release.
 
