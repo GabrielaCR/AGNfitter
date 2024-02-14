@@ -20,6 +20,7 @@ from ultranest import ReactiveNestedSampler, stepsampler, dychmc, popstepsampler
 import numpy as np
 from ultranest.plot import cornerplot, traceplot
 from ultranest.stepsampler import OrthogonalDirectionGenerator
+import importlib
 
 
 if __name__ == 'main':
@@ -95,6 +96,21 @@ def main(data, models, P, mc):
         sampler.plot_corner()
 
     elif mc['sampling_algorithm'] == 'emcee':
+        #Change default value of quiet = False in emcee auto correlation time function
+        file_autocorr = os.path.dirname(emcee.__file__) + '/autocorr.py'
+
+        acor_2r = open(file_autocorr, 'r')
+        Lines = acor_2r.readlines()
+        acor_2r.close()
+        with open(file_autocorr, 'w') as acor_py:
+            for line in Lines:
+                if 'integrated_time(x, c=5, tol=50, quiet=False)' in line:
+                    line = line.replace('quiet=False', 'quiet=True')
+                    print('Autocorr python file has been changed. Quiet input of integrated_time became True')
+                acor_py.write(line)
+        acor_py.close()
+        importlib.reload(emcee.autocorr)
+
         sampler = emcee.EnsembleSampler( mc['Nwalkers'], Npar, parspace.ln_probab, args=[data, models, P])
 
         ## BURN-IN SETS ##
@@ -118,6 +134,19 @@ def main(data, models, P, mc):
             run_mcmc(sampler, p_maxlike, data.name,data.output_folder, mc)
             print( '%.2g min elapsed' % ((time.time() - t2)/60.))
         del sampler.pool  
+
+        #Change to default value of quiet = False in emcee auto correlation time function
+
+        acor_2r = open(file_autocorr, 'r')
+        Lines = acor_2r.readlines()
+        acor_2r.close()
+        with open(file_autocorr, 'w') as acor_py:
+            for line in Lines:
+                if 'integrated_time(x, c=5, tol=50, quiet=True)' in line:
+                    line = line.replace('quiet=True', 'quiet=False')
+                    print('Autocorr python file has been changed. Quiet input of integrated_time became False again')
+                acor_py.write(line)
+        acor_py.close()
 
 """==================================================
  SAMPLING FUNCTIONS

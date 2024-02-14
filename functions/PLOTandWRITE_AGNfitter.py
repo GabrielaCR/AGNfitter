@@ -968,17 +968,17 @@ def SED_plotting_settings(x, ydata, modeldata, models, out, plot_residuals= Fals
     **Input:
     - all nus, and data (to make the plot limits depending on the data)
     """
+    #-- Latex -------------------------------------------------
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    plt.rc('axes', linewidth=2)
+    #-------------------------------------------------------------
+
     output_plots = []
     fig = plt.figure(figsize=(16,6)) 
 
     ax1 = fig.add_axes([0.15,0.3,0.8,0.6])  
     ax2 = ax1.twiny()
-
-    #-- Latex -------------------------------------------------
-    rc('text', usetex=True)
-    rc('font', family='serif')
-    rc('axes', linewidth=2)
-    #-------------------------------------------------------------
     
     ax1.set_xlabel(r'rest-frame $\mathbf{log \  \nu} [\mathtt{Hz}] $', fontsize=18)
     ax2.set_xlabel(r'$\mathbf{\lambda} [\mathtt{\mu m}] $', fontsize=18)
@@ -988,9 +988,9 @@ def SED_plotting_settings(x, ydata, modeldata, models, out, plot_residuals= Fals
     ax1.tick_params(axis='both',reset=False,which='minor',length=4,width=1.5, labelsize = 18, direction='in',top='on',right='on')
     locmaj = matplotlib.ticker.LogLocator(base=10.0, subs=(1.0, ),  numticks=8) 
     ax1.yaxis.set_major_locator(locmaj)
-    #locmin = matplotlib.ticker.LogLocator(base=10.0,subs= np.arange(2,10)*0.1, numticks=15)
-    #ax2.xaxis.set_minor_locator(locmin)
-    #ax2.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    locmin = matplotlib.ticker.LogLocator(base=10.0,subs= np.arange(2,10)*0.1, numticks=15)
+    ax2.xaxis.set_minor_locator(locmin)
+    ax2.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
 
     ax1.set_autoscalex_on(True) 
     ax1.set_autoscaley_on(True) 
@@ -998,7 +998,7 @@ def SED_plotting_settings(x, ydata, modeldata, models, out, plot_residuals= Fals
     ax1.set_yscale('log')
     mediandata = np.median(ydata)
 
-    ax1.set_ylim(min(ydata)*4*1e-1, max(ydata)*8) 
+    ax1.set_ylim(min(ydata)*4*1e-2, max(ydata)*8) 
     ax1.set_xlim(min(np.log10(x)), max(np.log10(x))) 
 
     if out['band_indicators'] == True:

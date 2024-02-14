@@ -90,8 +90,6 @@ class FILTER_SET:
 
 			filters_objects_chosen = [o for o in filters_objects_all.values() if o.filtername in default_filters]
 		else:
-			# filters_objects_chosen = [o for o in filters_objects_all.values() \
-			# 						  if filtersdict[o.filtername]==True]
 			filters_objects_chosen = []
 			for o in filters_objects_all.values():
 				try:
@@ -144,9 +142,6 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 			filters_objects_all[filtername] = FILTER(filtername, ADDfilters_dict['filenames'][i], ADDfilters_dict['freq/wl_format'][i],\
 												 ADDfilters_dict['freq/wl_unit'][i],ADDfilters_dict['description'][i])
 
-		#central_lambdas = [filters_objects_all[i].central_lambda for i in ADDfilters_dict['names']]
-		#central_nus = [filters_objects_all[i].central_nu for i in ADDfilters_dict['names']]
-		#IDs= [filters_objects_all[i].ID for i in ADDfilters_dict['names']]
 		f = open(filters_objects_all_filename, 'wb')
 		pickle.dump(filters_objects_all, f, protocol=2) 
 
@@ -183,31 +178,40 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 	  filters_in_settings+"\n\n" + \
 	 ">> Change the setting to\n   filters_dict['add_filters']==False \n>> Run the code again. ")
 
-def change_filters(path, new_filters): 
+def change_filters(path, old_names, new_names): 
 	"""
 	Fuction called when filters need to be renamed.
 
 	##input:
-	- (str) name of the dictionary containing all filter objects
-	- dictionary from the settings file, giving all filters to add.
-	- AGNfitter path.
+	- (str) path of the dictionar filter file
+        - list of strings with the current name of the filters you want to change
+        - list of strings with the new names
 
 	"""   
+	new_filters=dict()
+	new_filters['old_names'] = old_names
+	new_filters['names'] = new_names
 	filters_objects_all_filename = path+ 'ALL_FILTERS'
 	## Add the user's new filters 
 	with open(filters_objects_all_filename, 'rb') as f: ## Get old set of all filters
 		filters_objects_all = pickle.load(f, encoding='latin1')
 	f.close()
 
+	a = open(filters_objects_all_filename, 'wb')
 	for i in range(len(new_filters['names'])): ## Add the new ones
 		if (new_filters['old_names'][i] in filters_objects_all.keys()) and (new_filters['names'][i] not in filters_objects_all.keys()):
 			print('Changing the name of existing filters................................')
 			filters_objects_all[new_filters['names'][i]] = filters_objects_all[new_filters['old_names'][i]]
+			filters_objects_all[new_filters['names'][i]].filtername = new_filters['names'][i]
+
 			del filters_objects_all[new_filters['old_names'][i]]
 			
 		else:
-			'ERROR in adding new filter: "'+ new_filters['names'][i] + '" is already recorded.'	
+			'ERROR in adding new filter: "'+ new_filters['names'][i] + '" is already recorded.'
 
+	pickle.dump(filters_objects_all, a, protocol=2) ## save list of FILTER objects
+
+	print('Updated list of filters')
 	## Save the info of all filters, including new added ones in a table ALL_FILTERS_info.dat.
 	info_txt = open(path + 'ALL_FILTERS_info.dat', 'r')
 	Lines = info_txt.readlines()
@@ -257,11 +261,8 @@ def create_filtersets(filters_dict, path):
 
 	return filterset
 
-# If you want to change the name of an existing filter, please create a dictionary with the old and new names of the filters. 
+# If you want to change the name of an existing filter, please create a list of strings with the old and new names of the filters. 
 # The central lambda and nu, tne description of filter and the ID will remain the same.
 
-#new_filters=dict()
-#new_filters['old_names'] = ['delta05-1keV', 'delta1-2keV', 'delta2-45keV', 'delta45-12keV', 'delta05-2keV', 'delta2-12keV', 'RAD_6E8', 'RAD_21E8']
-#new_filters['names'] = ['4XMM_EP2', '4XMM_EP3', '4XMM_EP4', '4XMM_EP5', '4XMM_EP23', '4XMM_EP45', 'RAD_5GHz', 'RAD_1_4GHz']
 #path = '/home/user/AGNfitter/models/FILTERS/'
-#change_filters(new_filters)
+#change_filters(path, old_names, new_names)

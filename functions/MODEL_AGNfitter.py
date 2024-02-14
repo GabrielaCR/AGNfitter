@@ -965,7 +965,7 @@ def TORUS(path, modelsettings):
 
 
     ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM_1P': 
+    elif modelsettings['TORUS']=='SKIRTOR_1P': 
         # SKIRTOR model with averaged SEDs for each inclination (the only parameter)
         TORUSFdict_4plot  = dict()
 
@@ -981,7 +981,7 @@ def TORUS(path, modelsettings):
         return TORUSFdict_4plot, parameters_names, parameters_types , model_functions
 
     ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM_2P':
+    elif modelsettings['TORUS']=='SKIRTOR_2P':
         # SKIRTOR model with averaged SEDs for each inclination and openning angle (2 parameters)
         TORUSFdict_4plot  = dict()
 
@@ -1006,7 +1006,7 @@ def TORUS(path, modelsettings):
         return TORUSFdict_4plot, parameters_names, parameters_types, model_functions
 
     ## Model from Stalevski et al. 2016
-    elif modelsettings['TORUS']=='SKIRTORM_3P':
+    elif modelsettings['TORUS']=='SKIRTOR_3P':
         # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth (3 parameters)
         TORUSFdict_4plot  = dict()
 
