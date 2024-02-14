@@ -9,7 +9,7 @@ AGNfitter 2.0 (AGNfitter-rx release)
 
 **Welcome to AGNfitter!** 
 
-AGNfitter is a Python algorithm implementing a Bayesian methods to fit the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies from the galaxy **radio to the X-rays**.
+AGNfitter is a Python algorithm implementing a Bayesian methods to fit the spectral energy distributions (SEDs) of active galactic nuclei (AGN) and galaxies from the **radio to X-rays**.
 Through this method, you will be able to robustly disentangle the physical processes responsible for the emission of your sources.
 
 You only need a catalog of photometric data (wavelengths, fluxes and errors), take a few decisions (if you wish), and you are ready to go (see Example). You can find detailed documentation soon here.
