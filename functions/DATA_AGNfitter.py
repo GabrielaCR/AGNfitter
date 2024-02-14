@@ -148,11 +148,12 @@ class DATA_all:
                     # Upper limit flux is then represented for the fitting
                     # with a data point at uppflux/2, and an error of +- uppflux/2
                     # implying an uncertanty that ranges from [0,uppflux]  
-                    ndflag_cat0[fluxerr_cat.value<=-99]= 0.                                 
-                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
-                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
-                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
-                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    units_flags = self.cat['flux_unit'].value
+                    ndflag_cat0[fluxerr_cat.value/units_flags<=-99]= 0.                                 
+                    fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]= \
+                             fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]= \
+                               fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]
 
                 ## If NO columns with flags exist
                 elif self.cat['ndflag_bool'] == False:
@@ -161,11 +162,12 @@ class DATA_all:
                     # Upper limit flux is then represented for the fitting
                     # with a data point at uppflux/2, and an error of +- uppflux/2
                     # implying an uncertanty that ranges from [0,uppflux]
-                    ndflag_cat0[fluxerr_cat.value<=-99]= 0.
-                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
-                                                             fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
-                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]= \
-                                                            fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    units_flags = self.cat['flux_unit'].value
+                    ndflag_cat0[fluxerr_cat.value/units_flags<=-99]= 0.
+                    fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]=\
+                             fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]= \
+                              fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]
                     # If neither fluxes and fluxerrs are given (both -99), 
                     # these are considered as a non existant data point.
 
@@ -290,11 +292,12 @@ class DATA_all:
                     # Upper limit flux is then represented for the fitting
                     # with a data point at uppflux/2, and an error of +- uppflux/2
                     # implying an uncertanty that ranges from [0,uppflux]  
-                    ndflag_cat0[flux_cat.value<=-99]= 0.                                 
-                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
-                                                     fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
-                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
-                                                     fluxes0 [(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    units_flags = self.cat['flux_unit'].value
+                    ndflag_cat0[flux_cat.value/units_flags<=-99]= 0.                                 
+                    fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]=\
+                            fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]=\
+                            fluxes0 [(fluxerr_cat.value/units_flags<=-99)&(flux_cat/units_flags.value>-99)]
 
                 ## If NO columns with flags exist
                 elif self.cat['ndflag_bool'] == False:
@@ -304,11 +307,13 @@ class DATA_all:
                     # Upper limit flux is then represented for the fitting
                     # with a data point at uppflux/2, and an error of +- uppflux/2
                     # implying an uncertanty that ranges from [0,uppflux]  
-                    ndflag_cat0[flux_cat.value<=-99]= 0.
-                    fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
-                                                     fluxes0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]*0.5
-                    fluxerrs0[(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]=\
-                                                     fluxes0 [(fluxerr_cat.value<=-99)&(flux_cat.value>-99)]
+                    units_flags = self.cat['flux_unit'].value
+                    ndflag_cat0[flux_cat.value/units_flags<=-99]= 0.
+                    fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]=\
+                            fluxes0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]*0.5
+                    fluxerrs0[(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]=\
+                            fluxes0 [(fluxerr_cat.value/units_flags<=-99)&(flux_cat.value/units_flags>-99)]
+
                     # If neither fluxes and fluxerrs are given (both -99), 
                     # these are considered as a non existant data point.
 

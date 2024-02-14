@@ -30,6 +30,7 @@ import itertools
 import pickle
 import argparse
 
+
 #AGNfitter IMPORTS
 from functions import  MCMC_AGNfitter, PLOTandWRITE_AGNfitter
 import functions.PARAMETERSPACE_AGNfitter as parspace
@@ -187,7 +188,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
     
     if os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/samples_mcmc.sav') or os.path.lexists(cat_settings['output_folder'] +str(data.name) +'/ultranest/chains/weighted_post.txt'):           
         print('Done')
-        dictz = str.encode(dictz)  #Added by Laura
+        dictz = str.encode(dictz)  
         with open(dictz, 'rb') as f:
             zdict = pickle.load(f, encoding='latin1')
         Modelsdictz = zdict
@@ -216,11 +217,10 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
             models.DICTS(filtersz, Modelsdictz)
 
             P = parspace.Pdict (data, models)   # Dictionary with all parameter space specifications.
-                                        # From PARAMETERSPACE_AGNfitter.py
+                                        	# From PARAMETERSPACE_AGNfitter.py
+
 
             t1= time.time()
-            #MCMC_AGNfitter.main(data, models, P, mc)
-            #PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings, mc_settings)
 
             try:            
                 PLOTandWRITE_AGNfitter.main(data, models,  P,  out, models_settings, mc_settings)
@@ -236,52 +236,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         except EOFError: 
             print ( 'Line ',line,' cannot be fitted.')
 
-def RUN_AGNfitter_onesource( line, data_obj, models_settings):
-    """
-    Main function for fitting a single source in line 'line'.
-    """
     
-    mc = MCMC_settings()
-    out = OUTPUT_settings()
-    data = DATA(data_obj,line)
-
-    models= MODELS(data.z, models_settings)
-    try:
-        models.DICTS(filters_settings, Modelsdict) 
-    except EOFError:
-        print ( 'Line ',line,' cannot be fitted.')
-
-    P = parspace.Pdict (data, models)  # Dictionary with all parameter space especifications.
-                                # From PARAMETERSPACE_AGNfitter.py
-    print ( '')
-    print ( '________________________'  )    
-    print ( 'Fitting sources from catalog: ', data.catalog )
-    print ( '- Sourceline: ', line)
-    print ( '- Sourcename: ', data.name)
-
-    t1= time.time()
-    MCMC_AGNfitter.main(data, P, mc)        
-    PLOTandWRITE_AGNfitter.main(data,  P,  out, models_settings)
-
-
-    # try:
-    #     PLOTandWRITE_AGNfitter.main(data, models, P,  out, models_settings)
-    #     print ( 'Done already'   )     
-    # except:
-    #     print ( 'Not done yet')
-    #     MCMC_AGNfitter.main(data, models, P, mc)        
-    #     PLOTandWRITE_AGNfitter.main(data,  models, P,  out, models_settings)
-
-    print ( '_____________________________________________________')
-    print ( 'For this fit %.2g min elapsed'% ((time.time() - t1)/60.))
-    return
-
-    
-def multi_run_wrapper(args):
-    """
-    wrapper to allow calling RUN_AGNfitter_onesource in pool.map
-    """
-    return RUN_AGNfitter_onesource(*args)
 def multi_run_wrapper_indep(args):
     """
     wrapper to allow calling RUN_AGNfitter_onesource in pool.map
@@ -301,7 +256,6 @@ def RUN_AGNfitter_multiprocessing(processors, data_obj, models_settings, mc_sett
         print ( "processing all {0:d} sources with {1:d} cpus".format(nsources, processors))
         
         pool = mp.Pool(processes = processors)
-        #py2 catalog_fitting = pool.map(multi_run_wrapper, itertools.izip(range(nsources), itertools.repeat(data_obj), itertools.repeat(models_settings)))
         catalog_fitting = pool.map(multi_run_wrapper, zip(range(nsources), itertools.repeat(data_obj), itertools.repeat(models_settings), itertools.repeat(mc_settings) ))
         pool.close()
         pool.join() 
@@ -389,16 +343,6 @@ if __name__ == "__main__":
             for i in range(0, 110, 1):
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
        
-    # else:
-    #     # make/read the model dictionary
-    #     Modelsdict = MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobbermodel=clobbermodel)
-
-    #     # a single source is specified
-    #     if args.sourcenumber >= 0 and args.independent==False:
-    #         RUN_AGNfitter_onesource(args.sourcenumber, data_ALL, models_settings)
-    #     else:
-    #         RUN_AGNfitter_multiprocessing(args.ncpu, data_ALL, models_settings)
-        
         
     print ( '======= : =======')
     print ( 'Process finished.')
