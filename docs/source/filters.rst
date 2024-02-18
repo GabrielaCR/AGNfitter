@@ -15,6 +15,7 @@ Adding photometric filters
   Before adding the require filter please make sure that the filters you want to add are not already in the AGNfitter library. The filters are listed in the file >>file
 
 To add new filters you can follow these steps:
+
 - Find the transfer functions of the filters you want to add (e.g. here http://svo2.cab.inta-csic.es/theory/fps/ ) and check that the file has two columns: the first one for the wavelengths (must be in Angstroms) and the second one for the factors ( f (λ) with a maximum value of 1).
 - Add the files of each filter in the main folder (/AGNfitter/).
 - Make the following changes to the SETTINGS_AGNfitter.py file: filters[’add_filters’]= True, create a list with the
