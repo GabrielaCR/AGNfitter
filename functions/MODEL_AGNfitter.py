@@ -75,7 +75,7 @@ def GALAXY(path, modelsettings):
         GALAXYatt_dict = dict()
 
         ## Call object containing all galaxy models     
-        BC03dict = pickle.load(open(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'), encoding='latin1')    
+        BC03dict = pd.read_pickle(open(path + 'models/GALAXY/BC03_840seds.pickle', 'rb'))    
 
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
@@ -108,8 +108,8 @@ def GALAXY(path, modelsettings):
                 GALAXYFdict_4plot[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
                                                                                         np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)  
                 GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red, x=gal_nu)
                 gal_att_int = gal_Fnu_int- gal_Fnured_int
                 GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int 
 
@@ -134,8 +134,8 @@ def GALAXY(path, modelsettings):
                 GALAXYFdict_4plot[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = \
                                                                                         np.log10(gal_nu), renorm_template('GA',gal_Fnu_red)  
                 GALAXY_SFRdict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR 
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu.value[0:len(gal_nus):3], x=gal_nus.value[0:len(gal_nus):3])
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red, x=gal_nu)
                 gal_att_int = gal_Fnu_int- gal_Fnured_int
                 GALAXYatt_dict[str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
@@ -149,7 +149,7 @@ def GALAXY(path, modelsettings):
         GALAXYatt_dict = dict()
         ## Call object containing all galaxy models     
 
-        BC03dict = pickle.load(open(path + 'models/GALAXY/BC03_seds_metal_medium.pickle', 'rb'), encoding='latin1')    
+        BC03dict = pd.read_pickle(open(path + 'models/GALAXY/BC03_seds_metal_medium.pickle', 'rb'))    
 
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
@@ -185,8 +185,8 @@ def GALAXY(path, modelsettings):
 
                 gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
                 GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red*3.826e33, x=gal_nu)
                 gal_att_int = gal_Fnu_int.value - gal_Fnured_int
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
@@ -213,8 +213,8 @@ def GALAXY(path, modelsettings):
 
                 gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
                 GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red*3.826e33, x=gal_nu)
                 gal_att_int = gal_Fnu_int.value - gal_Fnured_int
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
@@ -229,7 +229,7 @@ def GALAXY(path, modelsettings):
         GALAXYatt_dict = dict()
         ## Call object containing all galaxy models     
 
-        BC03dict = pickle.load(open(path + 'models/GALAXY/BC03_metal_rxLARGE.pickle', 'rb'), encoding='latin1')    
+        BC03dict = pd.read_pickle(open(path + 'models/GALAXY/BC03_metal_rxLARGE.pickle', 'rb'))    
 
         ## specify the sizes of the array of parameter values: Here two parameters
         tau_array = BC03dict['tau-values']
@@ -265,8 +265,8 @@ def GALAXY(path, modelsettings):
 
                 gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
                 GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red*3.826e33, x=gal_nu)
                 gal_att_int = gal_Fnu_int.value - gal_Fnured_int
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
@@ -293,8 +293,8 @@ def GALAXY(path, modelsettings):
 
                 gal_SFR= BC03dict['SFR'][metali,agei,taui,:,:].squeeze()
                 GALAXY_SFRdict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei]))] = gal_SFR         
-                gal_Fnu_int = scipy.integrate.trapz(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
-                gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+                gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu[0:len(gal_nus):3]*3.826e33, x=gal_nu)
+                gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red*3.826e33, x=gal_nu)
                 gal_att_int = gal_Fnu_int.value - gal_Fnured_int
                 GALAXYatt_dict[str(metal_array[metali]),str(tau_array.value[taui]),str(np.log10(age_array.value[agei])), str(ebvgal_array[ebvi])] = gal_att_int
 
@@ -314,7 +314,7 @@ def STARBURST(path, modelsettings):
         STARBURST_LIRdict = dict()
 
         #Call object containing all starburst models     
-        DH02CE01dict = pickle.load(open(path + 'models/STARBURST/DH02_CE01.pickle', 'rb'), encoding='latin1') 
+        DH02CE01dict = pd.read_pickle(open(path + 'models/STARBURST/DH02_CE01.pickle', 'rb')) 
         irlumidx = len(DH02CE01dict['SED'])
 
         #Construct dictionaries 
@@ -549,7 +549,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()
-        R06dict = pickle.load(open(path + 'models/BBB/R06.pickle', 'rb'), encoding='latin1') 
+        R06dict = pd.read_pickle(open(path + 'models/BBB/R06.pickle', 'rb')) 
         bbb_nu, bbb_Fnu = R06dict['wavelength'], R06dict['SED'].squeeze()
 
         BBB_functions = BBBfunctions()
@@ -650,7 +650,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()     
-        SN12dict = pickle.load(open(path + 'models/BBB/SN12.pickle', 'rb'), encoding='latin1') 
+        SN12dict = pd.read_pickle(open(path + 'models/BBB/SN12.pickle', 'rb')) 
         Mbh_array = SN12dict['logBHmass-values']
         EddR_array = SN12dict['logEddra-values']   
         _, Mbhidx, EddRidx =  np.shape(SN12dict['SED'])
@@ -770,7 +770,7 @@ def BBB(path, modelsettings, nXRaysdata):
         model_functions = [0]
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
-        KD18dict = pickle.load(open(path + 'models/BBB/KD18.pickle', 'rb'), encoding='latin1')    
+        KD18dict = pd.read_pickle(open(path + 'models/BBB/KD18.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra','EBVbbb']
         parameters_types =['grid', 'grid', 'free']
 
@@ -813,7 +813,7 @@ def BBB(path, modelsettings, nXRaysdata):
         model_functions = [0]
         BBBFdict_4plot = dict()
         ## Call file containing all galaxy models     
-        KD18dict = pickle.load(open(path + 'models/BBB/KD18_warmInd.pickle', 'rb'), encoding='latin1')    
+        KD18dict = pd.read_pickle(open(path + 'models/BBB/KD18_warmInd.pickle', 'rb'))    
         parameters_names =['logBHmass', 'logEddra', 'warmIndex', 'EBVbbb']
         parameters_types =['grid', 'grid', 'grid', 'free']
 
@@ -856,7 +856,7 @@ def BBB(path, modelsettings, nXRaysdata):
 
         model_functions = [0]
         BBBFdict_4plot = dict()
-        THB21dict = pickle.load(open(path + 'models/BBB/THB21.pickle', 'rb'), encoding='latin1') #THB21_new.pickle
+        THB21dict = pd.read_pickle(open(path + 'models/BBB/THB21.pickle', 'rb')) #THB21_new.pickle
         bbb_nu, bbb_Fnu = THB21dict['nu'].values.item(), THB21dict['SED'].values.item()
         BBB_functions = BBBfunctions()
 
@@ -965,7 +965,7 @@ def TORUS(path, modelsettings):
 
         TORUSFdict_4plot  = dict()
         #Call object containing all torus models     
-        S04dict = pickle.load(open(path + 'models/TORUS/S04.pickle', 'rb'), encoding='latin1') 
+        S04dict = pd.read_pickle(open(path + 'models/TORUS/S04.pickle', 'rb')) 
         nhidx=len(S04dict['SED'])
         #Construct dictionaries 
         for nhi in range(nhidx):
@@ -984,7 +984,7 @@ def TORUS(path, modelsettings):
         
         TORUSFdict_4plot  = dict()
 
-        NK0dict = pickle.load(open(path + 'models/TORUS/NK0_mean_1p.pickle', 'rb'), encoding='latin1')  
+        NK0dict = pd.read_pickle(open(path + 'models/TORUS/NK0_mean_1p.pickle', 'rb'))  
         incl_idx=len(NK0dict['SED']) 
         #Construct dictionaries 
         for incl_i in range(incl_idx): 
@@ -1002,7 +1002,7 @@ def TORUS(path, modelsettings):
         # Nenkova model with averaged SEDs for each inclination and openning angle (2 parameters)
         TORUSFdict_4plot  = dict()
 
-        NK0_2Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_2p.pickle', 'rb'), encoding='latin1')  
+        NK0_2Pdict = pd.read_pickle(open(path + 'models/TORUS/NK0_mean_2p.pickle', 'rb'))  
         
         oa_array = NK0_2Pdict['oa-values'].unique()
         incl_array = NK0_2Pdict['incl-values'].unique()
@@ -1027,7 +1027,7 @@ def TORUS(path, modelsettings):
         # Nenkova model with averaged SEDs for each inclination, openning angle and optical depth (3 parameters)
 
         TORUSFdict_4plot  = dict()
-        NK0_3Pdict = pickle.load(open(path + 'models/TORUS/NK0_mean_3p.pickle', 'rb'), encoding='latin1')  
+        NK0_3Pdict = pd.read_pickle(open(path + 'models/TORUS/NK0_mean_3p.pickle', 'rb'))  
         
         oa_array = NK0_3Pdict['oa-values'].unique()
         incl_array = NK0_3Pdict['incl-values'].unique()
@@ -1055,7 +1055,7 @@ def TORUS(path, modelsettings):
         # SKIRTOR model with averaged SEDs for each inclination (the only parameter)
         TORUSFdict_4plot  = dict()
 
-        SKIRTORMdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_1p.pickle', 'rb'), encoding='latin1')  
+        SKIRTORMdict = pd.read_pickle(open(path + 'models/TORUS/SKIRTOR_mean_1p.pickle', 'rb'))  
         incl_array = SKIRTORMdict['incl-values']
         #Construct dictionaries 
         for incl_i in incl_array: 
@@ -1071,7 +1071,7 @@ def TORUS(path, modelsettings):
         # SKIRTOR model with averaged SEDs for each inclination and openning angle (2 parameters)
         TORUSFdict_4plot  = dict()
 
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_2p.pickle', 'rb'), encoding='latin1')  
+        SKIRTORdict = pd.read_pickle(open(path + 'models/TORUS/SKIRTOR_mean_2p.pickle', 'rb'))  
         
         oa_array = SKIRTORdict['oa-values'].unique()
         incl_array = SKIRTORdict['incl-values'].unique()
@@ -1096,7 +1096,7 @@ def TORUS(path, modelsettings):
         # SKIRTOR model with averaged SEDs for each inclination, openning angle and optical depth (3 parameters)
         TORUSFdict_4plot  = dict()
 
-        SKIRTORdict = pickle.load(open(path + 'models/TORUS/SKIRTOR_mean_3p.pickle', 'rb'), encoding='latin1')  
+        SKIRTORdict = pd.read_pickle(open(path + 'models/TORUS/SKIRTOR_mean_3p.pickle', 'rb'))  
         
         oa_array = SKIRTORdict['oa-values'].unique()
         incl_array = SKIRTORdict['incl-values'].unique()
@@ -1124,7 +1124,7 @@ def TORUS(path, modelsettings):
         # SKIRTOR model with averaged SEDs for each inclination, openning angle, optical depth and index of power law (4 parameters)
         TORUSFdict_4plot  = dict()
 
-        CAT3Ddict = pickle.load(open(path + 'models/TORUS/CAT3D_mean_3p.pickle', 'rb'), encoding='latin1')  
+        CAT3Ddict = pd.read_pickle(open(path + 'models/TORUS/CAT3D_mean_3p.pickle', 'rb'))  
         
         incl_array = CAT3Ddict['incl-values'].unique()
         a_array = CAT3Ddict['a-values'][210: ].unique()  #Value of the 2nd set of 168 SEDs 

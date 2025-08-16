@@ -22,6 +22,7 @@ import pickle
 from astropy import units as u 
 from astropy.table import Table
 from astropy.io import ascii
+import pandas as pd
 
 
 class FILTER:
@@ -155,7 +156,7 @@ def add_newfilters(filters_objects_all_filename, ADDfilters_dict, path):
 	## Add the user's new filters 
 	else:
 		with open(filters_objects_all_filename, 'rb') as f: ## Get old set of all filters
-			filters_objects_all = pickle.load(f, encoding='latin1')
+			filters_objects_all = pd.read_pickle(f)
 		f.close()
 
 		for i in range(len(ADDfilters_dict['names'])): ## Add the new ones
@@ -201,7 +202,7 @@ def change_filters(path, old_names, new_names):
 	filters_objects_all_filename = path+ 'ALL_FILTERS'
 	## Add the user's new filters 
 	with open(filters_objects_all_filename, 'rb') as f: ## Get old set of all filters
-		filters_objects_all = pickle.load(f, encoding='latin1')
+		filters_objects_all = pd.read_pickle(f)
 	f.close()
 
 	a = open(filters_objects_all_filename, 'wb')
@@ -263,7 +264,7 @@ def create_filtersets(filters_dict, path):
 		add_newfilters(filters_objects_all_filename, ADDfilters_dict, path)	    	
 
 	a=open(filters_objects_all_filename, 'rb')
-	filters_objects_all = pickle.load(a, encoding='latin1')
+	filters_objects_all = pd.read_pickle(a)
 	filterset = FILTER_SET(filters_dict['filterset'], filters_dict, filters_objects_all)
 
 	return filterset

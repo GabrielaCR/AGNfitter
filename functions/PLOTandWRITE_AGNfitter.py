@@ -469,7 +469,7 @@ class CHAIN:
                 self.best_fit_pars = self.flatchain.iloc[idx_sorted[0]].values
 
             elif self.mc_settings['sampling_algorithm'] == 'emcee':
-                samples = pickle.load(f, encoding='latin1')
+                samples = pd.read_pickle(f)
                 f.close()
                 self.chain = samples['chain']
                 nwalkers, nsamples, npar = samples['chain'].shape
@@ -890,12 +890,12 @@ class FLUXES_ARRAYS:
                     Lnuga = nuLnuga[:,index] / all_nus_rest_int
                     if (out['intlum_models'][m] == 'AGNfrac_rad') or (out['intlum_models'][m] == 'AGNfrac1-10GHz') or (out['intlum_models'][m] == 'AGNfrac10-30GHz') or (out['intlum_models'][m] == 'AGNfrac50-200GHz'):
                         Lnurad = nuLnurad[:,index] / all_nus_rest_int
-                        Lnurad_int = scipy.integrate.trapz(Lnurad, x=all_nus_rest_int)
+                        Lnurad_int = scipy.integrate.trapezoid(Lnurad, x=all_nus_rest_int)
                     Lnubb = nuLnubb[:,index] / all_nus_rest_int
-                    Lnuto_int = scipy.integrate.trapz(Lnuto, x=all_nus_rest_int)
-                    Lnusb_int = scipy.integrate.trapz(Lnusb, x=all_nus_rest_int)
-                    Lnuga_int = scipy.integrate.trapz(Lnuga, x=all_nus_rest_int)
-                    Lnubb_int = scipy.integrate.trapz(Lnubb, x=all_nus_rest_int)
+                    Lnuto_int = scipy.integrate.trapezoid(Lnuto, x=all_nus_rest_int)
+                    Lnusb_int = scipy.integrate.trapezoid(Lnusb, x=all_nus_rest_int)
+                    Lnuga_int = scipy.integrate.trapezoid(Lnuga, x=all_nus_rest_int)
+                    Lnubb_int = scipy.integrate.trapezoid(Lnubb, x=all_nus_rest_int)
 
                     if out['intlum_models'][m] == 'AGNfrac_IR':                
                         AGNfrac = (Lnuto_int)/(Lnuto_int+Lnusb_int) 
@@ -958,7 +958,7 @@ class FLUXES_ARRAYS:
                     index  = ((all_nus_rest >= np.log10(out['intlum_freqranges'][m][1].value)) & (all_nus_rest<= np.log10(out['intlum_freqranges'][m][0].value)))            
                     all_nus_rest_int = 10**(all_nus_rest[index])
                     Lnu = nuLnu[:,index] / all_nus_rest_int
-                    Lnu_int = scipy.integrate.trapz(Lnu, x=all_nus_rest_int)
+                    Lnu_int = scipy.integrate.trapezoid(Lnu, x=all_nus_rest_int)
                     int_lums.append(Lnu_int)
 
         return np.array(int_lums)

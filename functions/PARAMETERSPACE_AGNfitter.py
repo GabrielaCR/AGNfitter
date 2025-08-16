@@ -15,7 +15,7 @@ It contains:
 from __future__ import division
 import numpy as np
 import time
-from collections import Iterable
+from collections.abc import Iterable
 import itertools
 import pickle
 from . import PRIORS_AGNfitter as priors
@@ -276,7 +276,7 @@ def get_best_position(filename, nwalkers, P):
     Npar = len(P['names']) 
     #all saved vectors    
     f = open(filename, 'rb')
-    samples = pickle.load(f)
+    samples = pd.read_pickle(f)
     f.close()
 
     #index for the largest likelihood     

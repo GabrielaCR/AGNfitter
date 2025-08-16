@@ -26,7 +26,7 @@ Requirements
 * Astropy 
 * emcee
 * ultranest
-* 
+* acor
 
 Installation
 ----------------

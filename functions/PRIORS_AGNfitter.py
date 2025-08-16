@@ -87,8 +87,8 @@ def prior_energy_balance(data, GALAXYatt_dict, GALAXYFdict, gal_obj, GA, STARBUR
         rest_bands = bands + np.log10((1+data.z))                               #Pass to rest frame
         bandsf, Fnuf = f(10**rest_bands, gal_Fnu*1e18, gal_obj.matched_parkeys[-1])  #bandsf not in log form, apply reddening
         gal_nu, gal_Fnu_red = bandsf/(1+data.z), Fnuf                           #Pass to observed frame
-        gal_Fnu_int = scipy.integrate.trapz(gal_Fnu*3.826e33, x=gal_nu)          
-        gal_Fnured_int = scipy.integrate.trapz(gal_Fnu_red*3.826e33, x=gal_nu)
+        gal_Fnu_int = scipy.integrate.trapezoid(gal_Fnu*3.826e33, x=gal_nu)          
+        gal_Fnured_int = scipy.integrate.trapezoid(gal_Fnu_red*3.826e33, x=gal_nu)
         gal_att_int = gal_Fnu_int - gal_Fnured_int
         Lgal_att = abs(gal_att_int * 10**(GA))                                       #Calculate the attenuated luminosity
 

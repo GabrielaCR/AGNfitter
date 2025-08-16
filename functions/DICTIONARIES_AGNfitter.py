@@ -18,7 +18,7 @@ import sys,os
 import numpy as np
 from . import MODEL_AGNfitter as model
 from . import FILTERS_AGNfitter as filterpy
-from scipy.integrate  import trapz
+from scipy.integrate  import trapezoid
 from scipy.interpolate import interp1d
 import time
 import pickle 
@@ -67,7 +67,7 @@ class MODELSDICT:
         self.filters_list = a
 
         if os.path.lexists(filename):
-            self.fo = pickle.load(open(filename, 'rb'))
+            self.fo = pd.read_pickle(open(filename, 'rb'))
             self.filters = self.fo.filternames
             self.filterset_name = self.fo.name
         else:
@@ -467,8 +467,8 @@ def filtering_models( model_nus, model_fluxes, filterdict, z ):
         modelfluxes_at_filterlambdas = mod2filter_interpol(lambdas_filter)
         # Compute the flux ratios, equivalent to the filtered fluxes: 
         # F = int(model)/int(filter)
-        integral_model = trapz(modelfluxes_at_filterlambdas*factors_filter, x= lambdas_filter)
-        integral_filter = trapz(factors_filter, x= lambdas_filter)     
+        integral_model = trapezoid(modelfluxes_at_filterlambdas*factors_filter, x= lambdas_filter)
+        integral_filter = trapezoid(factors_filter, x= lambdas_filter)     
         filtered_modelF_lambda = (integral_model/integral_filter)
 
         # Convert all from lambda, F_lambda  to Fnu and nu    

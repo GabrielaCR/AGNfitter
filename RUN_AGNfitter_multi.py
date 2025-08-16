@@ -29,6 +29,7 @@ import multiprocessing as mp
 import itertools
 import pickle
 import argparse
+import pandas as pd
 
 
 #AGNfitter IMPORTS
@@ -102,7 +103,7 @@ def MAKE_model_dictionary(cat_settings, filters_settings, models_settings, clobb
 
     else: ## If model dictionary exists and you want to reuseit
 
-        mydict = pickle.load(open(modelsdict_name, 'rb'))
+        mydict = pd.read_pickle(open(modelsdict_name, 'rb'))
 
         print ( '________________________')
         print ( 'MODELS DICTIONARY currently in use:')
@@ -190,7 +191,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
         print('Done')
         dictz = str.encode(dictz)  
         with open(dictz, 'rb') as f:
-            zdict = pickle.load(f, encoding='latin1')
+            zdict = pd.read_pickle(f)
         Modelsdictz = zdict
         models.DICTS(filtersz, Modelsdictz)
         P = parspace.Pdict (data, models)
@@ -210,7 +211,7 @@ def RUN_AGNfitter_onesource_independent( line, data_obj, filtersz, models_settin
             else:
                 dictz = str.encode(dictz)
                 with open(dictz, 'rb') as f:
-                    zdict = pickle.load(f, encoding='latin1')
+                    zdict = pd.read_pickle(f)
             
             Modelsdictz = zdict
 
@@ -306,6 +307,7 @@ if __name__ == "__main__":
 
     data_ALL = DATA_all(cat_settings, filters_settings)
     data_ALL.PROPS()
+    nsources = data_ALL.cat['nsources']
 
     ## make sure the output paths exist
     if not os.path.isdir(cat_settings['output_folder']):
@@ -327,7 +329,7 @@ if __name__ == "__main__":
         elif args.sourcenumber >= 0:
             RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
         else:
-            for i in range(0, 110, 1):
+            for i in range(0, nsources, 1):
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
             
     else:
@@ -340,7 +342,7 @@ if __name__ == "__main__":
         elif args.sourcenumber >= 0:
             RUN_AGNfitter_onesource_independent(args.sourcenumber, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
         else:
-            for i in range(0, 110, 1):
+            for i in range(0, nsources, 1):
                 RUN_AGNfitter_onesource_independent(i, data_ALL, filters_settings, models_settings, mc_settings, clobbermodel=clobbermodel)
        
         

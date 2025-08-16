@@ -51,7 +51,7 @@ class DATA_all:
             ### read catalog columns
             # It's necessary to read redshift as decimal.Decimal object because of the representation as a binary floating point number 
             # (python add digits to some values of z)
-            column = pd.read_csv(self.catalog, delim_whitespace=True, decimal=".", skiprows = 0, converters = {'z':decimal.Decimal}) 
+            column = pd.read_csv(self.catalog, sep='\s+', decimal=".", skiprows = 0, converters = {'z':decimal.Decimal}) 
 
             ### properties
             self.name = column.iloc[:, self.cat['name']]
@@ -100,9 +100,9 @@ class DATA_all:
                     np.array([column.iloc[:, c] for c in self.cat['freq/wl_list']])* self.cat['freq/wl_unit'] 
             
             flux_cat_ALL =\
-                np.array(column.iloc[:, self.cat['flux_list']]).astype(np.float) *self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['flux_list']]).astype(float) *self.cat['flux_unit']
             fluxerr_cat_ALL = \
-                np.array(column.iloc[:, self.cat['fluxerr_list']]).astype(np.float)*self.cat['flux_unit']
+                np.array(column.iloc[:, self.cat['fluxerr_list']]).astype(float)*self.cat['flux_unit']
             if self.cat['ndflag_bool'] == True: 
                 ndflag_cat_ALL = np.array(column.iloc[:, self.cat['ndflag_list']])
 
@@ -254,9 +254,9 @@ class DATA_all:
                 freq_wl_cat_ALL = \
                                 np.array([fitstable[c] for c in wl_cols])* self.cat['freq/wl_unit'] 
             flux_cat_ALL =\
-                np.array([fitstable[ca] for ca in  flux_cols ]).astype(np.float)*self.cat['flux_unit']
+                np.array([fitstable[ca] for ca in  flux_cols ]).astype(float)*self.cat['flux_unit']
             fluxerr_cat_ALL = \
-                np.array([fitstable[ce] for ce in flux_err_cols ]).astype(np.float)*self.cat['flux_unit']
+                np.array([fitstable[ce] for ce in flux_err_cols ]).astype(float)*self.cat['flux_unit']
             if self.cat['ndflag_bool'] == True: 
                 ndflag_cat_ALL = np.array(fitstable[self.cat['ndflag_list']])
 
